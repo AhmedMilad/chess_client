@@ -16,8 +16,11 @@ export default function LoginForm() {
 
         try {
             const response = await axios.post("http://127.0.0.1:8080/api/login", payload);
-            console.log("SignUp successful:", response.status);
-            console.log("SignUp successful:", response.data);
+            if (response.status === 200) {
+                localStorage.setItem("token", response.data['data']);
+                console.log(`token: ${response.data}`)
+            }
+
         } catch (error) {
             console.error("SignUp error:", error.response?.data || error.message);
         }
