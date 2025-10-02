@@ -431,6 +431,222 @@ export default function ChessBoard({ size = 500 }) {
             return newMoves
         }
 
+        function getHorizontalThreat(row, col, board, targets = []) {
+            let newMoves = []
+            let curMoves = []
+            let newCol = col
+            while (newCol < 7) {
+                newCol++
+                if (board[row][newCol] === null) {
+                    curMoves.push([row, newCol]);
+                } else {
+                    if (targets.includes(board[row][newCol].name)) {
+                        curMoves.push([row, newCol]);
+                        newMoves = newMoves.concat(curMoves)
+                    }
+                    break;
+                }
+            }
+            curMoves = []
+            newCol = col
+            while (newCol > 0) {
+                newCol--
+                if (board[row][newCol] === null) {
+                    curMoves.push([row, newCol]);
+                } else {
+                    if (targets.includes(board[row][newCol].name)) {
+                        curMoves.push([row, newCol]);
+                        newMoves = newMoves.concat(curMoves)
+                    }
+                    break;
+                }
+            }
+            return newMoves
+        }
+
+        function getVerticalThreat(row, col, board, targets = []) {
+            let newMoves = []
+            let curMoves = []
+            let newRow = row
+            while (newRow < 7) {
+                newRow++
+                if (board[newRow][col] === null) {
+                    curMoves.push([newRow, col]);
+                } else {
+                    if (targets.includes(board[newRow][col].name)) {
+                        curMoves.push([newRow, col]);
+                        newMoves = newMoves.concat(curMoves)
+                    }
+                    break;
+                }
+            }
+            curMoves = []
+            newRow = row
+            while (newRow > 0) {
+                newRow--
+                if (board[newRow][col] === null) {
+                    curMoves.push([newRow, col]);
+                } else {
+                    if (targets.includes(board[newRow][col].name)) {
+                        curMoves.push([newRow, col]);
+                        newMoves = newMoves.concat(curMoves)
+                    }
+                    break;
+                }
+            }
+            return newMoves
+        }
+
+        function getPawnThreat(row, col, board, target) {
+            const directions = [
+                [-1, -1], [-1, 1],
+                [1, -1], [1, 1]
+            ];
+
+            const newMoves = [];
+            directions.forEach(([dr, dc]) => {
+                const newRow = row + dr;
+                const newCol = col + dc;
+                if (
+                    newRow >= 0 && newRow <= 7 &&
+                    newCol >= 0 && newCol <= 7
+                ) {
+                    const piece = board[newRow][newCol];
+                    if (piece && piece.name === target) {
+                        newMoves.push([newRow, newCol]);
+                    }
+                }
+            });
+
+            return newMoves;
+        }
+
+        function getMainDiagonalThreat(row, col, board, targets = []) {
+            let newMoves = []
+            let curMoves = []
+            let newCol = col
+            let newRow = row
+            while (newCol < 7 && newRow < 7) {
+                newCol++
+                newRow++
+                if (board[newRow][newCol] === null) {
+                    curMoves.push([newRow, newCol]);
+                } else {
+                    if (targets.includes(board[newRow][newCol].name)) {
+                        curMoves.push([newRow, newCol]);
+                        newMoves = newMoves.concat(curMoves)
+                    }
+                    break;
+                }
+            }
+            newCol = col
+            newRow = row
+            curMoves = []
+            while (newCol > 0 && newRow > 0) {
+                newCol--
+                newRow--
+                if (board[newRow][newCol] === null) {
+                    curMoves.push([newRow, newCol]);
+                } else {
+                    if (targets.includes(board[newRow][newCol].name)) {
+                        curMoves.push([newRow, newCol]);
+                        newMoves = newMoves.concat(curMoves)
+                    }
+                    break;
+                }
+            }
+            return newMoves
+        }
+
+        function getAntiDiagonalThreat(row, col, board, targets = []) {
+            let newMoves = []
+            let curMoves = []
+            let newCol = col
+            let newRow = row
+            while (newCol < 7 && newRow > 0) {
+                newCol++
+                newRow--
+                if (board[newRow][newCol] === null) {
+                    curMoves.push([newRow, newCol]);
+                } else {
+                    if (targets.includes(board[newRow][newCol].name)) {
+                        curMoves.push([newRow, newCol]);
+                        newMoves = newMoves.concat(curMoves);
+                    }
+                    break;
+                }
+            }
+            newCol = col
+            newRow = row
+            curMoves = []
+            while (newRow < 7 && newCol > 0) {
+                newCol--
+                newRow++
+                if (board[newRow][newCol] === null) {
+                    curMoves.push([newRow, newCol]);
+                } else {
+                    if (targets.includes(board[newRow][newCol].name)) {
+                        curMoves.push([newRow, newCol]);
+                        newMoves = newMoves.concat(curMoves);
+                    }
+                    break;
+                }
+            }
+            return newMoves
+        }
+
+        function getKingThreatMoves(target, board) {
+            let kingRow = 0;
+            let kingCol = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (board[row][col] !== null && board[row][col].name === target) {
+                        kingRow = row
+                        kingCol = col
+                    }
+                }
+            }
+            //TODO king
+            let targetCol
+            if (target[0] === "w") {
+                targetCol = "b"
+            } else {
+                targetCol = "w"
+            }
+            let rook = targetCol + "r", bishop = targetCol + "b", queen = targetCol + "q", knight = targetCol + "n", pawn = targetCol + "p"
+            let threatMoves = getVerticalThreat(kingRow, kingCol, board, [rook, queen])
+                .concat(getHorizontalThreat(kingRow, kingCol, board, [rook, queen]))
+                .concat(getMainDiagonalThreat(kingRow, kingCol, board, [bishop, queen]))
+                .concat(getAntiDiagonalThreat(kingRow, kingCol, board, [bishop, queen]))
+                .concat(getKnightThreatMoves(kingRow, kingCol, board, knight))
+                .concat(getPawnThreat(kingRow, kingCol, board, pawn))
+            return threatMoves
+        }
+
+        function getKnightThreatMoves(row, col, board, target) {
+            let threatMoves = [];
+            const directions = [
+                [-2, -1], [-2, +1],
+                [+2, -1], [+2, +1],
+                [-1, -2], [+1, -2],
+                [-1, +2], [+1, +2]
+            ];
+
+            for (let [drow, dcol] of directions) {
+                let newRow = row + drow;
+                let newCol = col + dcol;
+
+                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                    const piece = board[newRow][newCol];
+                    if (piece !== null && piece.name === target) {
+                        threatMoves.push([newRow, newCol]);
+                    }
+                }
+            }
+
+            return threatMoves;
+        }
+
         const getMousePos = (e) => {
             const rect = canvas.getBoundingClientRect();
             return {
@@ -449,52 +665,144 @@ export default function ChessBoard({ size = 500 }) {
                 setMousePos(pos);
 
                 let newMoves = [];
+                let whiteThreatMoves
+                let blackThreatMoves
+                if (piece.name[0] === "w") {
+                    whiteThreatMoves = getKingThreatMoves("wk", board)
+                } else {
+                    blackThreatMoves = getKingThreatMoves("bk", board)
+                }
+                console.log(blackThreatMoves)
                 switch (piece.name) {
                     case "wp":
                         newMoves = getWPawnMoves(row, col, piece.isMoved);
+                        if (whiteThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                whiteThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "bp":
                         newMoves = getBPawnMoves(row, col, piece.isMoved);
+                        if (blackThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                blackThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "bn":
                         newMoves = getKnightMoves(row, col, board, "w");
+                        if (blackThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                blackThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "wn":
                         newMoves = getKnightMoves(row, col, board, "b");
+                        if (whiteThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                whiteThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "bk":
                         newMoves = getKingMoves(row, col, board, "w");
+                        if (blackThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                blackThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "wk":
                         newMoves = getKingMoves(row, col, board, "b");
+                        if (whiteThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                whiteThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "br":
                         newMoves = getVerticalMoves(row, col, board, "w")
                             .concat(getHorizontalMoves(row, col, board, "w"))
+                        if (blackThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                blackThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "wr":
                         newMoves = getVerticalMoves(row, col, board, "b")
                             .concat(getHorizontalMoves(row, col, board, "b"));
+                        if (whiteThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                whiteThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "bb":
                         newMoves = getMainDiagonal(row, col, board, "w")
                             .concat(getAntiDiagonal(row, col, board, "w"));
+                        if (blackThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                blackThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "wb":
                         newMoves = getMainDiagonal(row, col, board, "b")
                             .concat(getAntiDiagonal(row, col, board, "b"));
+                        if (whiteThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                whiteThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "wq":
                         newMoves = getMainDiagonal(row, col, board, "b")
                             .concat(getAntiDiagonal(row, col, board, "b"))
                             .concat(getVerticalMoves(row, col, board, "b"))
                             .concat(getHorizontalMoves(row, col, board, "b"));
+                        if (whiteThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                whiteThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     case "bq":
                         newMoves = getMainDiagonal(row, col, board, "w")
                             .concat(getAntiDiagonal(row, col, board, "w"))
                             .concat(getVerticalMoves(row, col, board, "w"))
                             .concat(getHorizontalMoves(row, col, board, "w"));
+                        if (blackThreatMoves.length !== 0) {
+                            newMoves = newMoves.filter(element =>
+                                blackThreatMoves.some(move =>
+                                    move[0] === element[0] && move[1] === element[1]
+                                )
+                            );
+                        }
                         break;
                     default:
                         console.log("Invalid piece name");
