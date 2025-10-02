@@ -30,8 +30,8 @@ let board = [
         new Piece("br", pieceImages["br"], 5),
         new Piece("bn", pieceImages["bn"], 3),
         new Piece("bb", pieceImages["bb"], 3),
-        new Piece("bk", pieceImages["bk"], 100),
         new Piece("bq", pieceImages["bq"], 9),
+        new Piece("bk", pieceImages["bk"], 100),
         new Piece("bb", pieceImages["bb"], 3),
         new Piece("bn", pieceImages["bn"], 3),
         new Piece("br", pieceImages["br"], 5)
@@ -64,8 +64,8 @@ let board = [
         new Piece("wr", pieceImages["wr"], 5),
         new Piece("wn", pieceImages["wn"], 3),
         new Piece("wb", pieceImages["wb"], 3),
-        new Piece("wk", pieceImages["wk"], 100),
         new Piece("wq", pieceImages["wq"], 9),
+        new Piece("wk", pieceImages["wk"], 100),
         new Piece("wb", pieceImages["wb"], 3),
         new Piece("wn", pieceImages["wn"], 3),
         new Piece("wr", pieceImages["wr"], 5)
