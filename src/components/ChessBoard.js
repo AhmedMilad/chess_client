@@ -427,6 +427,7 @@ export default function ChessBoard({ size = 500 }) {
                 [1, -1],
                 [1, 1]
             ];
+
             for (let [dr, dc] of directions) {
                 let newRow = row + dr;
                 let newCol = col + dc;
@@ -435,7 +436,32 @@ export default function ChessBoard({ size = 500 }) {
                     const square = board[newRow][newCol];
                     if (square === null || square.name[0] === target) {
                         if (isSafeSquare(newRow, newCol, board, target)) {
-                            newMoves.push([newRow, newCol]);
+
+                            let validMove = true;
+                            let checkRow = row - dr;
+                            let checkCol = col - dc;
+
+                            while (checkRow >= 0 && checkRow <= 7 && checkCol >= 0 && checkCol <= 7) {
+                                const threatSquare = board[checkRow][checkCol];
+                                if (threatSquare !== null && threatSquare.name[0] === target) {
+                                    const pieceType = threatSquare.name[1];
+                                    if (Math.abs(dr) === 1 && Math.abs(dc) === 1) {
+                                        if (pieceType === 'b' || pieceType === 'q') {
+                                            validMove = false;
+                                            break;
+                                        }
+                                    } else {
+                                        if (pieceType === 'r' || pieceType === 'q') {
+                                            validMove = false;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                                checkRow -= dr;
+                                checkCol -= dc;
+                            }
+                            if (validMove) newMoves.push([newRow, newCol]);
                         }
                     }
                 }
