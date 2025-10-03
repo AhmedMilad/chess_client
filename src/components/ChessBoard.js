@@ -281,6 +281,140 @@ export default function ChessBoard({ size = 500 }) {
             return newMoves;
         }
 
+        function isSafeSquare(row, col, board, target) {
+            let newCol = col, newRow = row
+            let rook = target + "r", bishop = target + "b", queen = target + "q", knight = target + "n", pawn = target + "p"
+            while (newRow < 7) {
+                newRow++
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === rook) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newRow = row
+            while (newRow > 0) {
+                newRow--
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === rook) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newRow = row
+            while (newCol < 7) {
+                newCol++
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === rook) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newCol = col
+            while (newCol > 0) {
+                newCol--
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === rook) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newCol = col
+            while (newRow < 7 && newCol < 7) {
+                newRow++
+                newCol++
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === bishop) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newRow = row
+            newCol = col
+            while (newRow > 0 && newCol > 0) {
+                newRow--
+                newCol--
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === bishop) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newRow = row
+            newCol = col
+            while (newCol < 7 && newRow > 0) {
+                newCol++
+                newRow--
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === bishop) {
+                        return false
+                    }
+                    break
+                }
+            }
+            newRow = row
+            newCol = col
+            while (newRow > 0 && newCol < 7) {
+                newRow--
+                newCol++
+                if (board[newRow][newCol] != null) {
+                    let piece = board[newRow][newCol]
+                    if (piece.name === queen || piece.name === bishop) {
+                        return false
+                    }
+                    break
+                }
+            }
+
+            let knightMoves = [
+                [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+                [1, -2], [1, 2], [2, -1], [2, 1]
+            ]
+            for (let i = 0; i < knightMoves.length; i++) {
+                let dr = knightMoves[i][0], dc = knightMoves[i][1]
+                let r = row + dr, c = col + dc
+                if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
+                    let piece = board[r][c]
+                    if (piece != null && piece.name === knight) return false
+                }
+            }
+
+            let pawnRow = target === "w" ? row + 1 : row - 1;
+            for (let pawnCol of [col - 1, col + 1]) {
+                if (pawnRow >= 0 && pawnRow <= 7 && pawnCol >= 0 && pawnCol <= 7) {
+                    let piece = board[pawnRow][pawnCol];
+                    if (piece != null && piece.name === pawn) return false;
+                }
+            }
+            let king = target + "k";
+            const kingMoves = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1], [0, 1],
+                [1, -1], [1, 0], [1, 1]
+            ];
+            for (let [dr, dc] of kingMoves) {
+                let r = row + dr, c = col + dc;
+                if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
+                    let piece = board[r][c];
+                    if (piece != null && piece.name === king) return false;
+                }
+            }
+            return true
+        }
+
         function getKingMoves(row, col, board, target) {
             let newMoves = [];
             const directions = [
@@ -300,7 +434,9 @@ export default function ChessBoard({ size = 500 }) {
                 if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
                     const square = board[newRow][newCol];
                     if (square === null || square.name[0] === target) {
-                        newMoves.push([newRow, newCol]);
+                        if (isSafeSquare(newRow, newCol, board, target)) {
+                            newMoves.push([newRow, newCol]);
+                        }
                     }
                 }
             }
@@ -649,9 +785,9 @@ export default function ChessBoard({ size = 500 }) {
 
         function getPinMoves(row, col, board) {
             let pinMoves = getMainDiagonalPinMoves(row, col, board)
-            .concat(getAntiDiagonalPinMoves(row, col, board))
-            .concat(getHorizontalPinMoves(row, col, board))
-            .concat(getVerticalPinMoves(row, col, board))
+                .concat(getAntiDiagonalPinMoves(row, col, board))
+                .concat(getHorizontalPinMoves(row, col, board))
+                .concat(getVerticalPinMoves(row, col, board))
             return pinMoves
         }
 
@@ -879,7 +1015,6 @@ export default function ChessBoard({ size = 500 }) {
                 } else {
                     blackThreatMoves = getKingThreatMoves("bk", board)
                 }
-                console.log(blackThreatMoves)
                 switch (piece.name) {
                     case "wp":
                         newMoves = getWPawnMoves(row, col, piece.isMoved);
@@ -951,37 +1086,9 @@ export default function ChessBoard({ size = 500 }) {
                         break;
                     case "bk":
                         newMoves = getKingMoves(row, col, board, "w");
-                        if (blackThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                blackThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
                         break;
                     case "wk":
                         newMoves = getKingMoves(row, col, board, "b");
-                        if (whiteThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                whiteThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
                         break;
                     case "br":
                         newMoves = getVerticalMoves(row, col, board, "w")
