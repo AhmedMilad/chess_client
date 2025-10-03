@@ -206,22 +206,22 @@ export default function ChessBoard({ size = 500 }) {
                 if (!isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
             }
             if (col > 0) {
-                if (board[row][col - 1] !== null) {
+                if (board[row][col - 1] !== null && board[row][col - 1].name[0] !== board[row][col].name[0]) {
                     if (board[row][col - 1].isEnpassant) {
                         newMoves.push([row - 1, col - 1]);
                     }
                 }
-                if (row > 0 && board[row - 1][col - 1] !== null && board[row - 1][col - 1].name[0] === "b") {
+                if (row > 0 && board[row - 1][col - 1] !== null && board[row - 1][col - 1].name[0] !== board[row][col].name[0]) {
                     newMoves.push([row - 1, col - 1]);
                 }
             }
             if (col < 7) {
-                if (board[row][col + 1] !== null) {
+                if (board[row][col + 1] !== null && board[row][col + 1].name[0] !== board[row][col].name[0]) {
                     if (board[row][col + 1].isEnpassant) {
                         newMoves.push([row - 1, col + 1]);
                     }
                 }
-                if (row > 0 && board[row - 1][col + 1] !== null && board[row - 1][col + 1].name[0] === "b") {
+                if (row > 0 && board[row - 1][col + 1] !== null && board[row - 1][col + 1].name[0] !== board[row][col].name[0]) {
                     newMoves.push([row - 1, col + 1]);
                 }
             }
@@ -236,21 +236,21 @@ export default function ChessBoard({ size = 500 }) {
             }
             if (col > 0) {
                 if (board[row][col - 1] !== null) {
-                    if (board[row][col - 1].isEnpassant) {
+                    if (board[row][col - 1].name[0] !== board[row][col].name[0] && board[row][col - 1].isEnpassant) {
                         newMoves.push([row + 1, col - 1]);
                     }
                 }
-                if (row < 7 && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] === "w") {
+                if (row < 7 && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] !== board[row][col].name[0]) {
                     newMoves.push([row + 1, col - 1]);
                 }
             }
             if (col < 7) {
-                if (board[row][col + 1] !== null) {
+                if (board[row][col + 1] !== null && board[row][col + 1] !== board[row][col].name[0]) {
                     if (board[row][col + 1].isEnpassant) {
                         newMoves.push([row + 1, col + 1]);
                     }
                 }
-                if (row < 7 && board[row + 1][col + 1] !== null && board[row + 1][col + 1].name[0] === "w") {
+                if (row < 7 && board[row + 1][col + 1] !== null && board[row + 1][col + 1].name[0] !== board[row][col].name[0]) {
                     newMoves.push([row + 1, col + 1]);
                 }
             }
@@ -823,16 +823,16 @@ export default function ChessBoard({ size = 500 }) {
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
-            if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
-                for (let row = 0; row < rows; row++) {
-                    for (let col = 0; col < cols; col++) {
-                        if (board[row][col] !== null) {
-                            board[row][col].isEnpassant = false;
+            if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+                if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
+                    for (let row = 0; row < rows; row++) {
+                        for (let col = 0; col < cols; col++) {
+                            if (board[row][col] !== null) {
+                                board[row][col].isEnpassant = false;
+                            }
                         }
                     }
                 }
-            }
-            if (moves.some(([r, c]) => r === newRow && c === newCol)) {
                 board[draggingPiece.row][draggingPiece.col] = null;
                 draggingPiece.piece.isMoved = true;
                 if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
