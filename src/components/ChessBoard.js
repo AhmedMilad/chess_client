@@ -466,6 +466,45 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 }
             }
+            let king = board[row][col]
+            if (!king.isMoved) {
+                let newCol = col
+                let exists = newMoves.some(move =>
+                    move[0] === row && move[1] === col - 1
+                );
+                if (exists) {
+                    while (newCol > 0) {
+                        newCol--
+                        let piece = board[row][newCol]
+                        if (piece != null) {
+                            if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
+                                if (isSafeSquare(row, col - 2, board, target)) {
+                                    newMoves.push([row, col - 2]);
+                                }
+                            }
+                            break
+                        }
+                    }
+                }
+                newCol = col
+                exists = newMoves.some(move =>
+                    move[0] === row && move[1] === col + 1
+                );
+                if (exists) {
+                    while (newCol < 7) {
+                        newCol++
+                        let piece = board[row][newCol]
+                        if (piece != null) {
+                            if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
+                                if (isSafeSquare(row, col + 2, board, target)) {
+                                    newMoves.push([row, col + 2]);
+                                }
+                            }
+                            break
+                        }
+                    }
+                }
+            }
             return newMoves;
         }
 
@@ -1259,6 +1298,21 @@ export default function ChessBoard({ size = 500 }) {
                 }
                 board[draggingPiece.row][draggingPiece.col] = null;
                 draggingPiece.piece.isMoved = true;
+                if (draggingPiece.piece.name[1] === 'k') {
+                    let dc = newCol - draggingPiece.col;
+                    if (Math.abs(dc) === 2) {
+                        if (dc > 0) {
+                            [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
+                                [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
+                            board[draggingPiece.row][newCol - 1].isMoved = true
+                        } else {
+                            [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
+                                [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
+                            board[draggingPiece.row][newCol + 1].isMoved = true
+                        }
+                    }
+                }
+
                 if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
                     if (draggingPiece.col !== newCol) {
                         if (board[newRow][newCol] === null) {
