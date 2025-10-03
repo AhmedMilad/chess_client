@@ -367,9 +367,9 @@ export default function ChessBoard({ size = 500 }) {
             }
             newRow = row
             newCol = col
-            while (newRow > 0 && newCol < 7) {
-                newRow--
-                newCol++
+            while (newCol > 0 && newRow < 7) {
+                newRow++
+                newCol--
                 if (board[newRow][newCol] != null) {
                     let piece = board[newRow][newCol]
                     if (piece.name === queen || piece.name === bishop) {
