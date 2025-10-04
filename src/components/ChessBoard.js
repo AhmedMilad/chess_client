@@ -22,6 +22,7 @@ class Piece {
         this.weight = weight;
         this.isEnpassant = false;
         this.isMoved = false;
+        this.isPlayable = false
     }
 }
 
@@ -72,9 +73,24 @@ let board = [
     ],
 ];
 
+const rotateMatrix180C = source => {
+    const M = source.length;
+    const N = source[0].length;
+    let destination = new Array(N);
+    for (let i = 0; i < N; i++) {
+        destination[i] = new Array(M);
+    }
+    for (let i = 0; i < N; i++) {
+        for (let j = 0; j < M; j++) {
+            destination[i][j] = source[M - j - 1][i];
+        }
+    } return destination;
+};
+
 export default function ChessBoard({ size = 500 }) {
     const canvasRef = useRef(null);
     const [images, setImages] = useState({});
+    const [loaded, setLoaded] = useState(false);
     const [draggingPiece, setDraggingPiece] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [moves, setMoves] = useState([]);
@@ -85,6 +101,36 @@ export default function ChessBoard({ size = 500 }) {
     const lightColor = "#f0d9b5";
     const darkColor = "#b58863";
     const imageScale = 0.75;
+
+    let isBlack = true
+
+    if (isBlack) {
+        if (!loaded) {
+            board = rotateMatrix180C(board)
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    let piece = board[row][col]
+                    if (piece != null && piece.name[0] === 'b') {
+                        piece.isPlayable = true;
+                    }
+                }
+            }
+        }
+    } else if (!loaded) {
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                let piece = board[row][col]
+                if (piece != null && piece.name[0] === 'w') {
+                    piece.isPlayable = true;
+                }
+            }
+        }
+    }
+
+    useEffect(() => {
+        setLoaded(true)
+    }, []);
+
 
     useEffect(() => {
         const loadedImages = {};
@@ -118,11 +164,22 @@ export default function ChessBoard({ size = 500 }) {
             ctx.fillStyle = "#000";
             ctx.font = `${cellSize / 5}px Arial`;
             ctx.textBaseline = "top";
-            for (let i = 0; i < cols; i++) {
-                ctx.fillText(String.fromCharCode(97 + i), i * cellSize + 4, size - cellSize / 5 - 2);
-            }
-            for (let i = 0; i < rows; i++) {
-                ctx.fillText(String(8 - i), 2, i * cellSize + 2);
+
+            if (!isBlack) {
+                for (let i = 0; i < cols; i++) {
+                    ctx.fillText(String.fromCharCode(97 + i), i * cellSize + 4, size - cellSize / 5 - 2);
+                }
+                for (let i = 0; i < rows; i++) {
+                    ctx.fillText(String(8 - i), size - cellSize / 5 - 2, i * cellSize + 2);
+                }
+
+            } else {
+                for (let i = 0; i < cols; i++) {
+                    ctx.fillText(String.fromCharCode(97 + (7 - i)), i * cellSize + 4, size - cellSize / 5 - 2);
+                }
+                for (let i = 0; i < rows; i++) {
+                    ctx.fillText(String(i + 1), 2, i * cellSize + 2);
+                }
             }
 
             ctx.fillStyle = "rgba(0, 0, 255, 0.3)";
@@ -190,7 +247,7 @@ export default function ChessBoard({ size = 500 }) {
                 );
             }
         },
-        [cellSize, size, images, draggingPiece, mousePos, moves]
+        [cellSize, size, images, draggingPiece, mousePos, moves, isBlack]
     );
 
     useEffect(() => {
@@ -1082,7 +1139,11 @@ export default function ChessBoard({ size = 500 }) {
                 }
                 switch (piece.name) {
                     case "wp":
-                        newMoves = getWPawnMoves(row, col, piece.isMoved);
+                        if (piece.isPlayable) {
+                            newMoves = getWPawnMoves(row, col, piece.isMoved);
+                        } else {
+                            newMoves = getBPawnMoves(row, col, piece.isMoved);
+                        }
                         if (whiteThreatMoves.length !== 0) {
                             newMoves = newMoves.filter(element =>
                                 whiteThreatMoves.some(move =>
@@ -1099,7 +1160,11 @@ export default function ChessBoard({ size = 500 }) {
                         }
                         break;
                     case "bp":
-                        newMoves = getBPawnMoves(row, col, piece.isMoved);
+                        if (piece.isPlayable) {
+                            newMoves = getWPawnMoves(row, col, piece.isMoved);
+                        } else {
+                            newMoves = getBPawnMoves(row, col, piece.isMoved);
+                        }
                         if (blackThreatMoves.length !== 0) {
                             newMoves = newMoves.filter(element =>
                                 blackThreatMoves.some(move =>
@@ -1323,10 +1388,11 @@ export default function ChessBoard({ size = 500 }) {
                         draggingPiece.piece.isEnpassant = true
                     }
                 }
-                if (newRow === 7 && draggingPiece.piece.name === "bp") {
-                    board[newRow][newCol] = new Piece("bq", pieceImages["bq"], 9);
-                } else if (newRow === 0 && draggingPiece.piece.name === "wp") {
-                    board[newRow][newCol] = new Piece("wq", pieceImages["wq"], 9);
+                let queen = draggingPiece.piece.name[0] + "q"
+                if (newRow === 7 && !draggingPiece.piece.isPlayable) {
+                    board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                } else if (newRow === 0 && draggingPiece.piece.isPlayable) {
+                    board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                 } else {
                     board[newRow][newCol] = draggingPiece.piece;
                 }
