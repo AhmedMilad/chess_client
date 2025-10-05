@@ -1128,6 +1128,8 @@ export default function ChessBoard({ size = 500 }) {
             numberOfChecks += getAntiDiagonalCheck(kingRow, kingCol, board)
             numberOfChecks += getVerticalCheck(kingRow, kingCol, board)
             numberOfChecks += getHorizontalCheck(kingRow, kingCol, board)
+            numberOfChecks += getKnightCheck(kingRow, kingCol, board)
+            numberOfChecks += getPawnCheck(kingRow, kingCol, board)
             return numberOfChecks
         }
 
@@ -1262,6 +1264,59 @@ export default function ChessBoard({ size = 500 }) {
                     break
                 }
             }
+            return checks
+        }
+
+        function getKnightCheck(row, col, board) {
+            let king = board[row][col]
+            let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
+            let knight = targetCol + 'n'
+            let checks = 0
+
+            let knightMoves = [
+                [-2, -1], [-2, +1],
+                [-1, -2], [-1, +2],
+                [+1, -2], [+1, +2],
+                [+2, -1], [+2, +1]
+            ]
+
+            for (let [dr, dc] of knightMoves) {
+                let newRow = row + dr
+                let newCol = col + dc
+                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                    let piece = board[newRow][newCol]
+                    if (piece && piece.name === knight) {
+                        checks++
+                    }
+                }
+            }
+
+            return checks
+        }
+
+
+        function getPawnCheck(row, col, board) {
+            let king = board[row][col]
+            let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
+            let pawn = targetCol + 'p'
+            let checks = 0
+
+            let direction = (!king.isPlayable) ? +1 : -1
+
+            let attackSquares = [
+                [row + direction, col - 1],
+                [row + direction, col + 1]
+            ]
+
+            for (let [newRow, newCol] of attackSquares) {
+                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                    let piece = board[newRow][newCol]
+                    if (piece && piece.name === pawn) {
+                        checks++
+                    }
+                }
+            }
+
             return checks
         }
 
