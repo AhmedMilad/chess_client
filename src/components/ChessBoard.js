@@ -1571,77 +1571,78 @@ export default function ChessBoard({ size = 500 }) {
                         alert("Check mate!")
                     }
                 }
-                if (numberOfChecks === 1) {
-                    let pawn = targetCol + 'p'
-                    let queen = targetCol + 'q'
-                    let rook = targetCol + 'r'
-                    let bishop = targetCol + 'b'
-                    let knight = targetCol + 'n'
-                    let king = targetCol + 'k'
-                    let threats = getKingThreatMoves(king, board)
-                    let totalAvailableMoves = 0
+                queen = targetCol + 'q'
+                let pawn = targetCol + 'p'
+                let rook = targetCol + 'r'
+                let bishop = targetCol + 'b'
+                let knight = targetCol + 'n'
+                let king = targetCol + 'k'
+                let threats = getKingThreatMoves(king, board)
+                let totalAvailableMoves = 0
 
-                    for (let row = 0; row <= 7; row++) {
-                        for (let col = 0; col <= 7; col++) {
-                            let piece = board[row][col]
-                            if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
+                for (let row = 0; row <= 7; row++) {
+                    for (let col = 0; col <= 7; col++) {
+                        let piece = board[row][col]
+                        if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
 
-                                let antiTarget = (targetCol === 'w') ? 'b' : 'w'
-                                let pinMoves = getPinMoves(row, col, board)
-                                let moves = []
+                            let antiTarget = (targetCol === 'w') ? 'b' : 'w'
+                            let pinMoves = getPinMoves(row, col, board)
+                            let moves = []
 
-                                switch (piece.name) {
-                                    case king:
-                                        moves = getKingMoves(row, col, board, antiTarget)
-                                        break;
-                                    case queen:
-                                        moves = getMainDiagonal(row, col, board, antiTarget)
-                                            .concat(getAntiDiagonal(row, col, board, antiTarget))
-                                            .concat(getVerticalMoves(row, col, board, antiTarget))
-                                            .concat(getHorizontalMoves(row, col, board, antiTarget));
-                                        break;
-                                    case rook:
-                                        moves = getVerticalMoves(row, col, board, antiTarget)
-                                            .concat(getHorizontalMoves(row, col, board, antiTarget))
-                                        break;
-                                    case bishop:
-                                        moves = getMainDiagonal(row, col, board, antiTarget)
-                                            .concat(getAntiDiagonal(row, col, board, antiTarget));
-                                        break;
-                                    case knight:
-                                        moves = getKnightMoves(row, col, board, antiTarget);
-                                        break;
-                                    case pawn:
-                                        moves = piece.isPlayable
-                                            ? getWPawnMoves(row, col, piece.isMoved)
-                                            : getBPawnMoves(row, col, piece.isMoved);
-                                        break;
-                                    default: console.log("Invalid piece")
-                                }
+                            switch (piece.name) {
+                                case king:
+                                    moves = getKingMoves(row, col, board, antiTarget)
+                                    break;
+                                case queen:
+                                    moves = getMainDiagonal(row, col, board, antiTarget)
+                                        .concat(getAntiDiagonal(row, col, board, antiTarget))
+                                        .concat(getVerticalMoves(row, col, board, antiTarget))
+                                        .concat(getHorizontalMoves(row, col, board, antiTarget));
+                                    break;
+                                case rook:
+                                    moves = getVerticalMoves(row, col, board, antiTarget)
+                                        .concat(getHorizontalMoves(row, col, board, antiTarget))
+                                    break;
+                                case bishop:
+                                    moves = getMainDiagonal(row, col, board, antiTarget)
+                                        .concat(getAntiDiagonal(row, col, board, antiTarget));
+                                    break;
+                                case knight:
+                                    moves = getKnightMoves(row, col, board, antiTarget);
+                                    break;
+                                case pawn:
+                                    moves = piece.isPlayable
+                                        ? getWPawnMoves(row, col, piece.isMoved)
+                                        : getBPawnMoves(row, col, piece.isMoved);
+                                    break;
+                                default: console.log("Invalid piece.")
+                            }
 
-                                
+                            if (piece.name !== king) {
+
                                 if (threats.length !== 0) {
                                     moves = moves.filter(move =>
                                         threats.some(t => t[0] === move[0] && t[1] === move[1])
                                     );
                                 }
-                                
+
                                 if (pinMoves.length !== 0) {
                                     moves = moves.filter(move =>
                                         pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
                                     );
                                 }
-                                // console.log(moves)
-
-                                totalAvailableMoves += moves.length
                             }
+
+                            totalAvailableMoves += moves.length
                         }
                     }
+                }
 
-                    console.log(totalAvailableMoves)
-
-                    if (totalAvailableMoves === 0) {
+                if (totalAvailableMoves === 0) {
+                    if (numberOfChecks === 1) {
                         alert("Check mate!");
+                    } else {
+                        alert("Stalemate!");
                     }
                 }
 
