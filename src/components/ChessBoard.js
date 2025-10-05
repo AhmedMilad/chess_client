@@ -1111,6 +1111,160 @@ export default function ChessBoard({ size = 500 }) {
             return []
         }
 
+        function getNumberOfChecks(board, target) {
+            let kingRow = -1, kingCol = -1, king = target + 'k'
+            for (let row = 0; row <= 7; row++) {
+                for (let col = 0; col <= 7; col++) {
+                    let piece = board[row][col]
+                    if (piece != null && piece.name === king) {
+                        kingRow = row
+                        kingCol = col
+                        break
+                    }
+                }
+                if (kingRow !== -1) break
+            }
+            let numberOfChecks = getMainDiagonalCheck(kingRow, kingCol, board)
+            numberOfChecks += getAntiDiagonalCheck(kingRow, kingCol, board)
+            numberOfChecks += getVerticalCheck(kingRow, kingCol, board)
+            numberOfChecks += getHorizontalCheck(kingRow, kingCol, board)
+            return numberOfChecks
+        }
+
+        function getMainDiagonalCheck(row, col, board) {
+            let newRow = row, newCol = col
+            let king = board[row][col]
+            let targetCol = 'w'
+            if (king.name[0] === 'w') {
+                targetCol = 'b'
+            }
+            let queen = targetCol + 'q', bishop = targetCol + 'b', checks = 0
+            while (newRow > 0 && newCol > 0) {
+                newRow--
+                newCol--
+                let piece = board[newRow][newCol]
+                if (piece != null) {
+                    if ([queen, bishop].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            newRow = row
+            newCol = col
+            while (newRow < 7 && newCol < 7) {
+                newRow++
+                newCol++
+                let piece = board[newRow][newCol]
+                if (piece != null) {
+                    if ([queen, bishop].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            return checks
+        }
+
+        function getAntiDiagonalCheck(row, col, board) {
+            let newRow = row, newCol = col
+            let king = board[row][col]
+            let targetCol = 'w'
+            if (king.name[0] === 'w') {
+                targetCol = 'b'
+            }
+            let queen = targetCol + 'q', bishop = targetCol + 'b', checks = 0
+            while (newRow > 0 && newCol < 7) {
+                newRow--
+                newCol++
+                let piece = board[newRow][newCol]
+                if (piece != null) {
+                    if ([queen, bishop].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            newRow = row
+            newCol = col
+            while (newCol > 0 && newRow < 7) {
+                newRow++
+                newCol--
+                let piece = board[newRow][newCol]
+                if (piece != null) {
+                    if ([queen, bishop].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            return checks
+        }
+
+        function getVerticalCheck(row, col, board) {
+            let newRow = row
+            let king = board[row][col]
+            let targetCol = 'w'
+            if (king.name[0] === 'w') {
+                targetCol = 'b'
+            }
+            let queen = targetCol + 'q', rook = targetCol + 'r', checks = 0
+            while (newRow > 0) {
+                newRow--
+                let piece = board[newRow][col]
+                if (piece != null) {
+                    if ([queen, rook].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            newRow = row
+            while (newRow < 7) {
+                newRow++
+                let piece = board[newRow][col]
+                if (piece != null) {
+                    if ([queen, rook].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            return checks
+        }
+
+        function getHorizontalCheck(row, col, board) {
+            let newCol = col
+            let king = board[row][col]
+            let targetCol = 'w'
+            if (king.name[0] === 'w') {
+                targetCol = 'b'
+            }
+            let queen = targetCol + 'q', rook = targetCol + 'r', checks = 0
+            while (newCol < 7) {
+                newCol++
+                let piece = board[row][newCol]
+                if (piece != null) {
+                    if ([queen, rook].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            newCol = col
+            while (newCol > 0) {
+                newCol--
+                let piece = board[row][newCol]
+                if (piece != null) {
+                    if ([queen, rook].includes(piece.name)) {
+                        checks++
+                    }
+                    break
+                }
+            }
+            return checks
+        }
+
         const getMousePos = (e) => {
             const rect = canvas.getBoundingClientRect();
             return {
@@ -1396,6 +1550,101 @@ export default function ChessBoard({ size = 500 }) {
                 } else {
                     board[newRow][newCol] = draggingPiece.piece;
                 }
+                let targetCol = draggingPiece.piece.name[0]
+                targetCol = (targetCol === 'w') ? 'b' : 'w'
+                let numberOfChecks = getNumberOfChecks(board, targetCol)
+                if (numberOfChecks > 1) {
+                    let kingCol = -1, kingRow = -1, king = targetCol + 'k'
+                    for (let row = 0; row <= 7; row++) {
+                        for (let col = 0; col <= 7; col++) {
+                            let piece = board[row][col]
+                            if (piece != null && piece.name === king) {
+                                kingCol = col
+                                kingRow = row
+                                break
+                            }
+                        }
+                        if (kingRow !== -1) break
+                    }
+                    let newMoves = getKingMoves(kingRow, kingCol, board, targetCol)
+                    if (newMoves.length === 0) {
+                        alert("Check mate!")
+                    }
+                }
+                if (numberOfChecks === 1) {
+                    let pawn = targetCol + 'p'
+                    let queen = targetCol + 'q'
+                    let rook = targetCol + 'r'
+                    let bishop = targetCol + 'b'
+                    let knight = targetCol + 'n'
+                    let king = targetCol + 'k'
+                    let threats = getKingThreatMoves(king, board)
+                    let totalAvailableMoves = 0
+
+                    for (let row = 0; row <= 7; row++) {
+                        for (let col = 0; col <= 7; col++) {
+                            let piece = board[row][col]
+                            if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
+
+                                let antiTarget = (targetCol === 'w') ? 'b' : 'w'
+                                let pinMoves = getPinMoves(row, col, board)
+                                let moves = []
+
+                                switch (piece.name) {
+                                    case king:
+                                        moves = getKingMoves(row, col, board, antiTarget)
+                                        break;
+                                    case queen:
+                                        moves = getMainDiagonal(row, col, board, antiTarget)
+                                            .concat(getAntiDiagonal(row, col, board, antiTarget))
+                                            .concat(getVerticalMoves(row, col, board, antiTarget))
+                                            .concat(getHorizontalMoves(row, col, board, antiTarget));
+                                        break;
+                                    case rook:
+                                        moves = getVerticalMoves(row, col, board, antiTarget)
+                                            .concat(getHorizontalMoves(row, col, board, antiTarget))
+                                        break;
+                                    case bishop:
+                                        moves = getMainDiagonal(row, col, board, antiTarget)
+                                            .concat(getAntiDiagonal(row, col, board, antiTarget));
+                                        break;
+                                    case knight:
+                                        moves = getKnightMoves(row, col, board, antiTarget);
+                                        break;
+                                    case pawn:
+                                        moves = piece.isPlayable
+                                            ? getWPawnMoves(row, col, piece.isMoved)
+                                            : getBPawnMoves(row, col, piece.isMoved);
+                                        break;
+                                    default: console.log("Invalid piece")
+                                }
+
+                                
+                                if (threats.length !== 0) {
+                                    moves = moves.filter(move =>
+                                        threats.some(t => t[0] === move[0] && t[1] === move[1])
+                                    );
+                                }
+                                
+                                if (pinMoves.length !== 0) {
+                                    moves = moves.filter(move =>
+                                        pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
+                                    );
+                                }
+                                // console.log(moves)
+
+                                totalAvailableMoves += moves.length
+                            }
+                        }
+                    }
+
+                    console.log(totalAvailableMoves)
+
+                    if (totalAvailableMoves === 0) {
+                        alert("Check mate!");
+                    }
+                }
+
             }
             setDraggingPiece(null);
             setMoves([]);
