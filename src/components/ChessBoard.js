@@ -1609,6 +1609,7 @@ export default function ChessBoard({ size = 500 }) {
                 let targetCol = draggingPiece.piece.name[0]
                 targetCol = (targetCol === 'w') ? 'b' : 'w'
                 let numberOfChecks = getNumberOfChecks(board, targetCol)
+                let antiTarget = (targetCol === 'w') ? 'b' : 'w'
                 if (numberOfChecks > 1) {
                     let kingCol = -1, kingRow = -1, king = targetCol + 'k'
                     for (let row = 0; row <= 7; row++) {
@@ -1622,8 +1623,9 @@ export default function ChessBoard({ size = 500 }) {
                         }
                         if (kingRow !== -1) break
                     }
-                    let newMoves = getKingMoves(kingRow, kingCol, board, targetCol)
+                    let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
                     if (newMoves.length === 0) {
+                        console.log("double check")
                         alert("Check mate!")
                     }
                 }
@@ -1641,7 +1643,6 @@ export default function ChessBoard({ size = 500 }) {
                         let piece = board[row][col]
                         if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
 
-                            let antiTarget = (targetCol === 'w') ? 'b' : 'w'
                             let pinMoves = getPinMoves(row, col, board)
                             let moves = []
 
