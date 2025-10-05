@@ -102,7 +102,7 @@ export default function ChessBoard({ size = 500 }) {
     const darkColor = "#b58863";
     const imageScale = 0.75;
 
-    let isBlack = true
+    let isBlack = false
 
     if (isBlack) {
         if (!loaded) {
@@ -338,7 +338,7 @@ export default function ChessBoard({ size = 500 }) {
             return newMoves;
         }
 
-        function isSafeSquare(row, col, board, target) {
+        function isSafeSquare(row, col, board, target, isPlayable) {
             let newCol = col, newRow = row
             let rook = target + "r", bishop = target + "b", queen = target + "q", knight = target + "n", pawn = target + "p"
             while (newRow < 7) {
@@ -449,7 +449,7 @@ export default function ChessBoard({ size = 500 }) {
                 }
             }
 
-            let pawnRow = target === "w" ? row + 1 : row - 1;
+            let pawnRow = isPlayable ? row - 1 : row + 1;
             for (let pawnCol of [col - 1, col + 1]) {
                 if (pawnRow >= 0 && pawnRow <= 7 && pawnCol >= 0 && pawnCol <= 7) {
                     let piece = board[pawnRow][pawnCol];
@@ -485,6 +485,8 @@ export default function ChessBoard({ size = 500 }) {
                 [1, 1]
             ];
 
+            let piece = board[row][col]
+
             for (let [dr, dc] of directions) {
                 let newRow = row + dr;
                 let newCol = col + dc;
@@ -492,7 +494,7 @@ export default function ChessBoard({ size = 500 }) {
                 if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
                     const square = board[newRow][newCol];
                     if (square === null || square.name[0] === target) {
-                        if (isSafeSquare(newRow, newCol, board, target)) {
+                        if (isSafeSquare(newRow, newCol, board, target, piece.isPlayable)) {
 
                             let validMove = true;
                             let checkRow = row - dr;
@@ -535,7 +537,7 @@ export default function ChessBoard({ size = 500 }) {
                         let piece = board[row][newCol]
                         if (piece != null) {
                             if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                                if (isSafeSquare(row, col - 2, board, target)) {
+                                if (isSafeSquare(row, col - 2, board, target, piece.isPlayable)) {
                                     newMoves.push([row, col - 2]);
                                 }
                             }
@@ -553,7 +555,7 @@ export default function ChessBoard({ size = 500 }) {
                         let piece = board[row][newCol]
                         if (piece != null) {
                             if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                                if (isSafeSquare(row, col + 2, board, target)) {
+                                if (isSafeSquare(row, col + 2, board, target, piece.isPlayable)) {
                                     newMoves.push([row, col + 2]);
                                 }
                             }
@@ -864,7 +866,6 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 }
             }
-            //TODO king
             let targetCol
             if (target[0] === "w") {
                 targetCol = "b"
