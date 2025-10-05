@@ -1389,9 +1389,9 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 }
                 let queen = draggingPiece.piece.name[0] + "q"
-                if (newRow === 7 && !draggingPiece.piece.isPlayable) {
+                if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
                     board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                } else if (newRow === 0 && draggingPiece.piece.isPlayable) {
+                } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
                     board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                 } else {
                     board[newRow][newCol] = draggingPiece.piece;
