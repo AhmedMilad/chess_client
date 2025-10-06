@@ -758,11 +758,15 @@ export default function ChessBoard({ size = 500 }) {
         }
 
         function getPawnThreat(row, col, board, target) {
-            const directions = [
-                [-1, -1], [-1, 1],
+            let directions = [
                 [1, -1], [1, 1]
             ];
-
+            let pawn = board[row][col]
+            if (pawn.isPlayable) {
+                directions = [
+                    [-1, -1], [-1, 1],
+                ]
+            }
             const newMoves = [];
             directions.forEach(([dr, dc]) => {
                 const newRow = row + dr;
