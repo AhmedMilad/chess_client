@@ -1118,23 +1118,28 @@ export default function ChessBoard({ size = 500 }) {
 
         function getNumberOfChecks(board, target) {
             let kingRow = -1, kingCol = -1, king = target + 'k'
+            let kingIsFound = false
             for (let row = 0; row <= 7; row++) {
                 for (let col = 0; col <= 7; col++) {
                     let piece = board[row][col]
                     if (piece != null && piece.name === king) {
                         kingRow = row
                         kingCol = col
+                        kingIsFound = true
                         break
                     }
                 }
                 if (kingRow !== -1) break
             }
-            let numberOfChecks = getMainDiagonalCheck(kingRow, kingCol, board)
-            numberOfChecks += getAntiDiagonalCheck(kingRow, kingCol, board)
-            numberOfChecks += getVerticalCheck(kingRow, kingCol, board)
-            numberOfChecks += getHorizontalCheck(kingRow, kingCol, board)
-            numberOfChecks += getKnightCheck(kingRow, kingCol, board)
-            numberOfChecks += getPawnCheck(kingRow, kingCol, board)
+            let numberOfChecks = 0
+            if (kingIsFound) {
+                numberOfChecks += getMainDiagonalCheck(kingRow, kingCol, board)
+                numberOfChecks += getAntiDiagonalCheck(kingRow, kingCol, board)
+                numberOfChecks += getVerticalCheck(kingRow, kingCol, board)
+                numberOfChecks += getHorizontalCheck(kingRow, kingCol, board)
+                numberOfChecks += getKnightCheck(kingRow, kingCol, board)
+                numberOfChecks += getPawnCheck(kingRow, kingCol, board)
+            }
             return numberOfChecks
         }
 
@@ -1614,6 +1619,7 @@ export default function ChessBoard({ size = 500 }) {
                 targetCol = (targetCol === 'w') ? 'b' : 'w'
                 let numberOfChecks = getNumberOfChecks(board, targetCol)
                 let antiTarget = (targetCol === 'w') ? 'b' : 'w'
+                let kingIsFound = false
                 if (numberOfChecks > 1) {
                     let kingCol = -1, kingRow = -1, king = targetCol + 'k'
                     for (let row = 0; row <= 7; row++) {
@@ -1622,15 +1628,17 @@ export default function ChessBoard({ size = 500 }) {
                             if (piece != null && piece.name === king) {
                                 kingCol = col
                                 kingRow = row
+                                kingIsFound = true
                                 break
                             }
                         }
                         if (kingRow !== -1) break
                     }
-                    let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
-                    if (newMoves.length === 0) {
-                        console.log("double check")
-                        alert("Check mate!")
+                    if (kingIsFound) {
+                        let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
+                        if (newMoves.length === 0) {
+                            alert("Check mate!")
+                        }
                     }
                 }
                 queen = targetCol + 'q'
