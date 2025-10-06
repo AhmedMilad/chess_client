@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Fragment } from "react";
 
 const pieceImages = {
     wp: "/assets/pieces/wp.svg",
@@ -94,6 +94,15 @@ export default function ChessBoard({ size = 500 }) {
     const [draggingPiece, setDraggingPiece] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [moves, setMoves] = useState([]);
+    const [turn, setTurn] = useState(true)
+    const [movesHistory, setMovesHistory] = useState([]);
+    const scrollRef = useRef(null);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [movesHistory]);
 
     const rows = 8;
     const cols = 8;
@@ -1343,7 +1352,7 @@ export default function ChessBoard({ size = 500 }) {
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
             const piece = board[row][col];
-            if (piece) {
+            if (piece && piece.isPlayable === turn) {
                 setDraggingPiece({ piece, row, col });
                 setMousePos(pos);
 
@@ -1715,6 +1724,8 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 }
 
+                setTurn(!turn)
+                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack)]);
             }
             setDraggingPiece(null);
             setMoves([]);
@@ -1730,14 +1741,59 @@ export default function ChessBoard({ size = 500 }) {
             canvas.removeEventListener("mousemove", handleMouseMove);
             canvas.removeEventListener("mouseup", handleMouseUp);
         };
-    }, [images, drawBoard, draggingPiece, cellSize, moves]);
+    }, [images, drawBoard, draggingPiece, cellSize, moves, turn, setTurn, setMovesHistory, isBlack]);
+
+    function getNotation(row, col, isWhite) {
+        let rank, file;
+
+        if (isWhite) {
+            rank = 8 - row;
+            file = String.fromCharCode(97 + col);
+        } else {
+            rank = row + 1;
+            file = String.fromCharCode(104 - col);
+        }
+
+        return file + rank.toString();
+    }
 
     return (
-        <canvas
-            ref={canvasRef}
-            width={size}
-            height={size}
-            className="rounded-lg shadow-lg cursor-pointer"
-        />
+        <div className="flex flex items-center justify-center bg-gray-900 mt-8">
+            <canvas
+                ref={canvasRef}
+                width={size}
+                height={size}
+                className="rounded-lg shadow-lg cursor-pointer"
+            />
+            <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
+                <div className="bg-gray-700 text-white p-2 text-center font-semibold">
+                    Moves
+                </div>
+
+                <div
+                    ref={scrollRef}
+                    className="h-72 overflow-y-auto"
+                >
+                    <div className="grid grid-cols-2 text-white">
+                        <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
+                        <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
+
+                        {movesHistory.map((move, index) => {
+                            if (index % 2 === 0) {
+                                return (
+                                    <Fragment key={index}>
+                                        <div className="border border-gray-600 text-center py-1">{move}</div>
+                                        <div className="border border-gray-600 text-center py-1">
+                                            {movesHistory[index + 1] || ""}
+                                        </div>
+                                    </Fragment>
+                                );
+                            }
+                            return null;
+                        })}
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
