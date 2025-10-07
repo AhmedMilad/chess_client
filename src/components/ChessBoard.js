@@ -97,6 +97,9 @@ export default function ChessBoard({ size = 500 }) {
     const [turn, setTurn] = useState(true)
     const [isCheckMate, setIsCheckMate] = useState(false)
     const [isDraw, setIsDraw] = useState(false)
+    const [isRightDragging, setIsRightDragging] = useState(false);
+    const [startPos, setStartPos] = useState(null);
+    const [lines, setLines] = useState([]);
     const [boardPosition, setBoardPosition] = useState(() => {
         const boardPosition = localStorage.getItem("boardPosition");
         return boardPosition ? JSON.parse(boardPosition) : [];
@@ -112,7 +115,6 @@ export default function ChessBoard({ size = 500 }) {
     }, [movesHistory]);
 
     useEffect(() => {
-        console.log(boardPosition)
         localStorage.setItem("boardPosition", JSON.stringify(boardPosition));
     }, [boardPosition]);
 
@@ -264,6 +266,11 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 }
             }
+            lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", 20, cellSize));
+
+            if (isRightDragging && startPos && mousePos) {
+                drawArrow(ctx, startPos, mousePos, "orange", 20, cellSize);
+            }
 
             if (draggingPiece && images[draggingPiece.piece.name]) {
                 const img = images[draggingPiece.piece.name];
@@ -286,8 +293,47 @@ export default function ChessBoard({ size = 500 }) {
                 );
             }
         },
-        [cellSize, size, images, draggingPiece, mousePos, moves, isBlack, isCheckMate, winner, isDraw]
+        [cellSize, size, images, draggingPiece, mousePos, moves, isBlack, isCheckMate, winner, isDraw, startPos, isRightDragging, lines]
     );
+
+    function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
+        const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
+        const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
+        const ex = Math.floor(end.x / cellSize) * cellSize + cellSize / 2;
+        const ey = Math.floor(end.y / cellSize) * cellSize + cellSize / 2;
+
+        const dx = ex - sx;
+        const dy = ey - sy;
+        const angle = Math.atan2(dy, dx);
+
+        const headLength = lineWidth * 2;
+        const headWidth = lineWidth * 2;
+
+        const lineEndX = ex - headLength * Math.cos(angle);
+        const lineEndY = ey - headLength * Math.sin(angle);
+
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(lineEndX, lineEndY);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = "butt";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(
+            ex - headLength * Math.cos(angle) + headWidth * Math.sin(angle) / 2,
+            ey - headLength * Math.sin(angle) - headWidth * Math.cos(angle) / 2
+        );
+        ctx.lineTo(
+            ex - headLength * Math.cos(angle) - headWidth * Math.sin(angle) / 2,
+            ey - headLength * Math.sin(angle) + headWidth * Math.cos(angle) / 2
+        );
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1377,11 +1423,25 @@ export default function ChessBoard({ size = 500 }) {
             };
         };
 
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+        };
+
         const handleMouseDown = (e) => {
             if (isCheckMate || isDraw) return
             const pos = getMousePos(e);
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
+            if (e.button === 2) {
+                e.preventDefault();
+                setStartPos(pos);
+                setMousePos(pos);
+                setIsRightDragging(true);
+                return;
+            } else if (e.button === 0) {
+                setLines([]);
+                drawBoard(ctx);
+            }
             const piece = board[row][col];
             if (piece && piece.isPlayable === turn) {
                 setDraggingPiece({ piece, row, col });
@@ -1599,13 +1659,26 @@ export default function ChessBoard({ size = 500 }) {
         };
 
         const handleMouseMove = (e) => {
-            if (!draggingPiece) return;
             const pos = getMousePos(e);
-            setMousePos(pos);
-            drawBoard(ctx);
+
+            if (isRightDragging) {
+                setMousePos(pos);
+                drawBoard(ctx);
+                return;
+            }
+            if (draggingPiece) {
+                setMousePos(pos);
+                drawBoard(ctx);
+            }
         };
 
         const handleMouseUp = (e) => {
+            if (e.button === 2) {
+                setLines((prev) => [...prev, { start: startPos, end: mousePos }]);
+                setIsRightDragging(false);
+                setStartPos(null);
+                setMousePos(null);
+            }
             if (!draggingPiece) return;
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
@@ -1801,13 +1874,15 @@ export default function ChessBoard({ size = 500 }) {
         canvas.addEventListener("mousedown", handleMouseDown);
         canvas.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mouseup", handleMouseUp);
+        canvas.addEventListener("contextmenu", handleContextMenu);
 
         return () => {
             canvas.removeEventListener("mousedown", handleMouseDown);
             canvas.removeEventListener("mousemove", handleMouseMove);
             canvas.removeEventListener("mouseup", handleMouseUp);
+            canvas.removeEventListener("contextmenu", handleContextMenu);
         };
-    }, [images, drawBoard, draggingPiece, cellSize, moves, turn, setTurn, setMovesHistory, isBlack, isCheckMate, setIsCheckMate, isDraw, boardPosition]);
+    }, [images, drawBoard, draggingPiece, cellSize, moves, turn, setTurn, setMovesHistory, isBlack, isCheckMate, setIsCheckMate, isDraw, boardPosition, isRightDragging, mousePos, startPos]);
 
     function getFenFromBoard(board, turn = "w") {
         let fenRows = [];
