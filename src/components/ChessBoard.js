@@ -171,9 +171,9 @@ export default function ChessBoard({ size = 500 }) {
                     let color = (row + col) % 2 === 0 ? lightColor : darkColor
                     if (isCheckMate) {
                         let piece = board[row][col]
-                        let king = "wk"
+                        let king = "bk"
                         if (winner === 'black') {
-                            king = "bk"
+                            king = "wk"
                         }
                         if (piece !== null && piece.name === king) {
                             color = checkMateCol;
@@ -1665,9 +1665,9 @@ export default function ChessBoard({ size = 500 }) {
                         let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
                         if (newMoves.length === 0) {
                             if (antiTarget === 'b') {
-                                setWinner("white")
-                            } else {
                                 setWinner("black")
+                            } else {
+                                setWinner("white")
                             }
                             setIsCheckMate(true)
                         }
@@ -1742,9 +1742,9 @@ export default function ChessBoard({ size = 500 }) {
                 if (totalAvailableMoves === 0) {
                     if (numberOfChecks === 1) {
                         if (antiTarget === 'b') {
-                            setWinner("white")
-                        } else {
                             setWinner("black")
+                        } else {
+                            setWinner("white")
                         }
                         setIsCheckMate(true)
                     } else {
@@ -1790,39 +1790,54 @@ export default function ChessBoard({ size = 500 }) {
     }
 
     return (
-        <div className="flex flex items-center justify-center bg-gray-900 mt-8">
+        <div className="flex items-center justify-center bg-gray-900 mt-8">
             <canvas
                 ref={canvasRef}
                 width={size}
                 height={size}
                 className="rounded-lg shadow-lg cursor-pointer"
             />
-            <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
-                <div className="bg-gray-700 text-white p-2 text-center font-semibold">
-                    Moves
-                </div>
+            <div className="flex flex-col">
+                {(() => {
+                    if (winner) {
+                        if (winner === "white") {
+                            return (
+                                <div className="text-white p-4">White won!</div>
+                            )
+                        } else {
+                            return (
+                                <div className="text-white p-4">Black won!</div>
+                            )
+                        }
+                    }
+                })()}
+                <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
+                    <div className="bg-gray-700 text-white p-2 text-center font-semibold">
+                        Moves
+                    </div>
 
-                <div
-                    ref={scrollRef}
-                    className="h-72 overflow-y-auto"
-                >
-                    <div className="grid grid-cols-2 text-white">
-                        <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
-                        <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
+                    <div
+                        ref={scrollRef}
+                        className="h-72 overflow-y-auto"
+                    >
+                        <div className="grid grid-cols-2 text-white">
+                            <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
+                            <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
 
-                        {movesHistory.map((move, index) => {
-                            if (index % 2 === 0) {
-                                return (
-                                    <Fragment key={index}>
-                                        <div className="border border-gray-600 text-center py-1">{move}</div>
-                                        <div className="border border-gray-600 text-center py-1">
-                                            {movesHistory[index + 1] || ""}
-                                        </div>
-                                    </Fragment>
-                                );
-                            }
-                            return null;
-                        })}
+                            {movesHistory.map((move, index) => {
+                                if (index % 2 === 0) {
+                                    return (
+                                        <Fragment key={index}>
+                                            <div className="border border-gray-600 text-center py-1">{move}</div>
+                                            <div className="border border-gray-600 text-center py-1">
+                                                {movesHistory[index + 1] || ""}
+                                            </div>
+                                        </Fragment>
+                                    );
+                                }
+                                return null;
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
