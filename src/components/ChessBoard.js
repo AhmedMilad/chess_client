@@ -302,6 +302,8 @@ export default function ChessBoard({ size = 500 }) {
         const ex = Math.floor(end.x / cellSize) * cellSize + cellSize / 2;
         const ey = Math.floor(end.y / cellSize) * cellSize + cellSize / 2;
 
+        if (sx === ex && sy === ey) return
+
         const dx = ex - sx;
         const dy = ey - sy;
         const angle = Math.atan2(dy, dx);
