@@ -95,6 +95,8 @@ export default function ChessBoard({ size = 500 }) {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [moves, setMoves] = useState([]);
     const [turn, setTurn] = useState(true)
+    const [isCheckMate, setIsCheckMate] = useState(false)
+    const [winner, setWinner] = useState()
     const [movesHistory, setMovesHistory] = useState([]);
     const scrollRef = useRef(null);
 
@@ -109,6 +111,7 @@ export default function ChessBoard({ size = 500 }) {
     const cellSize = size / 8;
     const lightColor = "#f0d9b5";
     const darkColor = "#b58863";
+    const checkMateCol = "#880808";
     const imageScale = 0.75;
 
     let isBlack = false
@@ -165,7 +168,18 @@ export default function ChessBoard({ size = 500 }) {
 
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
-                    ctx.fillStyle = (row + col) % 2 === 0 ? lightColor : darkColor;
+                    let color = (row + col) % 2 === 0 ? lightColor : darkColor
+                    if (isCheckMate) {
+                        let piece = board[row][col]
+                        let king = "wk"
+                        if (winner === 'black') {
+                            king = "bk"
+                        }
+                        if (piece !== null && piece.name === king) {
+                            color = checkMateCol;
+                        }
+                    }
+                    ctx.fillStyle = color;
                     ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
                 }
             }
@@ -256,7 +270,7 @@ export default function ChessBoard({ size = 500 }) {
                 );
             }
         },
-        [cellSize, size, images, draggingPiece, mousePos, moves, isBlack]
+        [cellSize, size, images, draggingPiece, mousePos, moves, isBlack, isCheckMate, winner]
     );
 
     useEffect(() => {
@@ -1348,6 +1362,7 @@ export default function ChessBoard({ size = 500 }) {
         };
 
         const handleMouseDown = (e) => {
+            if (isCheckMate) return
             const pos = getMousePos(e);
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
@@ -1579,7 +1594,10 @@ export default function ChessBoard({ size = 500 }) {
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
+            let isCapture = false
             if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+                let piece = board[newRow][newCol]
+                if (piece != null && draggingPiece.piece.name[0] !== piece.name[0]) isCapture = true
                 if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
                     for (let row = 0; row < rows; row++) {
                         for (let col = 0; col < cols; col++) {
@@ -1646,7 +1664,12 @@ export default function ChessBoard({ size = 500 }) {
                     if (kingIsFound) {
                         let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
                         if (newMoves.length === 0) {
-                            alert("Check mate!")
+                            if (antiTarget === 'b') {
+                                setWinner("white")
+                            } else {
+                                setWinner("black")
+                            }
+                            setIsCheckMate(true)
                         }
                     }
                 }
@@ -1718,14 +1741,19 @@ export default function ChessBoard({ size = 500 }) {
 
                 if (totalAvailableMoves === 0) {
                     if (numberOfChecks === 1) {
-                        alert("Check mate!");
+                        if (antiTarget === 'b') {
+                            setWinner("white")
+                        } else {
+                            setWinner("black")
+                        }
+                        setIsCheckMate(true)
                     } else {
                         alert("Stalemate!");
                     }
                 }
 
                 setTurn(!turn)
-                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack)]);
+                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, draggingPiece.piece, isCapture)]);
             }
             setDraggingPiece(null);
             setMoves([]);
@@ -1741,10 +1769,11 @@ export default function ChessBoard({ size = 500 }) {
             canvas.removeEventListener("mousemove", handleMouseMove);
             canvas.removeEventListener("mouseup", handleMouseUp);
         };
-    }, [images, drawBoard, draggingPiece, cellSize, moves, turn, setTurn, setMovesHistory, isBlack]);
+    }, [images, drawBoard, draggingPiece, cellSize, moves, turn, setTurn, setMovesHistory, isBlack, isCheckMate, setIsCheckMate]);
 
-    function getNotation(row, col, isWhite) {
-        let rank, file;
+    function getNotation(row, col, isWhite, piece, isCapture) {
+        let rank, file, capture = "";
+        if (isCapture) capture = "x"
 
         if (isWhite) {
             rank = 8 - row;
@@ -1754,7 +1783,10 @@ export default function ChessBoard({ size = 500 }) {
             file = String.fromCharCode(104 - col);
         }
 
-        return file + rank.toString();
+        let pieceName = piece.name[1]
+        if (pieceName === 'p') pieceName = ""
+
+        return pieceName + capture + file + rank.toString();
     }
 
     return (
