@@ -100,6 +100,7 @@ export default function ChessBoard({ size = 500 }) {
     const [isRightDragging, setIsRightDragging] = useState(false);
     const [startPos, setStartPos] = useState(null);
     const [lines, setLines] = useState([]);
+    const [preMoves, setPreMoves] = useState([]);
     const [boardPosition, setBoardPosition] = useState(() => {
         const boardPosition = localStorage.getItem("boardPosition");
         return boardPosition ? JSON.parse(boardPosition) : [];
@@ -1364,6 +1365,141 @@ export default function ChessBoard({ size = 500 }) {
             return checks
         }
 
+        function getMainDiagonalPreMoves(row, col) {
+            let newCol = col, newRow = row
+            let newMoves = []
+            while (newCol > 0 && newRow > 0) {
+                newCol--
+                newRow--
+                newMoves.push([newRow, newCol])
+            }
+            newCol = col
+            newRow = row
+            while (newCol < 7 && newRow < 7) {
+                newCol++
+                newRow++
+                newMoves.push([newRow, newCol])
+            }
+            return newMoves
+        }
+
+        function getAntiDiagonalPreMoves(row, col) {
+            let newCol = col, newRow = row
+            let newMoves = []
+            while (newCol > 0 && newRow > 7) {
+                newCol--
+                newRow++
+                newMoves.push([newRow, newCol])
+            }
+            newCol = col
+            newRow = row
+            while (newCol < 7 && newRow > 0) {
+                newCol++
+                newRow--
+                newMoves.push([newRow, newCol])
+            }
+            return newMoves
+        }
+
+        function getVerticalPreMoves(row, col) {
+            let newRow = row
+            let newMoves = []
+            while (newRow > 7) {
+                newRow++
+                newMoves.push([newRow, col])
+            }
+            newRow = row
+            while (newRow > 0) {
+                newRow--
+                newMoves.push([newRow, col])
+            }
+            return newMoves
+        }
+
+        function getHorizontalPreMoves(row, col) {
+            let newCol = col
+            let newMoves = []
+            while (newCol > 7) {
+                newCol++
+                newMoves.push([row, newCol])
+            }
+            newCol = col
+            while (newCol > 0) {
+                newCol--
+                newMoves.push([row, newCol])
+            }
+            return newMoves
+        }
+
+        function getWPawnPreMoves(row, col) {
+            let newMoves = [];
+            newMoves.push([row - 1, col]);
+            if (col > 0) {
+                newMoves.push([row - 1, col - 1]);
+            }
+            if (col < 7) {
+                newMoves.push([row - 1, col + 1]);
+            }
+            return newMoves;
+        }
+
+        function getBPawnPreMoves(row, col) {
+            let newMoves = [];
+            newMoves.push([row + 1, col]);
+            if (col > 0) {
+                newMoves.push([row + 1, col - 1]);
+            }
+            if (col < 7) {
+                newMoves.push([row + 1, col + 1]);
+            }
+            return newMoves;
+        }
+
+        function getKnightPreMoves(row, col) {
+            let newMoves = [];
+            const directions = [
+                [-2, -1], [-2, +1],
+                [+2, -1], [+2, +1],
+                [-1, -2], [+1, -2],
+                [-1, +2], [+1, +2]
+            ];
+
+            for (let [drow, dcol] of directions) {
+                let newRow = row + drow;
+                let newCol = col + dcol;
+
+                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                    newMoves.push([newRow, newCol]);
+                }
+            }
+
+            return newMoves;
+        }
+
+        function getKingPreMoves(row, col) {
+            let newMoves = [];
+            const directions = [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1],
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+            ];
+
+            for (let [dr, dc] of directions) {
+                let newRow = row + dr;
+                let newCol = col + dc;
+
+                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                    newMoves.push([newRow, newCol]);
+                }
+            }
+            return newMoves;
+        }
+
         function getKnightCheck(row, col, board) {
             let king = board[row][col]
             let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
@@ -1429,6 +1565,20 @@ export default function ChessBoard({ size = 500 }) {
             e.preventDefault();
         };
 
+        const handleMouseMove = (e) => {
+            const pos = getMousePos(e);
+
+            if (isRightDragging) {
+                setMousePos(pos);
+                drawBoard(ctx);
+                return;
+            }
+            if (draggingPiece) {
+                setMousePos(pos);
+                drawBoard(ctx);
+            }
+        };
+
         const handleMouseDown = (e) => {
             if (isCheckMate || isDraw) return
             const pos = getMousePos(e);
@@ -1445,232 +1595,278 @@ export default function ChessBoard({ size = 500 }) {
                 drawBoard(ctx);
             }
             const piece = board[row][col];
-            if (piece && piece.isPlayable === turn) {
+            if (piece) {
                 setDraggingPiece({ piece, row, col });
                 setMousePos(pos);
-
                 let newMoves = [];
-                let whiteThreatMoves
-                let blackThreatMoves
-                let pinMoves = getPinMoves(row, col, board)
-                if (piece.name[0] === "w") {
-                    whiteThreatMoves = getKingThreatMoves("wk", board)
+                if (piece.isPlayable === turn) {
+                    let whiteThreatMoves
+                    let blackThreatMoves
+                    let pinMoves = getPinMoves(row, col, board)
+                    if (piece.name[0] === "w") {
+                        whiteThreatMoves = getKingThreatMoves("wk", board)
+                    } else {
+                        blackThreatMoves = getKingThreatMoves("bk", board)
+                    }
+                    switch (piece.name) {
+                        case "wp":
+                            if (piece.isPlayable) {
+                                newMoves = getWPawnMoves(row, col, piece.isMoved);
+                            } else {
+                                newMoves = getBPawnMoves(row, col, piece.isMoved);
+                            }
+                            if (whiteThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    whiteThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "bp":
+                            if (piece.isPlayable) {
+                                newMoves = getWPawnMoves(row, col, piece.isMoved);
+                            } else {
+                                newMoves = getBPawnMoves(row, col, piece.isMoved);
+                            }
+                            if (blackThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    blackThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "bn":
+                            newMoves = getKnightMoves(row, col, board, "w");
+                            if (blackThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    blackThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "wn":
+                            newMoves = getKnightMoves(row, col, board, "b");
+                            if (whiteThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    whiteThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "bk":
+                            newMoves = getKingMoves(row, col, board, "w");
+                            break;
+                        case "wk":
+                            newMoves = getKingMoves(row, col, board, "b");
+                            break;
+                        case "br":
+                            newMoves = getVerticalMoves(row, col, board, "w")
+                                .concat(getHorizontalMoves(row, col, board, "w"))
+                            if (blackThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    blackThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "wr":
+                            newMoves = getVerticalMoves(row, col, board, "b")
+                                .concat(getHorizontalMoves(row, col, board, "b"));
+                            if (whiteThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    whiteThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "bb":
+                            newMoves = getMainDiagonal(row, col, board, "w")
+                                .concat(getAntiDiagonal(row, col, board, "w"));
+                            if (blackThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    blackThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "wb":
+                            newMoves = getMainDiagonal(row, col, board, "b")
+                                .concat(getAntiDiagonal(row, col, board, "b"));
+                            if (whiteThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    whiteThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "wq":
+                            newMoves = getMainDiagonal(row, col, board, "b")
+                                .concat(getAntiDiagonal(row, col, board, "b"))
+                                .concat(getVerticalMoves(row, col, board, "b"))
+                                .concat(getHorizontalMoves(row, col, board, "b"));
+                            if (whiteThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    whiteThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        case "bq":
+                            newMoves = getMainDiagonal(row, col, board, "w")
+                                .concat(getAntiDiagonal(row, col, board, "w"))
+                                .concat(getVerticalMoves(row, col, board, "w"))
+                                .concat(getHorizontalMoves(row, col, board, "w"));
+                            if (blackThreatMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    blackThreatMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            if (pinMoves.length !== 0) {
+                                newMoves = newMoves.filter(element =>
+                                    pinMoves.some(move =>
+                                        move[0] === element[0] && move[1] === element[1]
+                                    )
+                                );
+                            }
+                            break;
+                        default:
+                            console.log("Invalid piece name");
+                    }
                 } else {
-                    blackThreatMoves = getKingThreatMoves("bk", board)
-                }
-                switch (piece.name) {
-                    case "wp":
-                        if (piece.isPlayable) {
-                            newMoves = getWPawnMoves(row, col, piece.isMoved);
-                        } else {
-                            newMoves = getBPawnMoves(row, col, piece.isMoved);
-                        }
-                        if (whiteThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                whiteThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "bp":
-                        if (piece.isPlayable) {
-                            newMoves = getWPawnMoves(row, col, piece.isMoved);
-                        } else {
-                            newMoves = getBPawnMoves(row, col, piece.isMoved);
-                        }
-                        if (blackThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                blackThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "bn":
-                        newMoves = getKnightMoves(row, col, board, "w");
-                        if (blackThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                blackThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "wn":
-                        newMoves = getKnightMoves(row, col, board, "b");
-                        if (whiteThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                whiteThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "bk":
-                        newMoves = getKingMoves(row, col, board, "w");
-                        break;
-                    case "wk":
-                        newMoves = getKingMoves(row, col, board, "b");
-                        break;
-                    case "br":
-                        newMoves = getVerticalMoves(row, col, board, "w")
-                            .concat(getHorizontalMoves(row, col, board, "w"))
-                        if (blackThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                blackThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "wr":
-                        newMoves = getVerticalMoves(row, col, board, "b")
-                            .concat(getHorizontalMoves(row, col, board, "b"));
-                        if (whiteThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                whiteThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "bb":
-                        newMoves = getMainDiagonal(row, col, board, "w")
-                            .concat(getAntiDiagonal(row, col, board, "w"));
-                        if (blackThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                blackThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "wb":
-                        newMoves = getMainDiagonal(row, col, board, "b")
-                            .concat(getAntiDiagonal(row, col, board, "b"));
-                        if (whiteThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                whiteThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "wq":
-                        newMoves = getMainDiagonal(row, col, board, "b")
-                            .concat(getAntiDiagonal(row, col, board, "b"))
-                            .concat(getVerticalMoves(row, col, board, "b"))
-                            .concat(getHorizontalMoves(row, col, board, "b"));
-                        if (whiteThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                whiteThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    case "bq":
-                        newMoves = getMainDiagonal(row, col, board, "w")
-                            .concat(getAntiDiagonal(row, col, board, "w"))
-                            .concat(getVerticalMoves(row, col, board, "w"))
-                            .concat(getHorizontalMoves(row, col, board, "w"));
-                        if (blackThreatMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                blackThreatMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        if (pinMoves.length !== 0) {
-                            newMoves = newMoves.filter(element =>
-                                pinMoves.some(move =>
-                                    move[0] === element[0] && move[1] === element[1]
-                                )
-                            );
-                        }
-                        break;
-                    default:
-                        console.log("Invalid piece name");
+                    switch (piece.name) {
+                        case "wp":
+                            if (piece.isPlayable) {
+                                newMoves = getWPawnPreMoves(row, col);
+                            } else {
+                                newMoves = getBPawnPreMoves(row, col);
+                            }
+                            break;
+                        case "bp":
+                            if (piece.isPlayable) {
+                                newMoves = getWPawnPreMoves(row, col);
+                            } else {
+                                newMoves = getBPawnPreMoves(row, col);
+                            }
+                            break;
+                        case "bn":
+                            newMoves = getKnightPreMoves(row, col);
+                            break;
+                        case "wn":
+                            newMoves = getKnightPreMoves(row, col);
+                            break;
+                        case "bk":
+                            newMoves = getKingPreMoves(row, col);
+                            break;
+                        case "wk":
+                            newMoves = getKingPreMoves(row, col);
+                            break;
+                        case "br":
+                            newMoves = getVerticalPreMoves(row, col)
+                                .concat(getHorizontalPreMoves(row, col))
+                            break;
+                        case "wr":
+                            newMoves = getVerticalPreMoves(row, col)
+                                .concat(getHorizontalPreMoves(row, col));
+                            break;
+                        case "bb":
+                            newMoves = getMainDiagonalPreMoves(row, col)
+                                .concat(getAntiDiagonalPreMoves(row, col));
+                            break;
+                        case "wb":
+                            newMoves = getMainDiagonalPreMoves(row, col)
+                                .concat(getAntiDiagonalPreMoves(row, col));
+                            break;
+                        case "wq":
+                            newMoves = getMainDiagonalPreMoves(row, col)
+                                .concat(getAntiDiagonalPreMoves(row, col))
+                                .concat(getVerticalPreMoves(row, col))
+                                .concat(getHorizontalPreMoves(row, col));
+                            break;
+                        case "bq":
+                            newMoves = getMainDiagonalPreMoves(row, col)
+                                .concat(getAntiDiagonalPreMoves(row, col))
+                                .concat(getVerticalPreMoves(row, col))
+                                .concat(getHorizontalPreMoves(row, col));
+                            break;
+                        default:
+                            console.log("Invalid piece name");
+                    }
                 }
                 setMoves(newMoves);
-            }
-        };
-
-        const handleMouseMove = (e) => {
-            const pos = getMousePos(e);
-
-            if (isRightDragging) {
-                setMousePos(pos);
-                drawBoard(ctx);
-                return;
-            }
-            if (draggingPiece) {
-                setMousePos(pos);
-                drawBoard(ctx);
             }
         };
 
@@ -1681,80 +1877,168 @@ export default function ChessBoard({ size = 500 }) {
                 setStartPos(null);
                 setMousePos(null);
             }
-            if (!draggingPiece) return;
+            if (!draggingPiece) return; //TODO this needs to be checked.
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
             let isCapture = false
-            if (moves.some(([r, c]) => r === newRow && c === newCol)) {
-                let piece = board[newRow][newCol]
-                if (piece != null && draggingPiece.piece.name[0] !== piece.name[0]) isCapture = true
-                if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
-                    for (let row = 0; row < rows; row++) {
-                        for (let col = 0; col < cols; col++) {
-                            if (board[row][col] !== null) {
-                                board[row][col].isEnpassant = false;
+            if (draggingPiece.piece.isPlayable !== turn) {
+                // use push and shift
+                setPreMoves([...preMoves, {
+                    from: [draggingPiece.row, draggingPiece.col],
+                    to: [newRow, newCol],
+                    name: draggingPiece.piece.name
+                }]);
+
+            } else {
+
+                if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+                    let piece = board[newRow][newCol]
+                    if (piece != null && draggingPiece.piece.name[0] !== piece.name[0]) isCapture = true
+                    if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
+                        for (let row = 0; row < rows; row++) {
+                            for (let col = 0; col < cols; col++) {
+                                if (board[row][col] !== null) {
+                                    board[row][col].isEnpassant = false;
+                                }
                             }
                         }
                     }
-                }
-                board[draggingPiece.row][draggingPiece.col] = null;
-                draggingPiece.piece.isMoved = true;
-                if (draggingPiece.piece.name[1] === 'k') {
-                    let dc = newCol - draggingPiece.col;
-                    if (Math.abs(dc) === 2) {
-                        if (dc > 0) {
-                            [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
-                                [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
-                            board[draggingPiece.row][newCol - 1].isMoved = true
-                        } else {
-                            [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
-                                [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
-                            board[draggingPiece.row][newCol + 1].isMoved = true
+                    board[draggingPiece.row][draggingPiece.col] = null;
+                    draggingPiece.piece.isMoved = true;
+                    if (draggingPiece.piece.name[1] === 'k') {
+                        let dc = newCol - draggingPiece.col;
+                        if (Math.abs(dc) === 2) {
+                            if (dc > 0) {
+                                [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
+                                    [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
+                                board[draggingPiece.row][newCol - 1].isMoved = true
+                            } else {
+                                [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
+                                    [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
+                                board[draggingPiece.row][newCol + 1].isMoved = true
+                            }
                         }
                     }
-                }
 
-                if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
-                    if (draggingPiece.col !== newCol) {
-                        if (board[newRow][newCol] === null) {
-                            board[draggingPiece.row][newCol] = null
+                    if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
+                        if (draggingPiece.col !== newCol) {
+                            if (board[newRow][newCol] === null) {
+                                board[draggingPiece.row][newCol] = null
+                            }
+                        }
+                        if (Math.abs(draggingPiece.row - newRow) === 2) {
+                            draggingPiece.piece.isEnpassant = true
                         }
                     }
-                    if (Math.abs(draggingPiece.row - newRow) === 2) {
-                        draggingPiece.piece.isEnpassant = true
+                    let queen = draggingPiece.piece.name[0] + "q"
+                    if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
+                        board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                    } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
+                        board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                    } else {
+                        board[newRow][newCol] = draggingPiece.piece;
                     }
-                }
-                let queen = draggingPiece.piece.name[0] + "q"
-                if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
-                    board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
-                    board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                } else {
-                    board[newRow][newCol] = draggingPiece.piece;
-                }
-                let targetCol = draggingPiece.piece.name[0]
-                targetCol = (targetCol === 'w') ? 'b' : 'w'
-                let numberOfChecks = getNumberOfChecks(board, targetCol)
-                let antiTarget = (targetCol === 'w') ? 'b' : 'w'
-                let kingIsFound = false
-                if (numberOfChecks > 1) {
-                    let kingCol = -1, kingRow = -1, king = targetCol + 'k'
+                    let targetCol = draggingPiece.piece.name[0]
+                    targetCol = (targetCol === 'w') ? 'b' : 'w'
+                    let numberOfChecks = getNumberOfChecks(board, targetCol)
+                    let antiTarget = (targetCol === 'w') ? 'b' : 'w'
+                    let kingIsFound = false
+                    if (numberOfChecks > 1) {
+                        let kingCol = -1, kingRow = -1, king = targetCol + 'k'
+                        for (let row = 0; row <= 7; row++) {
+                            for (let col = 0; col <= 7; col++) {
+                                let piece = board[row][col]
+                                if (piece != null && piece.name === king) {
+                                    kingCol = col
+                                    kingRow = row
+                                    kingIsFound = true
+                                    break
+                                }
+                            }
+                            if (kingRow !== -1) break
+                        }
+                        if (kingIsFound) {
+                            let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
+                            if (newMoves.length === 0) {
+                                if (antiTarget === 'b') {
+                                    setWinner("black")
+                                } else {
+                                    setWinner("white")
+                                }
+                                setBoardPosition([]);
+                                setIsCheckMate(true)
+                            }
+                        }
+                    }
+                    queen = targetCol + 'q'
+                    let pawn = targetCol + 'p'
+                    let rook = targetCol + 'r'
+                    let bishop = targetCol + 'b'
+                    let knight = targetCol + 'n'
+                    let king = targetCol + 'k'
+                    let threats = getKingThreatMoves(king, board)
+                    let totalAvailableMoves = 0
+
                     for (let row = 0; row <= 7; row++) {
                         for (let col = 0; col <= 7; col++) {
                             let piece = board[row][col]
-                            if (piece != null && piece.name === king) {
-                                kingCol = col
-                                kingRow = row
-                                kingIsFound = true
-                                break
+                            if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
+
+                                let pinMoves = getPinMoves(row, col, board)
+                                let moves = []
+
+                                switch (piece.name) {
+                                    case king:
+                                        moves = getKingMoves(row, col, board, antiTarget)
+                                        break;
+                                    case queen:
+                                        moves = getMainDiagonal(row, col, board, antiTarget)
+                                            .concat(getAntiDiagonal(row, col, board, antiTarget))
+                                            .concat(getVerticalMoves(row, col, board, antiTarget))
+                                            .concat(getHorizontalMoves(row, col, board, antiTarget));
+                                        break;
+                                    case rook:
+                                        moves = getVerticalMoves(row, col, board, antiTarget)
+                                            .concat(getHorizontalMoves(row, col, board, antiTarget))
+                                        break;
+                                    case bishop:
+                                        moves = getMainDiagonal(row, col, board, antiTarget)
+                                            .concat(getAntiDiagonal(row, col, board, antiTarget));
+                                        break;
+                                    case knight:
+                                        moves = getKnightMoves(row, col, board, antiTarget);
+                                        break;
+                                    case pawn:
+                                        moves = piece.isPlayable
+                                            ? getWPawnMoves(row, col, piece.isMoved)
+                                            : getBPawnMoves(row, col, piece.isMoved);
+                                        break;
+                                    default: console.log("Invalid piece.")
+                                }
+
+                                if (piece.name !== king) {
+
+                                    if (threats.length !== 0) {
+                                        moves = moves.filter(move =>
+                                            threats.some(t => t[0] === move[0] && t[1] === move[1])
+                                        );
+                                    }
+
+                                    if (pinMoves.length !== 0) {
+                                        moves = moves.filter(move =>
+                                            pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
+                                        );
+                                    }
+                                }
+
+                                totalAvailableMoves += moves.length
                             }
                         }
-                        if (kingRow !== -1) break
                     }
-                    if (kingIsFound) {
-                        let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
-                        if (newMoves.length === 0) {
+
+                    if (totalAvailableMoves === 0) {
+                        if (numberOfChecks === 1) {
                             if (antiTarget === 'b') {
                                 setWinner("black")
                             } else {
@@ -1762,110 +2046,33 @@ export default function ChessBoard({ size = 500 }) {
                             }
                             setBoardPosition([]);
                             setIsCheckMate(true)
-                        }
-                    }
-                }
-                queen = targetCol + 'q'
-                let pawn = targetCol + 'p'
-                let rook = targetCol + 'r'
-                let bishop = targetCol + 'b'
-                let knight = targetCol + 'n'
-                let king = targetCol + 'k'
-                let threats = getKingThreatMoves(king, board)
-                let totalAvailableMoves = 0
-
-                for (let row = 0; row <= 7; row++) {
-                    for (let col = 0; col <= 7; col++) {
-                        let piece = board[row][col]
-                        if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
-
-                            let pinMoves = getPinMoves(row, col, board)
-                            let moves = []
-
-                            switch (piece.name) {
-                                case king:
-                                    moves = getKingMoves(row, col, board, antiTarget)
-                                    break;
-                                case queen:
-                                    moves = getMainDiagonal(row, col, board, antiTarget)
-                                        .concat(getAntiDiagonal(row, col, board, antiTarget))
-                                        .concat(getVerticalMoves(row, col, board, antiTarget))
-                                        .concat(getHorizontalMoves(row, col, board, antiTarget));
-                                    break;
-                                case rook:
-                                    moves = getVerticalMoves(row, col, board, antiTarget)
-                                        .concat(getHorizontalMoves(row, col, board, antiTarget))
-                                    break;
-                                case bishop:
-                                    moves = getMainDiagonal(row, col, board, antiTarget)
-                                        .concat(getAntiDiagonal(row, col, board, antiTarget));
-                                    break;
-                                case knight:
-                                    moves = getKnightMoves(row, col, board, antiTarget);
-                                    break;
-                                case pawn:
-                                    moves = piece.isPlayable
-                                        ? getWPawnMoves(row, col, piece.isMoved)
-                                        : getBPawnMoves(row, col, piece.isMoved);
-                                    break;
-                                default: console.log("Invalid piece.")
-                            }
-
-                            if (piece.name !== king) {
-
-                                if (threats.length !== 0) {
-                                    moves = moves.filter(move =>
-                                        threats.some(t => t[0] === move[0] && t[1] === move[1])
-                                    );
-                                }
-
-                                if (pinMoves.length !== 0) {
-                                    moves = moves.filter(move =>
-                                        pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
-                                    );
-                                }
-                            }
-
-                            totalAvailableMoves += moves.length
-                        }
-                    }
-                }
-
-                if (totalAvailableMoves === 0) {
-                    if (numberOfChecks === 1) {
-                        if (antiTarget === 'b') {
-                            setWinner("black")
                         } else {
-                            setWinner("white")
+                            setBoardPosition([]);
+                            setIsDraw(true)
                         }
-                        setBoardPosition([]);
-                        setIsCheckMate(true)
-                    } else {
-                        setBoardPosition([]);
-                        setIsDraw(true)
-                    }
-                }
-
-                setTurn(!turn)
-                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, draggingPiece.piece, isCapture)]);
-
-                let fenKey = getFenFromBoard(board);
-
-                const index = boardPosition.findIndex((item) => item.key === fenKey);
-
-                if (index !== -1) {
-                    const boardPos = [...boardPosition];
-                    boardPos[index].value++;
-
-                    if (boardPos[index].value >= 3) {
-                        setBoardPosition([]);
-                        setIsDraw(true);
-                    } else {
-                        setBoardPosition(boardPos);
                     }
 
-                } else {
-                    setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
+                    setTurn(!turn)
+                    setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, draggingPiece.piece, isCapture)]);
+
+                    let fenKey = getFenFromBoard(board);
+
+                    const index = boardPosition.findIndex((item) => item.key === fenKey);
+
+                    if (index !== -1) {
+                        const boardPos = [...boardPosition];
+                        boardPos[index].value++;
+
+                        if (boardPos[index].value >= 3) {
+                            setBoardPosition([]);
+                            setIsDraw(true);
+                        } else {
+                            setBoardPosition(boardPos);
+                        }
+
+                    } else {
+                        setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
+                    }
                 }
             }
             setDraggingPiece(null);
@@ -1884,7 +2091,25 @@ export default function ChessBoard({ size = 500 }) {
             canvas.removeEventListener("mouseup", handleMouseUp);
             canvas.removeEventListener("contextmenu", handleContextMenu);
         };
-    }, [images, drawBoard, draggingPiece, cellSize, moves, turn, setTurn, setMovesHistory, isBlack, isCheckMate, setIsCheckMate, isDraw, boardPosition, isRightDragging, mousePos, startPos]);
+    }, [images,
+        drawBoard,
+        draggingPiece,
+        cellSize,
+        moves,
+        turn,
+        setTurn,
+        setMovesHistory,
+        isBlack,
+        isCheckMate,
+        setIsCheckMate,
+        isDraw,
+        boardPosition,
+        isRightDragging,
+        mousePos,
+        startPos,
+        preMoves,
+        setPreMoves
+    ]);
 
     function getFenFromBoard(board, turn = "w") {
         let fenRows = [];
