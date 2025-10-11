@@ -108,6 +108,7 @@ export default function ChessBoard({ size = 500 }) {
     const [winner, setWinner] = useState()
     const [movesHistory, setMovesHistory] = useState([]);
     const scrollRef = useRef(null);
+    const [boardCol, setBoardCol] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -124,6 +125,8 @@ export default function ChessBoard({ size = 500 }) {
     const cellSize = size / 8;
     const lightColor = "#f0d9b5";
     const darkColor = "#b58863";
+    const lightBlue = "#2E90F2"
+    const darkBlue = "#073B6E"
     const checkMateColor = "#880808";
     const drawColor = "#3238ad"
     const imageScale = 0.75;
@@ -152,6 +155,7 @@ export default function ChessBoard({ size = 500 }) {
             }
         }
     }
+    const [preMovesBoard, setPreMovesBoard] = useState(structuredClone(board)); // preMovesBoard should not be identically as board.
 
     useEffect(() => {
         setLoaded(true)
@@ -198,6 +202,9 @@ export default function ChessBoard({ size = 500 }) {
                             color = drawColor
                         }
                     }
+                    if (boardCol[row][col]) {
+                        color = (row + col) % 2 === 0 ? lightBlue : darkBlue
+                    }
                     ctx.fillStyle = color;
                     ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
                 }
@@ -239,7 +246,7 @@ export default function ChessBoard({ size = 500 }) {
 
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
-                    const piece = board[row][col];
+                    const piece = preMovesBoard[row][col];
                     if (piece && images[piece.name]) {
                         if (draggingPiece && draggingPiece.row === row && draggingPiece.col === col) continue;
 
@@ -294,7 +301,22 @@ export default function ChessBoard({ size = 500 }) {
                 );
             }
         },
-        [cellSize, size, images, draggingPiece, mousePos, moves, isBlack, isCheckMate, winner, isDraw, startPos, isRightDragging, lines]
+        [cellSize,
+            size,
+            images,
+            draggingPiece,
+            mousePos,
+            moves,
+            isBlack,
+            isCheckMate,
+            winner,
+            isDraw,
+            startPos,
+            isRightDragging,
+            lines,
+            preMovesBoard,
+            boardCol
+        ]
     );
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
@@ -346,27 +368,28 @@ export default function ChessBoard({ size = 500 }) {
 
         function getWPawnMoves(row, col, isMoved) {
             let newMoves = [];
+            let pawn = board[row][col]
             if (row > 0 && board[row - 1][col] === null) {
                 newMoves.push([row - 1, col]);
                 if (!isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
             }
             if (col > 0) {
-                if (board[row][col - 1] !== null && board[row][col - 1].name[0] !== board[row][col].name[0]) {
+                if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
                     if (board[row][col - 1].isEnpassant) {
                         newMoves.push([row - 1, col - 1]);
                     }
                 }
-                if (row > 0 && board[row - 1][col - 1] !== null && board[row - 1][col - 1].name[0] !== board[row][col].name[0]) {
+                if (row > 0 && board[row - 1][col - 1] !== null && pawn !== null && board[row - 1][col - 1].name[0] !== pawn.name[0]) {
                     newMoves.push([row - 1, col - 1]);
                 }
             }
             if (col < 7) {
-                if (board[row][col + 1] !== null && board[row][col + 1].name[0] !== board[row][col].name[0]) {
+                if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1].name[0] !== pawn.name[0]) {
                     if (board[row][col + 1].isEnpassant) {
                         newMoves.push([row - 1, col + 1]);
                     }
                 }
-                if (row > 0 && board[row - 1][col + 1] !== null && board[row - 1][col + 1].name[0] !== board[row][col].name[0]) {
+                if (row > 0 && board[row - 1][col + 1] !== null && pawn !== null && board[row - 1][col + 1].name[0] !== pawn.name[0]) {
                     newMoves.push([row - 1, col + 1]);
                 }
             }
@@ -375,27 +398,28 @@ export default function ChessBoard({ size = 500 }) {
 
         function getBPawnMoves(row, col, isMoved) {
             let newMoves = [];
+            let pawn = board[row][col]
             if (row < 7 && board[row + 1][col] === null) {
                 newMoves.push([row + 1, col]);
                 if (!isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
             }
             if (col > 0) {
                 if (board[row][col - 1] !== null) {
-                    if (board[row][col - 1].name[0] !== board[row][col].name[0] && board[row][col - 1].isEnpassant) {
+                    if (pawn !== null && board[row][col - 1].name[0] !== pawn.name[0] && board[row][col - 1].isEnpassant) {
                         newMoves.push([row + 1, col - 1]);
                     }
                 }
-                if (row < 7 && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] !== board[row][col].name[0]) {
+                if (row < 7 && pawn !== null && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] !== pawn.name[0]) {
                     newMoves.push([row + 1, col - 1]);
                 }
             }
             if (col < 7) {
-                if (board[row][col + 1] !== null && board[row][col + 1] !== board[row][col].name[0]) {
+                if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1] !== pawn.name[0]) {
                     if (board[row][col + 1].isEnpassant) {
                         newMoves.push([row + 1, col + 1]);
                     }
                 }
-                if (row < 7 && board[row + 1][col + 1] !== null && board[row + 1][col + 1].name[0] !== board[row][col].name[0]) {
+                if (row < 7 && board[row + 1][col + 1] !== null && pawn !== null && board[row + 1][col + 1].name[0] !== pawn.name[0]) {
                     newMoves.push([row + 1, col + 1]);
                 }
             }
@@ -1386,7 +1410,7 @@ export default function ChessBoard({ size = 500 }) {
         function getAntiDiagonalPreMoves(row, col) {
             let newCol = col, newRow = row
             let newMoves = []
-            while (newCol > 0 && newRow > 7) {
+            while (newCol > 0 && newRow < 7) {
                 newCol--
                 newRow++
                 newMoves.push([newRow, newCol])
@@ -1404,7 +1428,7 @@ export default function ChessBoard({ size = 500 }) {
         function getVerticalPreMoves(row, col) {
             let newRow = row
             let newMoves = []
-            while (newRow > 7) {
+            while (newRow < 7) {
                 newRow++
                 newMoves.push([newRow, col])
             }
@@ -1419,7 +1443,7 @@ export default function ChessBoard({ size = 500 }) {
         function getHorizontalPreMoves(row, col) {
             let newCol = col
             let newMoves = []
-            while (newCol > 7) {
+            while (newCol < 7) {
                 newCol++
                 newMoves.push([row, newCol])
             }
@@ -1434,6 +1458,9 @@ export default function ChessBoard({ size = 500 }) {
         function getWPawnPreMoves(row, col) {
             let newMoves = [];
             newMoves.push([row - 1, col]);
+            if (row === 6) {
+                newMoves.push([row - 2, col]);
+            }
             if (col > 0) {
                 newMoves.push([row - 1, col - 1]);
             }
@@ -1446,6 +1473,9 @@ export default function ChessBoard({ size = 500 }) {
         function getBPawnPreMoves(row, col) {
             let newMoves = [];
             newMoves.push([row + 1, col]);
+            if (row === 1) {
+                newMoves.push([row + 2, col]);
+            }
             if (col > 0) {
                 newMoves.push([row + 1, col - 1]);
             }
@@ -1586,6 +1616,9 @@ export default function ChessBoard({ size = 500 }) {
             const row = Math.floor(pos.y / cellSize);
             if (e.button === 2) {
                 e.preventDefault();
+                setPreMovesBoard(structuredClone(board));
+                setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
+
                 setStartPos(pos);
                 setMousePos(pos);
                 setIsRightDragging(true);
@@ -1594,7 +1627,7 @@ export default function ChessBoard({ size = 500 }) {
                 setLines([]);
                 drawBoard(ctx);
             }
-            const piece = board[row][col];
+            const piece = preMovesBoard[row][col];
             if (piece) {
                 setDraggingPiece({ piece, row, col });
                 setMousePos(pos);
@@ -1884,11 +1917,16 @@ export default function ChessBoard({ size = 500 }) {
             let isCapture = false
             if (draggingPiece.piece.isPlayable !== turn) {
                 // use push and shift
-                setPreMoves([...preMoves, {
-                    from: [draggingPiece.row, draggingPiece.col],
-                    to: [newRow, newCol],
-                    name: draggingPiece.piece.name
-                }]);
+                if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+                    setPreMoves([...preMoves, {
+                        from: [draggingPiece.row, draggingPiece.col],
+                        to: [newRow, newCol],
+                        name: draggingPiece.piece.name
+                    }]);
+                    preMovesBoard[draggingPiece.row][draggingPiece.col] = null
+                    preMovesBoard[newRow][newCol] = draggingPiece.piece
+                    boardCol[newRow][newCol] = true
+                }
 
             } else {
 
@@ -1905,6 +1943,7 @@ export default function ChessBoard({ size = 500 }) {
                         }
                     }
                     board[draggingPiece.row][draggingPiece.col] = null;
+                    preMovesBoard[draggingPiece.row][draggingPiece.col] = null;
                     draggingPiece.piece.isMoved = true;
                     if (draggingPiece.piece.name[1] === 'k') {
                         let dc = newCol - draggingPiece.col;
@@ -1912,10 +1951,14 @@ export default function ChessBoard({ size = 500 }) {
                             if (dc > 0) {
                                 [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
                                     [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
+                                [preMovesBoard[draggingPiece.row][7], preMovesBoard[draggingPiece.row][newCol - 1]] =
+                                    [preMovesBoard[draggingPiece.row][newCol - 1], preMovesBoard[draggingPiece.row][7]];
                                 board[draggingPiece.row][newCol - 1].isMoved = true
                             } else {
                                 [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
                                     [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
+                                [preMovesBoard[draggingPiece.row][0], preMovesBoard[draggingPiece.row][newCol + 1]] =
+                                    [preMovesBoard[draggingPiece.row][newCol + 1], preMovesBoard[draggingPiece.row][0]];
                                 board[draggingPiece.row][newCol + 1].isMoved = true
                             }
                         }
@@ -1925,6 +1968,7 @@ export default function ChessBoard({ size = 500 }) {
                         if (draggingPiece.col !== newCol) {
                             if (board[newRow][newCol] === null) {
                                 board[draggingPiece.row][newCol] = null
+                                preMovesBoard[draggingPiece.row][newCol] = null
                             }
                         }
                         if (Math.abs(draggingPiece.row - newRow) === 2) {
@@ -1934,10 +1978,13 @@ export default function ChessBoard({ size = 500 }) {
                     let queen = draggingPiece.piece.name[0] + "q"
                     if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
                         board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                        preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                     } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
                         board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                        preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                     } else {
                         board[newRow][newCol] = draggingPiece.piece;
+                        preMovesBoard[newRow][newCol] = draggingPiece.piece;
                     }
                     let targetCol = draggingPiece.piece.name[0]
                     targetCol = (targetCol === 'w') ? 'b' : 'w'
@@ -2108,7 +2155,9 @@ export default function ChessBoard({ size = 500 }) {
         mousePos,
         startPos,
         preMoves,
-        setPreMoves
+        setPreMoves,
+        preMovesBoard,
+        boardCol
     ]);
 
     function getFenFromBoard(board, turn = "w") {
