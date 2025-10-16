@@ -2112,10 +2112,29 @@ export default function ChessBoard({ size = 500 }) {
             const [row, col] = from;
             const [newRow, newCol] = to;
             if (getPieceMoves(row, col, piece, board).some(([r, c]) => r === newRow && c === newCol)) {
-                boardCol[newRow][newCol] = false
-                setBoardCol(boardCol)
-                board[newRow][newCol] = piece
-                board[row][col] = null
+                if (piece.name[1] === 'k' && Math.abs(newCol - col) > 1) {
+                    if (newCol < col) {
+                        let rook = board[7][0]
+                        board[7][0] = null
+                        board[row][col] = null
+                        board[7][newCol] = piece
+                        board[7][newCol + 1] = rook
+                        boardCol[7][newCol] = false
+                        boardCol[7][newCol + 1] = false
+                    } else {
+                        let rook = board[7][7]
+                        board[7][7] = null
+                        board[row][col] = null
+                        board[7][newCol] = piece
+                        board[7][newCol - 1] = rook
+                        boardCol[7][newCol] = false
+                        boardCol[7][newCol - 1] = false
+                    }
+                } else {
+                    boardCol[newRow][newCol] = false
+                    board[newRow][newCol] = piece
+                    board[row][col] = null
+                }
                 setPreMoves(remainingPreMoves);
                 setTurn(!turn)
             } else {
@@ -2163,7 +2182,13 @@ export default function ChessBoard({ size = 500 }) {
             const row = Math.floor(pos.y / cellSize);
             if (e.button === 2) {
                 e.preventDefault();
-                setPreMovesBoard(structuredClone(board));
+                console.log(board)
+                for (let row = 0; row <= 7; row++) {
+                    for (let col = 0; col <= 7; col++) {
+                        preMovesBoard[row][col] = board[row][col]
+                    }
+                }
+                console.log(preMovesBoard)
                 setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
                 setPreMoves([])
                 setStartPos(pos);
@@ -2191,7 +2216,7 @@ export default function ChessBoard({ size = 500 }) {
 
         const handleMouseUp = (e) => {
             if (e.button === 2) {
-                setLines((prev) => [...prev, { start: startPos, end: mousePos }]);
+                if (!isDraw) setLines((prev) => [...prev, { start: startPos, end: mousePos }]);
                 setIsRightDragging(false);
                 setStartPos(null);
                 setMousePos(null);
@@ -2202,14 +2227,36 @@ export default function ChessBoard({ size = 500 }) {
             const newRow = Math.floor(pos.y / cellSize);
             if (draggingPiece.piece.isPlayable !== turn) {
                 if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+                    let currentPiece = structuredClone(preMovesBoard[draggingPiece.row][draggingPiece.col]);
+                    currentPiece.isMoved = true
                     setPreMoves([...preMoves, {
                         from: [draggingPiece.row, draggingPiece.col],
                         to: [newRow, newCol],
-                        piece: draggingPiece.piece
+                        piece: currentPiece
                     }]);
-                    preMovesBoard[draggingPiece.row][draggingPiece.col] = null
-                    preMovesBoard[newRow][newCol] = draggingPiece.piece
-                    boardCol[newRow][newCol] = true
+                    if (currentPiece.name[1] === 'k' && Math.abs(newCol - draggingPiece.col) > 1) {
+                        if (newCol < draggingPiece.col) {
+                            let rook = board[7][0]
+                            preMovesBoard[7][0] = null
+                            preMovesBoard[draggingPiece.row][draggingPiece.col] = null
+                            preMovesBoard[7][newCol] = currentPiece
+                            preMovesBoard[7][newCol + 1] = rook
+                            boardCol[7][newCol] = true
+                            boardCol[7][newCol + 1] = true
+                        } else {
+                            let rook = board[7][7]
+                            preMovesBoard[7][7] = null
+                            preMovesBoard[draggingPiece.row][draggingPiece.col] = null
+                            preMovesBoard[7][newCol] = currentPiece
+                            preMovesBoard[7][newCol - 1] = rook
+                            boardCol[7][newCol] = true
+                            boardCol[7][newCol - 1] = true
+                        }
+                    } else {
+                        preMovesBoard[draggingPiece.row][draggingPiece.col] = null
+                        preMovesBoard[newRow][newCol] = currentPiece
+                        boardCol[newRow][newCol] = true
+                    }
                 }
             } else {
                 play(draggingPiece.row, draggingPiece.col, newRow, newCol, draggingPiece.piece)
@@ -2230,7 +2277,8 @@ export default function ChessBoard({ size = 500 }) {
             canvas.removeEventListener("mouseup", handleMouseUp);
             canvas.removeEventListener("contextmenu", handleContextMenu);
         };
-    }, [images,
+    }, [
+        images,
         drawBoard,
         draggingPiece,
         cellSize,
