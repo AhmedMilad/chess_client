@@ -1859,7 +1859,7 @@ export default function ChessBoard({ size = 500 }) {
 
     const play = useCallback((row, col, newRow, newCol, currentPiece) => {
         let isCapture = false
-        let isValid = true
+        let isValid = false
         if (moves.some(([r, c]) => r === newRow && c === newCol)) {
             isValid = true
             let piece = board[newRow][newCol]
