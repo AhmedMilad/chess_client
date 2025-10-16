@@ -2138,6 +2138,12 @@ export default function ChessBoard({ size = 500 }) {
                 setPreMoves(remainingPreMoves);
                 setTurn(!turn)
             } else {
+                for (let row = 0; row <= 7; row++) {
+                    for (let col = 0; col <= 7; col++) {
+                        boardCol[row][col] = false
+                        preMovesBoard[row][col] = board[row][col]
+                    }
+                }
                 setPreMoves([]);
             }
         }
@@ -2182,13 +2188,11 @@ export default function ChessBoard({ size = 500 }) {
             const row = Math.floor(pos.y / cellSize);
             if (e.button === 2) {
                 e.preventDefault();
-                console.log(board)
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
                         preMovesBoard[row][col] = board[row][col]
                     }
                 }
-                console.log(preMovesBoard)
                 setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
                 setPreMoves([])
                 setStartPos(pos);
