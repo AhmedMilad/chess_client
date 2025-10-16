@@ -324,7 +324,7 @@ export default function ChessBoard({ size = 500 }) {
             // let temp = preMovesBoard[0][0];
             // preMovesBoard[0][0] = preMovesBoard[0][1];
             // preMovesBoard[0][1] = temp;
-            
+
         }
     }, [turn]);
 
@@ -1866,6 +1866,215 @@ export default function ChessBoard({ size = 500 }) {
         return newMoves
     }, [])
 
+    const play = useCallback((newRow, newCol) => {
+        let isCapture = false
+        let isValid = false
+        if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+            isValid = true
+            let piece = board[newRow][newCol]
+            if (piece != null && draggingPiece.piece.name[0] !== piece.name[0]) isCapture = true
+            if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        if (board[row][col] !== null) {
+                            board[row][col].isEnpassant = false;
+                        }
+                    }
+                }
+            }
+            board[draggingPiece.row][draggingPiece.col] = null;
+            preMovesBoard[draggingPiece.row][draggingPiece.col] = null;
+            draggingPiece.piece.isMoved = true;
+            if (draggingPiece.piece.name[1] === 'k') {
+                let dc = newCol - draggingPiece.col;
+                if (Math.abs(dc) === 2) {
+                    if (dc > 0) {
+                        [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
+                            [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
+                        [preMovesBoard[draggingPiece.row][7], preMovesBoard[draggingPiece.row][newCol - 1]] =
+                            [preMovesBoard[draggingPiece.row][newCol - 1], preMovesBoard[draggingPiece.row][7]];
+                        board[draggingPiece.row][newCol - 1].isMoved = true
+                    } else {
+                        [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
+                            [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
+                        [preMovesBoard[draggingPiece.row][0], preMovesBoard[draggingPiece.row][newCol + 1]] =
+                            [preMovesBoard[draggingPiece.row][newCol + 1], preMovesBoard[draggingPiece.row][0]];
+                        board[draggingPiece.row][newCol + 1].isMoved = true
+                    }
+                }
+            }
+
+            if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
+                if (draggingPiece.col !== newCol) {
+                    if (board[newRow][newCol] === null) {
+                        board[draggingPiece.row][newCol] = null
+                        preMovesBoard[draggingPiece.row][newCol] = null
+                    }
+                }
+                if (Math.abs(draggingPiece.row - newRow) === 2) {
+                    draggingPiece.piece.isEnpassant = true
+                }
+            }
+            let queen = draggingPiece.piece.name[0] + "q"
+            if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
+                board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+            } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
+                board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+            } else {
+                board[newRow][newCol] = draggingPiece.piece;
+                preMovesBoard[newRow][newCol] = draggingPiece.piece;
+            }
+            let targetCol = draggingPiece.piece.name[0]
+            targetCol = (targetCol === 'w') ? 'b' : 'w'
+            let numberOfChecks = getNumberOfChecks(board, targetCol)
+            let antiTarget = (targetCol === 'w') ? 'b' : 'w'
+            let kingIsFound = false
+            if (numberOfChecks > 1) {
+                let kingCol = -1, kingRow = -1, king = targetCol + 'k'
+                for (let row = 0; row <= 7; row++) {
+                    for (let col = 0; col <= 7; col++) {
+                        let piece = board[row][col]
+                        if (piece != null && piece.name === king) {
+                            kingCol = col
+                            kingRow = row
+                            kingIsFound = true
+                            break
+                        }
+                    }
+                    if (kingRow !== -1) break
+                }
+                if (kingIsFound) {
+                    let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
+                    if (newMoves.length === 0) {
+                        if (antiTarget === 'b') {
+                            setWinner("black")
+                        } else {
+                            setWinner("white")
+                        }
+                        setBoardPosition([]);
+                        setIsCheckMate(true)
+                    }
+                }
+            }
+            queen = targetCol + 'q'
+            let pawn = targetCol + 'p'
+            let rook = targetCol + 'r'
+            let bishop = targetCol + 'b'
+            let knight = targetCol + 'n'
+            let king = targetCol + 'k'
+            let threats = getKingThreatMoves(king, board)
+            let totalAvailableMoves = 0
+
+            for (let row = 0; row <= 7; row++) {
+                for (let col = 0; col <= 7; col++) {
+                    let piece = board[row][col]
+                    if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
+
+                        let pinMoves = getPinMoves(row, col, board)
+                        let moves = []
+
+                        switch (piece.name) {
+                            case king:
+                                moves = getKingMoves(row, col, board, antiTarget)
+                                break;
+                            case queen:
+                                moves = getMainDiagonal(row, col, board, antiTarget)
+                                    .concat(getAntiDiagonal(row, col, board, antiTarget))
+                                    .concat(getVerticalMoves(row, col, board, antiTarget))
+                                    .concat(getHorizontalMoves(row, col, board, antiTarget));
+                                break;
+                            case rook:
+                                moves = getVerticalMoves(row, col, board, antiTarget)
+                                    .concat(getHorizontalMoves(row, col, board, antiTarget))
+                                break;
+                            case bishop:
+                                moves = getMainDiagonal(row, col, board, antiTarget)
+                                    .concat(getAntiDiagonal(row, col, board, antiTarget));
+                                break;
+                            case knight:
+                                moves = getKnightMoves(row, col, board, antiTarget);
+                                break;
+                            case pawn:
+                                moves = piece.isPlayable
+                                    ? getWPawnMoves(row, col, piece.isMoved)
+                                    : getBPawnMoves(row, col, piece.isMoved);
+                                break;
+                            default: console.log("Invalid piece.")
+                        }
+
+                        if (piece.name !== king) {
+
+                            if (threats.length !== 0) {
+                                moves = moves.filter(move =>
+                                    threats.some(t => t[0] === move[0] && t[1] === move[1])
+                                );
+                            }
+
+                            if (pinMoves.length !== 0) {
+                                moves = moves.filter(move =>
+                                    pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
+                                );
+                            }
+                        }
+
+                        totalAvailableMoves += moves.length
+                    }
+                }
+            }
+
+            if (totalAvailableMoves === 0) {
+                if (numberOfChecks === 1) {
+                    if (antiTarget === 'b') {
+                        setWinner("black")
+                    } else {
+                        setWinner("white")
+                    }
+                    setBoardPosition([]);
+                    setIsCheckMate(true)
+                } else {
+                    setBoardPosition([]);
+                    setIsDraw(true)
+                }
+            }
+
+            setTurn(!turn)
+            setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, draggingPiece.piece, isCapture)]);
+
+            let fenKey = getFenFromBoard(board);
+
+            const index = boardPosition.findIndex((item) => item.key === fenKey);
+
+            if (index !== -1) {
+                const boardPos = [...boardPosition];
+                boardPos[index].value++;
+
+                if (boardPos[index].value >= 3) {
+                    setBoardPosition([]);
+                    setIsDraw(true);
+                } else {
+                    setBoardPosition(boardPos);
+                }
+
+            } else {
+                setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
+            }
+        }
+        return isValid
+    }, [
+        boardPosition,
+        draggingPiece,
+        getKingMoves,
+        getKingThreatMoves,
+        getNumberOfChecks,
+        getPinMoves,
+        isBlack,
+        moves,
+        preMovesBoard,
+        turn
+    ])
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || Object.keys(images).length === 0) return;
@@ -1942,7 +2151,6 @@ export default function ChessBoard({ size = 500 }) {
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
-            let isCapture = false
             if (draggingPiece.piece.isPlayable !== turn) {
                 // use push and shift
                 if (moves.some(([r, c]) => r === newRow && c === newCol)) {
@@ -1955,200 +2163,8 @@ export default function ChessBoard({ size = 500 }) {
                     preMovesBoard[newRow][newCol] = draggingPiece.piece
                     boardCol[newRow][newCol] = true
                 }
-
             } else {
-
-                if (moves.some(([r, c]) => r === newRow && c === newCol)) {
-                    let piece = board[newRow][newCol]
-                    if (piece != null && draggingPiece.piece.name[0] !== piece.name[0]) isCapture = true
-                    if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
-                        for (let row = 0; row < rows; row++) {
-                            for (let col = 0; col < cols; col++) {
-                                if (board[row][col] !== null) {
-                                    board[row][col].isEnpassant = false;
-                                }
-                            }
-                        }
-                    }
-                    board[draggingPiece.row][draggingPiece.col] = null;
-                    preMovesBoard[draggingPiece.row][draggingPiece.col] = null;
-                    draggingPiece.piece.isMoved = true;
-                    if (draggingPiece.piece.name[1] === 'k') {
-                        let dc = newCol - draggingPiece.col;
-                        if (Math.abs(dc) === 2) {
-                            if (dc > 0) {
-                                [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
-                                    [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
-                                [preMovesBoard[draggingPiece.row][7], preMovesBoard[draggingPiece.row][newCol - 1]] =
-                                    [preMovesBoard[draggingPiece.row][newCol - 1], preMovesBoard[draggingPiece.row][7]];
-                                board[draggingPiece.row][newCol - 1].isMoved = true
-                            } else {
-                                [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
-                                    [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
-                                [preMovesBoard[draggingPiece.row][0], preMovesBoard[draggingPiece.row][newCol + 1]] =
-                                    [preMovesBoard[draggingPiece.row][newCol + 1], preMovesBoard[draggingPiece.row][0]];
-                                board[draggingPiece.row][newCol + 1].isMoved = true
-                            }
-                        }
-                    }
-
-                    if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
-                        if (draggingPiece.col !== newCol) {
-                            if (board[newRow][newCol] === null) {
-                                board[draggingPiece.row][newCol] = null
-                                preMovesBoard[draggingPiece.row][newCol] = null
-                            }
-                        }
-                        if (Math.abs(draggingPiece.row - newRow) === 2) {
-                            draggingPiece.piece.isEnpassant = true
-                        }
-                    }
-                    let queen = draggingPiece.piece.name[0] + "q"
-                    if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
-                        board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                        preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                    } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
-                        board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                        preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                    } else {
-                        board[newRow][newCol] = draggingPiece.piece;
-                        preMovesBoard[newRow][newCol] = draggingPiece.piece;
-                    }
-                    let targetCol = draggingPiece.piece.name[0]
-                    targetCol = (targetCol === 'w') ? 'b' : 'w'
-                    let numberOfChecks = getNumberOfChecks(board, targetCol)
-                    let antiTarget = (targetCol === 'w') ? 'b' : 'w'
-                    let kingIsFound = false
-                    if (numberOfChecks > 1) {
-                        let kingCol = -1, kingRow = -1, king = targetCol + 'k'
-                        for (let row = 0; row <= 7; row++) {
-                            for (let col = 0; col <= 7; col++) {
-                                let piece = board[row][col]
-                                if (piece != null && piece.name === king) {
-                                    kingCol = col
-                                    kingRow = row
-                                    kingIsFound = true
-                                    break
-                                }
-                            }
-                            if (kingRow !== -1) break
-                        }
-                        if (kingIsFound) {
-                            let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
-                            if (newMoves.length === 0) {
-                                if (antiTarget === 'b') {
-                                    setWinner("black")
-                                } else {
-                                    setWinner("white")
-                                }
-                                setBoardPosition([]);
-                                setIsCheckMate(true)
-                            }
-                        }
-                    }
-                    queen = targetCol + 'q'
-                    let pawn = targetCol + 'p'
-                    let rook = targetCol + 'r'
-                    let bishop = targetCol + 'b'
-                    let knight = targetCol + 'n'
-                    let king = targetCol + 'k'
-                    let threats = getKingThreatMoves(king, board)
-                    let totalAvailableMoves = 0
-
-                    for (let row = 0; row <= 7; row++) {
-                        for (let col = 0; col <= 7; col++) {
-                            let piece = board[row][col]
-                            if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
-
-                                let pinMoves = getPinMoves(row, col, board)
-                                let moves = []
-
-                                switch (piece.name) {
-                                    case king:
-                                        moves = getKingMoves(row, col, board, antiTarget)
-                                        break;
-                                    case queen:
-                                        moves = getMainDiagonal(row, col, board, antiTarget)
-                                            .concat(getAntiDiagonal(row, col, board, antiTarget))
-                                            .concat(getVerticalMoves(row, col, board, antiTarget))
-                                            .concat(getHorizontalMoves(row, col, board, antiTarget));
-                                        break;
-                                    case rook:
-                                        moves = getVerticalMoves(row, col, board, antiTarget)
-                                            .concat(getHorizontalMoves(row, col, board, antiTarget))
-                                        break;
-                                    case bishop:
-                                        moves = getMainDiagonal(row, col, board, antiTarget)
-                                            .concat(getAntiDiagonal(row, col, board, antiTarget));
-                                        break;
-                                    case knight:
-                                        moves = getKnightMoves(row, col, board, antiTarget);
-                                        break;
-                                    case pawn:
-                                        moves = piece.isPlayable
-                                            ? getWPawnMoves(row, col, piece.isMoved)
-                                            : getBPawnMoves(row, col, piece.isMoved);
-                                        break;
-                                    default: console.log("Invalid piece.")
-                                }
-
-                                if (piece.name !== king) {
-
-                                    if (threats.length !== 0) {
-                                        moves = moves.filter(move =>
-                                            threats.some(t => t[0] === move[0] && t[1] === move[1])
-                                        );
-                                    }
-
-                                    if (pinMoves.length !== 0) {
-                                        moves = moves.filter(move =>
-                                            pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
-                                        );
-                                    }
-                                }
-
-                                totalAvailableMoves += moves.length
-                            }
-                        }
-                    }
-
-                    if (totalAvailableMoves === 0) {
-                        if (numberOfChecks === 1) {
-                            if (antiTarget === 'b') {
-                                setWinner("black")
-                            } else {
-                                setWinner("white")
-                            }
-                            setBoardPosition([]);
-                            setIsCheckMate(true)
-                        } else {
-                            setBoardPosition([]);
-                            setIsDraw(true)
-                        }
-                    }
-
-                    setTurn(!turn)
-                    setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, draggingPiece.piece, isCapture)]);
-
-                    let fenKey = getFenFromBoard(board);
-
-                    const index = boardPosition.findIndex((item) => item.key === fenKey);
-
-                    if (index !== -1) {
-                        const boardPos = [...boardPosition];
-                        boardPos[index].value++;
-
-                        if (boardPos[index].value >= 3) {
-                            setBoardPosition([]);
-                            setIsDraw(true);
-                        } else {
-                            setBoardPosition(boardPos);
-                        }
-
-                    } else {
-                        setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
-                    }
-                }
+                play(newRow, newCol)
             }
             setDraggingPiece(null);
             setMoves([]);
@@ -2191,7 +2207,8 @@ export default function ChessBoard({ size = 500 }) {
         getNumberOfChecks,
         getPieceMoves,
         getPiecePreMoves,
-        getPinMoves
+        getPinMoves,
+        play
     ]);
 
     function getFenFromBoard(board, turn = "w") {
