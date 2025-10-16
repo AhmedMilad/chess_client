@@ -301,7 +301,8 @@ export default function ChessBoard({ size = 500 }) {
                 );
             }
         },
-        [cellSize,
+        [
+            cellSize,
             size,
             images,
             draggingPiece,
@@ -1548,6 +1549,46 @@ export default function ChessBoard({ size = 500 }) {
                 newMoves.push([newRow, newCol]);
             }
         }
+        let king = preMovesBoard[row][col]
+        if (!king.isMoved) {
+            let target = (king.name[0] === 'w') ? 'b' : 'w'
+            let newCol = col
+            let exists = newMoves.some(move =>
+                move[0] === row && move[1] === col - 1
+            );
+            if (exists) {
+                while (newCol > 0) {
+                    newCol--
+                    let piece = preMovesBoard[row][newCol]
+                    if (piece != null) {
+                        if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
+                            if (isSafeSquare(row, col - 2, preMovesBoard, target, piece.isPlayable)) {
+                                newMoves.push([row, col - 2]);
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+            newCol = col
+            exists = newMoves.some(move =>
+                move[0] === row && move[1] === col + 1
+            );
+            if (exists) {
+                while (newCol < 7) {
+                    newCol++
+                    let piece = preMovesBoard[row][newCol]
+                    if (piece != null) {
+                        if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
+                            if (isSafeSquare(row, col + 2, preMovesBoard, target, piece.isPlayable)) {
+                                newMoves.push([row, col + 2]);
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+        }
         return newMoves;
     }
 
@@ -2067,24 +2108,21 @@ export default function ChessBoard({ size = 500 }) {
 
     useEffect(() => {
         if (turn && preMoves.length !== 0) {
-            const [{ from, to, piece }, ...nextPreMoves] = preMoves;
+            const [{ from, to, piece }, ...remainingPreMoves] = preMoves;
             const [row, col] = from;
             const [newRow, newCol] = to;
-            setMoves(getPieceMoves(row, col, piece, board));
-            queueMicrotask(() => {
-                const isValid = play(row, col, newRow, newCol, piece);
-                console.log(isValid)
-                if (!isValid) {
-                    console.log("Invalid premove, clearing queue");
-                    setPreMoves([]);
-                } else {
-                    console.log("Premove executed");
-                    setPreMoves(nextPreMoves);
-                    setTurn(!turn)
-                }
-            });
+            if (getPieceMoves(row, col, piece, board).some(([r, c]) => r === newRow && c === newCol)) {
+                boardCol[newRow][newCol] = false
+                setBoardCol(boardCol)
+                board[newRow][newCol] = piece
+                board[row][col] = null
+                setPreMoves(remainingPreMoves);
+                setTurn(!turn)
+            } else {
+                setPreMoves([]);
+            }
         }
-    }, [turn, getPieceMoves, preMoves, play]);
+    }, [turn]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -2163,7 +2201,6 @@ export default function ChessBoard({ size = 500 }) {
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
             if (draggingPiece.piece.isPlayable !== turn) {
-                // use push and shift
                 if (moves.some(([r, c]) => r === newRow && c === newCol)) {
                     setPreMoves([...preMoves, {
                         from: [draggingPiece.row, draggingPiece.col],
