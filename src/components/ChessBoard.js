@@ -319,15 +319,6 @@ export default function ChessBoard({ size = 500 }) {
         ]
     );
 
-    useEffect(() => {
-        if (!turn && preMoves.length !== 0) {
-            // let temp = preMovesBoard[0][0];
-            // preMovesBoard[0][0] = preMovesBoard[0][1];
-            // preMovesBoard[0][1] = temp;
-
-        }
-    }, [turn]);
-
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
         const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
         const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
@@ -1866,14 +1857,14 @@ export default function ChessBoard({ size = 500 }) {
         return newMoves
     }, [])
 
-    const play = useCallback((newRow, newCol) => {
+    const play = useCallback((row, col, newRow, newCol, currentPiece) => {
         let isCapture = false
-        let isValid = false
+        let isValid = true
         if (moves.some(([r, c]) => r === newRow && c === newCol)) {
             isValid = true
             let piece = board[newRow][newCol]
-            if (piece != null && draggingPiece.piece.name[0] !== piece.name[0]) isCapture = true
-            if (newCol !== draggingPiece.col || newRow !== draggingPiece.row) {
+            if (piece != null && currentPiece.name[0] !== piece.name[0]) isCapture = true
+            if (newCol !== col || newRow !== row) {
                 for (let row = 0; row < rows; row++) {
                     for (let col = 0; col < cols; col++) {
                         if (board[row][col] !== null) {
@@ -1882,51 +1873,51 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 }
             }
-            board[draggingPiece.row][draggingPiece.col] = null;
-            preMovesBoard[draggingPiece.row][draggingPiece.col] = null;
-            draggingPiece.piece.isMoved = true;
-            if (draggingPiece.piece.name[1] === 'k') {
-                let dc = newCol - draggingPiece.col;
+            board[row][col] = null;
+            preMovesBoard[row][col] = null;
+            currentPiece.isMoved = true;
+            if (currentPiece.name[1] === 'k') {
+                let dc = newCol - col;
                 if (Math.abs(dc) === 2) {
                     if (dc > 0) {
-                        [board[draggingPiece.row][7], board[draggingPiece.row][newCol - 1]] =
-                            [board[draggingPiece.row][newCol - 1], board[draggingPiece.row][7]];
-                        [preMovesBoard[draggingPiece.row][7], preMovesBoard[draggingPiece.row][newCol - 1]] =
-                            [preMovesBoard[draggingPiece.row][newCol - 1], preMovesBoard[draggingPiece.row][7]];
-                        board[draggingPiece.row][newCol - 1].isMoved = true
+                        [board[row][7], board[row][newCol - 1]] =
+                            [board[row][newCol - 1], board[row][7]];
+                        [preMovesBoard[row][7], preMovesBoard[row][newCol - 1]] =
+                            [preMovesBoard[row][newCol - 1], preMovesBoard[row][7]];
+                        board[row][newCol - 1].isMoved = true
                     } else {
-                        [board[draggingPiece.row][0], board[draggingPiece.row][newCol + 1]] =
-                            [board[draggingPiece.row][newCol + 1], board[draggingPiece.row][0]];
-                        [preMovesBoard[draggingPiece.row][0], preMovesBoard[draggingPiece.row][newCol + 1]] =
-                            [preMovesBoard[draggingPiece.row][newCol + 1], preMovesBoard[draggingPiece.row][0]];
-                        board[draggingPiece.row][newCol + 1].isMoved = true
+                        [board[row][0], board[row][newCol + 1]] =
+                            [board[row][newCol + 1], board[row][0]];
+                        [preMovesBoard[row][0], preMovesBoard[row][newCol + 1]] =
+                            [preMovesBoard[row][newCol + 1], preMovesBoard[row][0]];
+                        board[row][newCol + 1].isMoved = true
                     }
                 }
             }
 
-            if (draggingPiece.piece.name === "wp" || draggingPiece.piece.name === "bp") {
-                if (draggingPiece.col !== newCol) {
+            if (currentPiece.name === "wp" || currentPiece.name === "bp") {
+                if (col !== newCol) {
                     if (board[newRow][newCol] === null) {
-                        board[draggingPiece.row][newCol] = null
-                        preMovesBoard[draggingPiece.row][newCol] = null
+                        board[row][newCol] = null
+                        preMovesBoard[row][newCol] = null
                     }
                 }
-                if (Math.abs(draggingPiece.row - newRow) === 2) {
-                    draggingPiece.piece.isEnpassant = true
+                if (Math.abs(row - newRow) === 2) {
+                    currentPiece.isEnpassant = true
                 }
             }
-            let queen = draggingPiece.piece.name[0] + "q"
-            if (newRow === 7 && !draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
+            let queen = currentPiece.name[0] + "q"
+            if (newRow === 7 && !currentPiece.isPlayable && currentPiece.name[1] === 'p') {
                 board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                 preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-            } else if (newRow === 0 && draggingPiece.piece.isPlayable && draggingPiece.piece.name[1] === 'p') {
+            } else if (newRow === 0 && currentPiece.isPlayable && currentPiece.name[1] === 'p') {
                 board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                 preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
             } else {
-                board[newRow][newCol] = draggingPiece.piece;
-                preMovesBoard[newRow][newCol] = draggingPiece.piece;
+                board[newRow][newCol] = currentPiece;
+                preMovesBoard[newRow][newCol] = currentPiece;
             }
-            let targetCol = draggingPiece.piece.name[0]
+            let targetCol = currentPiece.name[0]
             targetCol = (targetCol === 'w') ? 'b' : 'w'
             let numberOfChecks = getNumberOfChecks(board, targetCol)
             let antiTarget = (targetCol === 'w') ? 'b' : 'w'
@@ -2040,7 +2031,7 @@ export default function ChessBoard({ size = 500 }) {
             }
 
             setTurn(!turn)
-            setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, draggingPiece.piece, isCapture)]);
+            setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, currentPiece, isCapture)]);
 
             let fenKey = getFenFromBoard(board);
 
@@ -2064,7 +2055,6 @@ export default function ChessBoard({ size = 500 }) {
         return isValid
     }, [
         boardPosition,
-        draggingPiece,
         getKingMoves,
         getKingThreatMoves,
         getNumberOfChecks,
@@ -2074,6 +2064,27 @@ export default function ChessBoard({ size = 500 }) {
         preMovesBoard,
         turn
     ])
+
+    useEffect(() => {
+        if (turn && preMoves.length !== 0) {
+            const [{ from, to, piece }, ...nextPreMoves] = preMoves;
+            const [row, col] = from;
+            const [newRow, newCol] = to;
+            setMoves(getPieceMoves(row, col, piece, board));
+            queueMicrotask(() => {
+                const isValid = play(row, col, newRow, newCol, piece);
+                console.log(isValid)
+                if (!isValid) {
+                    console.log("Invalid premove, clearing queue");
+                    setPreMoves([]);
+                } else {
+                    console.log("Premove executed");
+                    setPreMoves(nextPreMoves);
+                    setTurn(!turn)
+                }
+            });
+        }
+    }, [turn, getPieceMoves, preMoves, play]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -2157,14 +2168,14 @@ export default function ChessBoard({ size = 500 }) {
                     setPreMoves([...preMoves, {
                         from: [draggingPiece.row, draggingPiece.col],
                         to: [newRow, newCol],
-                        name: draggingPiece.piece.name
+                        piece: draggingPiece.piece
                     }]);
                     preMovesBoard[draggingPiece.row][draggingPiece.col] = null
                     preMovesBoard[newRow][newCol] = draggingPiece.piece
                     boardCol[newRow][newCol] = true
                 }
             } else {
-                play(newRow, newCol)
+                play(draggingPiece.row, draggingPiece.col, newRow, newCol, draggingPiece.piece)
             }
             setDraggingPiece(null);
             setMoves([]);
