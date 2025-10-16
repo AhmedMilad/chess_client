@@ -319,6 +319,14 @@ export default function ChessBoard({ size = 500 }) {
         ]
     );
 
+    useEffect(() => {
+        // if (!turn) {
+        //     let temp = preMovesBoard[0][0];
+        //     preMovesBoard[0][0] = preMovesBoard[0][1];
+        //     preMovesBoard[0][1] = temp;
+        // }
+    }, [turn]);
+
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
         const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
         const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
@@ -360,1228 +368,1506 @@ export default function ChessBoard({ size = 500 }) {
         ctx.fill();
     }
 
+
+    function getPawnCheck(row, col, board) {
+        let king = board[row][col]
+        let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
+        let pawn = targetCol + 'p'
+        let checks = 0
+
+        let direction = (!king.isPlayable) ? +1 : -1
+
+        let attackSquares = [
+            [row + direction, col - 1],
+            [row + direction, col + 1]
+        ]
+
+        for (let [newRow, newCol] of attackSquares) {
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                let piece = board[newRow][newCol]
+                if (piece && piece.name === pawn) {
+                    checks++
+                }
+            }
+        }
+
+        return checks
+    }
+
+
+    function getWPawnMoves(row, col, isMoved) {
+        let newMoves = [];
+        let pawn = board[row][col]
+        if (row > 0 && board[row - 1][col] === null) {
+            newMoves.push([row - 1, col]);
+            if (!isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
+        }
+        if (col > 0) {
+            if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
+                if (board[row][col - 1].isEnpassant) {
+                    newMoves.push([row - 1, col - 1]);
+                }
+            }
+            if (row > 0 && board[row - 1][col - 1] !== null && pawn !== null && board[row - 1][col - 1].name[0] !== pawn.name[0]) {
+                newMoves.push([row - 1, col - 1]);
+            }
+        }
+        if (col < 7) {
+            if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1].name[0] !== pawn.name[0]) {
+                if (board[row][col + 1].isEnpassant) {
+                    newMoves.push([row - 1, col + 1]);
+                }
+            }
+            if (row > 0 && board[row - 1][col + 1] !== null && pawn !== null && board[row - 1][col + 1].name[0] !== pawn.name[0]) {
+                newMoves.push([row - 1, col + 1]);
+            }
+        }
+        return newMoves;
+    }
+
+    function getBPawnMoves(row, col, isMoved) {
+        let newMoves = [];
+        let pawn = board[row][col]
+        if (row < 7 && board[row + 1][col] === null) {
+            newMoves.push([row + 1, col]);
+            if (!isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
+        }
+        if (col > 0) {
+            if (board[row][col - 1] !== null) {
+                if (pawn !== null && board[row][col - 1].name[0] !== pawn.name[0] && board[row][col - 1].isEnpassant) {
+                    newMoves.push([row + 1, col - 1]);
+                }
+            }
+            if (row < 7 && pawn !== null && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] !== pawn.name[0]) {
+                newMoves.push([row + 1, col - 1]);
+            }
+        }
+        if (col < 7) {
+            if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1] !== pawn.name[0]) {
+                if (board[row][col + 1].isEnpassant) {
+                    newMoves.push([row + 1, col + 1]);
+                }
+            }
+            if (row < 7 && board[row + 1][col + 1] !== null && pawn !== null && board[row + 1][col + 1].name[0] !== pawn.name[0]) {
+                newMoves.push([row + 1, col + 1]);
+            }
+        }
+        return newMoves;
+    }
+
+    function getKnightMoves(row, col, board, target) {
+        let newMoves = [];
+        const directions = [
+            [-2, -1], [-2, +1],
+            [+2, -1], [+2, +1],
+            [-1, -2], [+1, -2],
+            [-1, +2], [+1, +2]
+        ];
+
+        for (let [drow, dcol] of directions) {
+            let newRow = row + drow;
+            let newCol = col + dcol;
+
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                const square = board[newRow][newCol];
+                if (square === null || square.name[0] === target) {
+                    newMoves.push([newRow, newCol]);
+                }
+            }
+        }
+
+        return newMoves;
+    }
+
+    function isSafeSquare(row, col, board, target, isPlayable) {
+        let newCol = col, newRow = row
+        let rook = target + "r", bishop = target + "b", queen = target + "q", knight = target + "n", pawn = target + "p"
+        while (newRow < 7) {
+            newRow++
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === rook) {
+                    return false
+                }
+                break
+            }
+        }
+        newRow = row
+        while (newRow > 0) {
+            newRow--
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === rook) {
+                    return false
+                }
+                break
+            }
+        }
+        newRow = row
+        while (newCol < 7) {
+            newCol++
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === rook) {
+                    return false
+                }
+                break
+            }
+        }
+        newCol = col
+        while (newCol > 0) {
+            newCol--
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === rook) {
+                    return false
+                }
+                break
+            }
+        }
+        newCol = col
+        while (newRow < 7 && newCol < 7) {
+            newRow++
+            newCol++
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === bishop) {
+                    return false
+                }
+                break
+            }
+        }
+        newRow = row
+        newCol = col
+        while (newRow > 0 && newCol > 0) {
+            newRow--
+            newCol--
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === bishop) {
+                    return false
+                }
+                break
+            }
+        }
+        newRow = row
+        newCol = col
+        while (newCol < 7 && newRow > 0) {
+            newCol++
+            newRow--
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === bishop) {
+                    return false
+                }
+                break
+            }
+        }
+        newRow = row
+        newCol = col
+        while (newCol > 0 && newRow < 7) {
+            newRow++
+            newCol--
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === queen || piece.name === bishop) {
+                    return false
+                }
+                break
+            }
+        }
+
+        let knightMoves = [
+            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+            [1, -2], [1, 2], [2, -1], [2, 1]
+        ]
+        for (let i = 0; i < knightMoves.length; i++) {
+            let dr = knightMoves[i][0], dc = knightMoves[i][1]
+            let r = row + dr, c = col + dc
+            if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
+                let piece = board[r][c]
+                if (piece != null && piece.name === knight) return false
+            }
+        }
+
+        let pawnRow = isPlayable ? row - 1 : row + 1;
+        for (let pawnCol of [col - 1, col + 1]) {
+            if (pawnRow >= 0 && pawnRow <= 7 && pawnCol >= 0 && pawnCol <= 7) {
+                let piece = board[pawnRow][pawnCol];
+                if (piece != null && piece.name === pawn) return false;
+            }
+        }
+        let king = target + "k";
+        const kingMoves = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1], [0, 1],
+            [1, -1], [1, 0], [1, 1]
+        ];
+        for (let [dr, dc] of kingMoves) {
+            let r = row + dr, c = col + dc;
+            if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
+                let piece = board[r][c];
+                if (piece != null && piece.name === king) return false;
+            }
+        }
+        return true
+    }
+
+    function getKingMoves(row, col, board, target) {
+        let newMoves = [];
+        const directions = [
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1]
+        ];
+
+        let piece = board[row][col]
+
+        for (let [dr, dc] of directions) {
+            let newRow = row + dr;
+            let newCol = col + dc;
+
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                const square = board[newRow][newCol];
+                if (square === null || square.name[0] === target) {
+                    if (isSafeSquare(newRow, newCol, board, target, piece.isPlayable)) {
+
+                        let validMove = true;
+                        let checkRow = row - dr;
+                        let checkCol = col - dc;
+
+                        while (checkRow >= 0 && checkRow <= 7 && checkCol >= 0 && checkCol <= 7) {
+                            const threatSquare = board[checkRow][checkCol];
+                            if (threatSquare !== null && threatSquare.name[0] === target) {
+                                const pieceType = threatSquare.name[1];
+                                if (Math.abs(dr) === 1 && Math.abs(dc) === 1) {
+                                    if (pieceType === 'b' || pieceType === 'q') {
+                                        validMove = false;
+                                        break;
+                                    }
+                                } else {
+                                    if (pieceType === 'r' || pieceType === 'q') {
+                                        validMove = false;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                            checkRow -= dr;
+                            checkCol -= dc;
+                        }
+                        if (validMove) newMoves.push([newRow, newCol]);
+                    }
+                }
+            }
+        }
+        let king = board[row][col]
+        if (!king.isMoved) {
+            let newCol = col
+            let exists = newMoves.some(move =>
+                move[0] === row && move[1] === col - 1
+            );
+            if (exists) {
+                while (newCol > 0) {
+                    newCol--
+                    let piece = board[row][newCol]
+                    if (piece != null) {
+                        if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
+                            if (isSafeSquare(row, col - 2, board, target, piece.isPlayable)) {
+                                newMoves.push([row, col - 2]);
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+            newCol = col
+            exists = newMoves.some(move =>
+                move[0] === row && move[1] === col + 1
+            );
+            if (exists) {
+                while (newCol < 7) {
+                    newCol++
+                    let piece = board[row][newCol]
+                    if (piece != null) {
+                        if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
+                            if (isSafeSquare(row, col + 2, board, target, piece.isPlayable)) {
+                                newMoves.push([row, col + 2]);
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+        }
+        return newMoves;
+    }
+
+    function getVerticalMoves(row, col, board, target) {
+        let newMoves = []
+        let newRow = row
+        while (newRow < 7) {
+            newRow++
+            if (board[newRow][col] === null) {
+                newMoves.push([newRow, col]);
+            } else {
+                if (board[newRow][col].name[0] === target) {
+                    newMoves.push([newRow, col]);
+                }
+                break;
+            }
+        }
+        newRow = row
+        while (newRow > 0) {
+            newRow--
+            if (board[newRow][col] === null) {
+                newMoves.push([newRow, col]);
+            } else {
+                if (board[newRow][col].name[0] === target) {
+                    newMoves.push([newRow, col]);
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getHorizontalMoves(row, col, board, target) {
+        let newMoves = []
+        let newCol = col
+        while (newCol < 7) {
+            newCol++
+            if (board[row][newCol] === null) {
+                newMoves.push([row, newCol]);
+            } else {
+                if (board[row][newCol].name[0] === target) {
+                    newMoves.push([row, newCol]);
+                }
+                break;
+            }
+        }
+        newCol = col
+        while (newCol > 0) {
+            newCol--
+            if (board[row][newCol] === null) {
+                newMoves.push([row, newCol]);
+            } else {
+                if (board[row][newCol].name[0] === target) {
+                    newMoves.push([row, newCol]);
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getMainDiagonal(row, col, board, target) {
+        let newMoves = []
+        let newCol = col
+        let newRow = row
+        while (newCol < 7 && newRow < 7) {
+            newCol++
+            newRow++
+            if (board[newRow][newCol] === null) {
+                newMoves.push([newRow, newCol]);
+            } else {
+                if (board[newRow][newCol].name[0] === target) {
+                    newMoves.push([newRow, newCol]);
+                }
+                break;
+            }
+        }
+        newCol = col
+        newRow = row
+        while (newCol > 0 && newRow > 0) {
+            newCol--
+            newRow--
+            if (board[newRow][newCol] === null) {
+                newMoves.push([newRow, newCol]);
+            } else {
+                if (board[newRow][newCol].name[0] === target) {
+                    newMoves.push([newRow, newCol]);
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getAntiDiagonal(row, col, board, target) {
+        let newMoves = []
+        let newCol = col
+        let newRow = row
+        while (newCol < 7 && newRow > 0) {
+            newCol++
+            newRow--
+            if (board[newRow][newCol] === null) {
+                newMoves.push([newRow, newCol]);
+            } else {
+                if (board[newRow][newCol].name[0] === target) {
+                    newMoves.push([newRow, newCol]);
+                }
+                break;
+            }
+        }
+        newCol = col
+        newRow = row
+        while (newRow < 7 && newCol > 0) {
+            newCol--
+            newRow++
+            if (board[newRow][newCol] === null) {
+                newMoves.push([newRow, newCol]);
+            } else {
+                if (board[newRow][newCol].name[0] === target) {
+                    newMoves.push([newRow, newCol]);
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getHorizontalThreat(row, col, board, targets = []) {
+        let newMoves = []
+        let curMoves = []
+        let newCol = col
+        while (newCol < 7) {
+            newCol++
+            if (board[row][newCol] === null) {
+                curMoves.push([row, newCol]);
+            } else {
+                if (targets.includes(board[row][newCol].name)) {
+                    curMoves.push([row, newCol]);
+                    newMoves = newMoves.concat(curMoves)
+                }
+                break;
+            }
+        }
+        curMoves = []
+        newCol = col
+        while (newCol > 0) {
+            newCol--
+            if (board[row][newCol] === null) {
+                curMoves.push([row, newCol]);
+            } else {
+                if (targets.includes(board[row][newCol].name)) {
+                    curMoves.push([row, newCol]);
+                    newMoves = newMoves.concat(curMoves)
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getVerticalThreat(row, col, board, targets = []) {
+        let newMoves = []
+        let curMoves = []
+        let newRow = row
+        while (newRow < 7) {
+            newRow++
+            if (board[newRow][col] === null) {
+                curMoves.push([newRow, col]);
+            } else {
+                if (targets.includes(board[newRow][col].name)) {
+                    curMoves.push([newRow, col]);
+                    newMoves = newMoves.concat(curMoves)
+                }
+                break;
+            }
+        }
+        curMoves = []
+        newRow = row
+        while (newRow > 0) {
+            newRow--
+            if (board[newRow][col] === null) {
+                curMoves.push([newRow, col]);
+            } else {
+                if (targets.includes(board[newRow][col].name)) {
+                    curMoves.push([newRow, col]);
+                    newMoves = newMoves.concat(curMoves)
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getPawnThreat(row, col, board, target) {
+        let directions = [
+            [1, -1], [1, 1]
+        ];
+        let pawn = board[row][col]
+        if (pawn.isPlayable) {
+            directions = [
+                [-1, -1], [-1, 1],
+            ]
+        }
+        const newMoves = [];
+        directions.forEach(([dr, dc]) => {
+            const newRow = row + dr;
+            const newCol = col + dc;
+            if (
+                newRow >= 0 && newRow <= 7 &&
+                newCol >= 0 && newCol <= 7
+            ) {
+                const piece = board[newRow][newCol];
+                if (piece && piece.name === target) {
+                    newMoves.push([newRow, newCol]);
+                }
+            }
+        });
+
+        return newMoves;
+    }
+
+    function getMainDiagonalThreat(row, col, board, targets = []) {
+        let newMoves = []
+        let curMoves = []
+        let newCol = col
+        let newRow = row
+        while (newCol < 7 && newRow < 7) {
+            newCol++
+            newRow++
+            if (board[newRow][newCol] === null) {
+                curMoves.push([newRow, newCol]);
+            } else {
+                if (targets.includes(board[newRow][newCol].name)) {
+                    curMoves.push([newRow, newCol]);
+                    newMoves = newMoves.concat(curMoves)
+                }
+                break;
+            }
+        }
+        newCol = col
+        newRow = row
+        curMoves = []
+        while (newCol > 0 && newRow > 0) {
+            newCol--
+            newRow--
+            if (board[newRow][newCol] === null) {
+                curMoves.push([newRow, newCol]);
+            } else {
+                if (targets.includes(board[newRow][newCol].name)) {
+                    curMoves.push([newRow, newCol]);
+                    newMoves = newMoves.concat(curMoves)
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getAntiDiagonalThreat(row, col, board, targets = []) {
+        let newMoves = []
+        let curMoves = []
+        let newCol = col
+        let newRow = row
+        while (newCol < 7 && newRow > 0) {
+            newCol++
+            newRow--
+            if (board[newRow][newCol] === null) {
+                curMoves.push([newRow, newCol]);
+            } else {
+                if (targets.includes(board[newRow][newCol].name)) {
+                    curMoves.push([newRow, newCol]);
+                    newMoves = newMoves.concat(curMoves);
+                }
+                break;
+            }
+        }
+        newCol = col
+        newRow = row
+        curMoves = []
+        while (newRow < 7 && newCol > 0) {
+            newCol--
+            newRow++
+            if (board[newRow][newCol] === null) {
+                curMoves.push([newRow, newCol]);
+            } else {
+                if (targets.includes(board[newRow][newCol].name)) {
+                    curMoves.push([newRow, newCol]);
+                    newMoves = newMoves.concat(curMoves);
+                }
+                break;
+            }
+        }
+        return newMoves
+    }
+
+    function getKingThreatMoves(target, board) {
+        let kingRow = 0;
+        let kingCol = 0;
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                if (board[row][col] !== null && board[row][col].name === target) {
+                    kingRow = row
+                    kingCol = col
+                }
+            }
+        }
+        let targetCol
+        if (target[0] === "w") {
+            targetCol = "b"
+        } else {
+            targetCol = "w"
+        }
+        let rook = targetCol + "r", bishop = targetCol + "b", queen = targetCol + "q", knight = targetCol + "n", pawn = targetCol + "p"
+        let threatMoves = getVerticalThreat(kingRow, kingCol, board, [rook, queen])
+            .concat(getHorizontalThreat(kingRow, kingCol, board, [rook, queen]))
+            .concat(getMainDiagonalThreat(kingRow, kingCol, board, [bishop, queen]))
+            .concat(getAntiDiagonalThreat(kingRow, kingCol, board, [bishop, queen]))
+            .concat(getKnightThreatMoves(kingRow, kingCol, board, knight))
+            .concat(getPawnThreat(kingRow, kingCol, board, pawn))
+        return threatMoves
+    }
+
+    function getKnightThreatMoves(row, col, board, target) {
+        let threatMoves = [];
+        const directions = [
+            [-2, -1], [-2, +1],
+            [+2, -1], [+2, +1],
+            [-1, -2], [+1, -2],
+            [-1, +2], [+1, +2]
+        ];
+
+        for (let [drow, dcol] of directions) {
+            let newRow = row + drow;
+            let newCol = col + dcol;
+
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                const piece = board[newRow][newCol];
+                if (piece !== null && piece.name === target) {
+                    threatMoves.push([newRow, newCol]);
+                }
+            }
+        }
+
+        return threatMoves;
+    }
+
+    function getPinMoves(row, col, board) {
+        let pinMoves = getMainDiagonalPinMoves(row, col, board)
+            .concat(getAntiDiagonalPinMoves(row, col, board))
+            .concat(getHorizontalPinMoves(row, col, board))
+            .concat(getVerticalPinMoves(row, col, board))
+        return pinMoves
+    }
+
+    function getMainDiagonalPinMoves(row, col, board) {
+        if (board[row][col] == null) return []
+        let pinMoves = []
+        let newCol = col, newRow = row;
+        let isThreat = false, isKing = false
+        let kingCol = board[row][col].name[0], threatCol = 'w'
+        if (kingCol === 'w') {
+            threatCol = 'b'
+        }
+        let king = kingCol + "k", queen = threatCol + 'q', bishop = threatCol + "b"
+        while (newCol > 0 && newRow > 0) {
+            newCol--
+            newRow--
+            pinMoves.push([newRow, newCol]);
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === bishop || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (!isKing && !isThreat) {
+            return []
+        }
+        newCol = col
+        newRow = row
+        while (newCol < 7 && newRow < 7) {
+            newCol++
+            newRow++
+            pinMoves.push([newRow, newCol]);
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === bishop || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (isKing && isThreat) {
+            return pinMoves
+        }
+        return []
+    }
+
+    function getAntiDiagonalPinMoves(row, col, board) {
+        if (board[row][col] == null) return []
+        let pinMoves = []
+        let newCol = col, newRow = row;
+        let isThreat = false, isKing = false
+        let kingCol = board[row][col].name[0], threatCol = 'w'
+        if (kingCol === 'w') {
+            threatCol = 'b'
+        }
+        let king = kingCol + "k", queen = threatCol + 'q', bishop = threatCol + "b"
+        while (newCol < 7 && newRow > 0) {
+            newCol++
+            newRow--
+            pinMoves.push([newRow, newCol]);
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === bishop || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (!isKing && !isThreat) {
+            return []
+        }
+        newCol = col
+        newRow = row
+        while (newRow < 7 && newCol > 0) {
+            newCol--
+            newRow++
+            pinMoves.push([newRow, newCol]);
+            if (board[newRow][newCol] != null) {
+                let piece = board[newRow][newCol]
+                if (piece.name === bishop || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (isKing && isThreat) {
+            return pinMoves
+        }
+        return []
+    }
+
+    function getVerticalPinMoves(row, col, board) {
+        if (board[row][col] == null) return []
+        let pinMoves = []
+        let newRow = row;
+        let isThreat = false, isKing = false
+        let kingCol = board[row][col].name[0], threatCol = 'w'
+        if (kingCol === 'w') {
+            threatCol = 'b'
+        }
+        let king = kingCol + "k", queen = threatCol + 'q', rook = threatCol + "r"
+        while (newRow > 0) {
+            newRow--
+            pinMoves.push([newRow, col]);
+            if (board[newRow][col] != null) {
+                let piece = board[newRow][col]
+                if (piece.name === rook || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (!isKing && !isThreat) {
+            return []
+        }
+        newRow = row
+        while (newRow < 7) {
+            newRow++
+            pinMoves.push([newRow, col]);
+            if (board[newRow][col] != null) {
+                let piece = board[newRow][col]
+                if (piece.name === rook || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (isKing && isThreat) {
+            return pinMoves
+        }
+        return []
+    }
+
+    function getHorizontalPinMoves(row, col, board) {
+        if (board[row][col] == null) return []
+        let pinMoves = []
+        let newCol = col
+        let isThreat = false, isKing = false
+        let kingCol = board[row][col].name[0], threatCol = 'w'
+        if (kingCol === 'w') {
+            threatCol = 'b'
+        }
+        let king = kingCol + "k", queen = threatCol + 'q', rook = threatCol + "r"
+        while (newCol < 7) {
+            newCol++
+            pinMoves.push([row, newCol]);
+            if (board[row][newCol] != null) {
+                let piece = board[row][newCol]
+                if (piece.name === rook || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (!isKing && !isThreat) {
+            return []
+        }
+        newCol = col
+        while (newCol > 0) {
+            newCol--
+            pinMoves.push([row, newCol]);
+            if (board[row][newCol] != null) {
+                let piece = board[row][newCol]
+                if (piece.name === rook || piece.name === queen) {
+                    isThreat = true
+                }
+                if (piece.name === king) {
+                    isKing = true
+                }
+                break
+            }
+        }
+        if (isKing && isThreat) {
+            return pinMoves
+        }
+        return []
+    }
+
+    function getNumberOfChecks(board, target) {
+        let kingRow = -1, kingCol = -1, king = target + 'k'
+        let kingIsFound = false
+        for (let row = 0; row <= 7; row++) {
+            for (let col = 0; col <= 7; col++) {
+                let piece = board[row][col]
+                if (piece != null && piece.name === king) {
+                    kingRow = row
+                    kingCol = col
+                    kingIsFound = true
+                    break
+                }
+            }
+            if (kingRow !== -1) break
+        }
+        let numberOfChecks = 0
+        if (kingIsFound) {
+            numberOfChecks += getMainDiagonalCheck(kingRow, kingCol, board)
+            numberOfChecks += getAntiDiagonalCheck(kingRow, kingCol, board)
+            numberOfChecks += getVerticalCheck(kingRow, kingCol, board)
+            numberOfChecks += getHorizontalCheck(kingRow, kingCol, board)
+            numberOfChecks += getKnightCheck(kingRow, kingCol, board)
+            numberOfChecks += getPawnCheck(kingRow, kingCol, board)
+        }
+        return numberOfChecks
+    }
+
+    function getMainDiagonalCheck(row, col, board) {
+        let newRow = row, newCol = col
+        let king = board[row][col]
+        let targetCol = 'w'
+        if (king.name[0] === 'w') {
+            targetCol = 'b'
+        }
+        let queen = targetCol + 'q', bishop = targetCol + 'b', checks = 0
+        while (newRow > 0 && newCol > 0) {
+            newRow--
+            newCol--
+            let piece = board[newRow][newCol]
+            if (piece != null) {
+                if ([queen, bishop].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        newRow = row
+        newCol = col
+        while (newRow < 7 && newCol < 7) {
+            newRow++
+            newCol++
+            let piece = board[newRow][newCol]
+            if (piece != null) {
+                if ([queen, bishop].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        return checks
+    }
+
+    function getAntiDiagonalCheck(row, col, board) {
+        let newRow = row, newCol = col
+        let king = board[row][col]
+        let targetCol = 'w'
+        if (king.name[0] === 'w') {
+            targetCol = 'b'
+        }
+        let queen = targetCol + 'q', bishop = targetCol + 'b', checks = 0
+        while (newRow > 0 && newCol < 7) {
+            newRow--
+            newCol++
+            let piece = board[newRow][newCol]
+            if (piece != null) {
+                if ([queen, bishop].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        newRow = row
+        newCol = col
+        while (newCol > 0 && newRow < 7) {
+            newRow++
+            newCol--
+            let piece = board[newRow][newCol]
+            if (piece != null) {
+                if ([queen, bishop].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        return checks
+    }
+
+    function getVerticalCheck(row, col, board) {
+        let newRow = row
+        let king = board[row][col]
+        let targetCol = 'w'
+        if (king.name[0] === 'w') {
+            targetCol = 'b'
+        }
+        let queen = targetCol + 'q', rook = targetCol + 'r', checks = 0
+        while (newRow > 0) {
+            newRow--
+            let piece = board[newRow][col]
+            if (piece != null) {
+                if ([queen, rook].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        newRow = row
+        while (newRow < 7) {
+            newRow++
+            let piece = board[newRow][col]
+            if (piece != null) {
+                if ([queen, rook].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        return checks
+    }
+
+    function getHorizontalCheck(row, col, board) {
+        let newCol = col
+        let king = board[row][col]
+        let targetCol = 'w'
+        if (king.name[0] === 'w') {
+            targetCol = 'b'
+        }
+        let queen = targetCol + 'q', rook = targetCol + 'r', checks = 0
+        while (newCol < 7) {
+            newCol++
+            let piece = board[row][newCol]
+            if (piece != null) {
+                if ([queen, rook].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        newCol = col
+        while (newCol > 0) {
+            newCol--
+            let piece = board[row][newCol]
+            if (piece != null) {
+                if ([queen, rook].includes(piece.name)) {
+                    checks++
+                }
+                break
+            }
+        }
+        return checks
+    }
+
+    function getMainDiagonalPreMoves(row, col) {
+        let newCol = col, newRow = row
+        let newMoves = []
+        while (newCol > 0 && newRow > 0) {
+            newCol--
+            newRow--
+            newMoves.push([newRow, newCol])
+        }
+        newCol = col
+        newRow = row
+        while (newCol < 7 && newRow < 7) {
+            newCol++
+            newRow++
+            newMoves.push([newRow, newCol])
+        }
+        return newMoves
+    }
+
+    function getAntiDiagonalPreMoves(row, col) {
+        let newCol = col, newRow = row
+        let newMoves = []
+        while (newCol > 0 && newRow < 7) {
+            newCol--
+            newRow++
+            newMoves.push([newRow, newCol])
+        }
+        newCol = col
+        newRow = row
+        while (newCol < 7 && newRow > 0) {
+            newCol++
+            newRow--
+            newMoves.push([newRow, newCol])
+        }
+        return newMoves
+    }
+
+    function getVerticalPreMoves(row, col) {
+        let newRow = row
+        let newMoves = []
+        while (newRow < 7) {
+            newRow++
+            newMoves.push([newRow, col])
+        }
+        newRow = row
+        while (newRow > 0) {
+            newRow--
+            newMoves.push([newRow, col])
+        }
+        return newMoves
+    }
+
+    function getHorizontalPreMoves(row, col) {
+        let newCol = col
+        let newMoves = []
+        while (newCol < 7) {
+            newCol++
+            newMoves.push([row, newCol])
+        }
+        newCol = col
+        while (newCol > 0) {
+            newCol--
+            newMoves.push([row, newCol])
+        }
+        return newMoves
+    }
+
+    function getWPawnPreMoves(row, col) {
+        let newMoves = [];
+        newMoves.push([row - 1, col]);
+        if (row === 6) {
+            newMoves.push([row - 2, col]);
+        }
+        if (col > 0) {
+            newMoves.push([row - 1, col - 1]);
+        }
+        if (col < 7) {
+            newMoves.push([row - 1, col + 1]);
+        }
+        return newMoves;
+    }
+
+    function getBPawnPreMoves(row, col) {
+        let newMoves = [];
+        newMoves.push([row + 1, col]);
+        if (row === 1) {
+            newMoves.push([row + 2, col]);
+        }
+        if (col > 0) {
+            newMoves.push([row + 1, col - 1]);
+        }
+        if (col < 7) {
+            newMoves.push([row + 1, col + 1]);
+        }
+        return newMoves;
+    }
+
+    function getKnightPreMoves(row, col) {
+        let newMoves = [];
+        const directions = [
+            [-2, -1], [-2, +1],
+            [+2, -1], [+2, +1],
+            [-1, -2], [+1, -2],
+            [-1, +2], [+1, +2]
+        ];
+
+        for (let [drow, dcol] of directions) {
+            let newRow = row + drow;
+            let newCol = col + dcol;
+
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                newMoves.push([newRow, newCol]);
+            }
+        }
+
+        return newMoves;
+    }
+
+    function getKingPreMoves(row, col) {
+        let newMoves = [];
+        const directions = [
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1]
+        ];
+
+        for (let [dr, dc] of directions) {
+            let newRow = row + dr;
+            let newCol = col + dc;
+
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                newMoves.push([newRow, newCol]);
+            }
+        }
+        return newMoves;
+    }
+
+    function getKnightCheck(row, col, board) {
+        let king = board[row][col]
+        let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
+        let knight = targetCol + 'n'
+        let checks = 0
+
+        let knightMoves = [
+            [-2, -1], [-2, +1],
+            [-1, -2], [-1, +2],
+            [+1, -2], [+1, +2],
+            [+2, -1], [+2, +1]
+        ]
+
+        for (let [dr, dc] of knightMoves) {
+            let newRow = row + dr
+            let newCol = col + dc
+            if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
+                let piece = board[newRow][newCol]
+                if (piece && piece.name === knight) {
+                    checks++
+                }
+            }
+        }
+
+        return checks
+    }
+
+    function getPieceMoves(row, col, piece) {
+        let newMoves = []
+        if (turn && preMoves.length !== 0) {
+            return
+        }
+        let whiteThreatMoves
+        let blackThreatMoves
+        let pinMoves = getPinMoves(row, col, board)
+        if (piece.name[0] === "w") {
+            whiteThreatMoves = getKingThreatMoves("wk", board)
+        } else {
+            blackThreatMoves = getKingThreatMoves("bk", board)
+        }
+        switch (piece.name) {
+            case "wp":
+                if (piece.isPlayable) {
+                    newMoves = getWPawnMoves(row, col, piece.isMoved);
+                } else {
+                    newMoves = getBPawnMoves(row, col, piece.isMoved);
+                }
+                if (whiteThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        whiteThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "bp":
+                if (piece.isPlayable) {
+                    newMoves = getWPawnMoves(row, col, piece.isMoved);
+                } else {
+                    newMoves = getBPawnMoves(row, col, piece.isMoved);
+                }
+                if (blackThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        blackThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "bn":
+                newMoves = getKnightMoves(row, col, board, "w");
+                if (blackThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        blackThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "wn":
+                newMoves = getKnightMoves(row, col, board, "b");
+                if (whiteThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        whiteThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "bk":
+                newMoves = getKingMoves(row, col, board, "w");
+                break;
+            case "wk":
+                newMoves = getKingMoves(row, col, board, "b");
+                break;
+            case "br":
+                newMoves = getVerticalMoves(row, col, board, "w")
+                    .concat(getHorizontalMoves(row, col, board, "w"))
+                if (blackThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        blackThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "wr":
+                newMoves = getVerticalMoves(row, col, board, "b")
+                    .concat(getHorizontalMoves(row, col, board, "b"));
+                if (whiteThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        whiteThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "bb":
+                newMoves = getMainDiagonal(row, col, board, "w")
+                    .concat(getAntiDiagonal(row, col, board, "w"));
+                if (blackThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        blackThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "wb":
+                newMoves = getMainDiagonal(row, col, board, "b")
+                    .concat(getAntiDiagonal(row, col, board, "b"));
+                if (whiteThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        whiteThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "wq":
+                newMoves = getMainDiagonal(row, col, board, "b")
+                    .concat(getAntiDiagonal(row, col, board, "b"))
+                    .concat(getVerticalMoves(row, col, board, "b"))
+                    .concat(getHorizontalMoves(row, col, board, "b"));
+                if (whiteThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        whiteThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            case "bq":
+                newMoves = getMainDiagonal(row, col, board, "w")
+                    .concat(getAntiDiagonal(row, col, board, "w"))
+                    .concat(getVerticalMoves(row, col, board, "w"))
+                    .concat(getHorizontalMoves(row, col, board, "w"));
+                if (blackThreatMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        blackThreatMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                if (pinMoves.length !== 0) {
+                    newMoves = newMoves.filter(element =>
+                        pinMoves.some(move =>
+                            move[0] === element[0] && move[1] === element[1]
+                        )
+                    );
+                }
+                break;
+            default:
+                console.log("Invalid piece name");
+        }
+        return newMoves
+    }
+
+    function getPiecePreMoves(row, col, piece) {
+        let newMoves = []
+        switch (piece.name) {
+            case "wp":
+                if (piece.isPlayable) {
+                    newMoves = getWPawnPreMoves(row, col);
+                } else {
+                    newMoves = getBPawnPreMoves(row, col);
+                }
+                break;
+            case "bp":
+                if (piece.isPlayable) {
+                    newMoves = getWPawnPreMoves(row, col);
+                } else {
+                    newMoves = getBPawnPreMoves(row, col);
+                }
+                break;
+            case "bn":
+                newMoves = getKnightPreMoves(row, col);
+                break;
+            case "wn":
+                newMoves = getKnightPreMoves(row, col);
+                break;
+            case "bk":
+                newMoves = getKingPreMoves(row, col);
+                break;
+            case "wk":
+                newMoves = getKingPreMoves(row, col);
+                break;
+            case "br":
+                newMoves = getVerticalPreMoves(row, col)
+                    .concat(getHorizontalPreMoves(row, col))
+                break;
+            case "wr":
+                newMoves = getVerticalPreMoves(row, col)
+                    .concat(getHorizontalPreMoves(row, col));
+                break;
+            case "bb":
+                newMoves = getMainDiagonalPreMoves(row, col)
+                    .concat(getAntiDiagonalPreMoves(row, col));
+                break;
+            case "wb":
+                newMoves = getMainDiagonalPreMoves(row, col)
+                    .concat(getAntiDiagonalPreMoves(row, col));
+                break;
+            case "wq":
+                newMoves = getMainDiagonalPreMoves(row, col)
+                    .concat(getAntiDiagonalPreMoves(row, col))
+                    .concat(getVerticalPreMoves(row, col))
+                    .concat(getHorizontalPreMoves(row, col));
+                break;
+            case "bq":
+                newMoves = getMainDiagonalPreMoves(row, col)
+                    .concat(getAntiDiagonalPreMoves(row, col))
+                    .concat(getVerticalPreMoves(row, col))
+                    .concat(getHorizontalPreMoves(row, col));
+                break;
+            default:
+                console.log("Invalid piece name");
+        }
+        return newMoves
+    }
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || Object.keys(images).length === 0) return;
         const ctx = canvas.getContext("2d");
         drawBoard(ctx);
-
-        function getWPawnMoves(row, col, isMoved) {
-            let newMoves = [];
-            let pawn = board[row][col]
-            if (row > 0 && board[row - 1][col] === null) {
-                newMoves.push([row - 1, col]);
-                if (!isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
-            }
-            if (col > 0) {
-                if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
-                    if (board[row][col - 1].isEnpassant) {
-                        newMoves.push([row - 1, col - 1]);
-                    }
-                }
-                if (row > 0 && board[row - 1][col - 1] !== null && pawn !== null && board[row - 1][col - 1].name[0] !== pawn.name[0]) {
-                    newMoves.push([row - 1, col - 1]);
-                }
-            }
-            if (col < 7) {
-                if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1].name[0] !== pawn.name[0]) {
-                    if (board[row][col + 1].isEnpassant) {
-                        newMoves.push([row - 1, col + 1]);
-                    }
-                }
-                if (row > 0 && board[row - 1][col + 1] !== null && pawn !== null && board[row - 1][col + 1].name[0] !== pawn.name[0]) {
-                    newMoves.push([row - 1, col + 1]);
-                }
-            }
-            return newMoves;
-        }
-
-        function getBPawnMoves(row, col, isMoved) {
-            let newMoves = [];
-            let pawn = board[row][col]
-            if (row < 7 && board[row + 1][col] === null) {
-                newMoves.push([row + 1, col]);
-                if (!isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
-            }
-            if (col > 0) {
-                if (board[row][col - 1] !== null) {
-                    if (pawn !== null && board[row][col - 1].name[0] !== pawn.name[0] && board[row][col - 1].isEnpassant) {
-                        newMoves.push([row + 1, col - 1]);
-                    }
-                }
-                if (row < 7 && pawn !== null && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] !== pawn.name[0]) {
-                    newMoves.push([row + 1, col - 1]);
-                }
-            }
-            if (col < 7) {
-                if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1] !== pawn.name[0]) {
-                    if (board[row][col + 1].isEnpassant) {
-                        newMoves.push([row + 1, col + 1]);
-                    }
-                }
-                if (row < 7 && board[row + 1][col + 1] !== null && pawn !== null && board[row + 1][col + 1].name[0] !== pawn.name[0]) {
-                    newMoves.push([row + 1, col + 1]);
-                }
-            }
-            return newMoves;
-        }
-
-        function getKnightMoves(row, col, board, target) {
-            let newMoves = [];
-            const directions = [
-                [-2, -1], [-2, +1],
-                [+2, -1], [+2, +1],
-                [-1, -2], [+1, -2],
-                [-1, +2], [+1, +2]
-            ];
-
-            for (let [drow, dcol] of directions) {
-                let newRow = row + drow;
-                let newCol = col + dcol;
-
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    const square = board[newRow][newCol];
-                    if (square === null || square.name[0] === target) {
-                        newMoves.push([newRow, newCol]);
-                    }
-                }
-            }
-
-            return newMoves;
-        }
-
-        function isSafeSquare(row, col, board, target, isPlayable) {
-            let newCol = col, newRow = row
-            let rook = target + "r", bishop = target + "b", queen = target + "q", knight = target + "n", pawn = target + "p"
-            while (newRow < 7) {
-                newRow++
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === rook) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newRow = row
-            while (newRow > 0) {
-                newRow--
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === rook) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newRow = row
-            while (newCol < 7) {
-                newCol++
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === rook) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newCol = col
-            while (newCol > 0) {
-                newCol--
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === rook) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newCol = col
-            while (newRow < 7 && newCol < 7) {
-                newRow++
-                newCol++
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === bishop) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newRow = row
-            newCol = col
-            while (newRow > 0 && newCol > 0) {
-                newRow--
-                newCol--
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === bishop) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newRow = row
-            newCol = col
-            while (newCol < 7 && newRow > 0) {
-                newCol++
-                newRow--
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === bishop) {
-                        return false
-                    }
-                    break
-                }
-            }
-            newRow = row
-            newCol = col
-            while (newCol > 0 && newRow < 7) {
-                newRow++
-                newCol--
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === queen || piece.name === bishop) {
-                        return false
-                    }
-                    break
-                }
-            }
-
-            let knightMoves = [
-                [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-                [1, -2], [1, 2], [2, -1], [2, 1]
-            ]
-            for (let i = 0; i < knightMoves.length; i++) {
-                let dr = knightMoves[i][0], dc = knightMoves[i][1]
-                let r = row + dr, c = col + dc
-                if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
-                    let piece = board[r][c]
-                    if (piece != null && piece.name === knight) return false
-                }
-            }
-
-            let pawnRow = isPlayable ? row - 1 : row + 1;
-            for (let pawnCol of [col - 1, col + 1]) {
-                if (pawnRow >= 0 && pawnRow <= 7 && pawnCol >= 0 && pawnCol <= 7) {
-                    let piece = board[pawnRow][pawnCol];
-                    if (piece != null && piece.name === pawn) return false;
-                }
-            }
-            let king = target + "k";
-            const kingMoves = [
-                [-1, -1], [-1, 0], [-1, 1],
-                [0, -1], [0, 1],
-                [1, -1], [1, 0], [1, 1]
-            ];
-            for (let [dr, dc] of kingMoves) {
-                let r = row + dr, c = col + dc;
-                if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
-                    let piece = board[r][c];
-                    if (piece != null && piece.name === king) return false;
-                }
-            }
-            return true
-        }
-
-        function getKingMoves(row, col, board, target) {
-            let newMoves = [];
-            const directions = [
-                [-1, 0],
-                [1, 0],
-                [0, -1],
-                [0, 1],
-                [-1, -1],
-                [-1, 1],
-                [1, -1],
-                [1, 1]
-            ];
-
-            let piece = board[row][col]
-
-            for (let [dr, dc] of directions) {
-                let newRow = row + dr;
-                let newCol = col + dc;
-
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    const square = board[newRow][newCol];
-                    if (square === null || square.name[0] === target) {
-                        if (isSafeSquare(newRow, newCol, board, target, piece.isPlayable)) {
-
-                            let validMove = true;
-                            let checkRow = row - dr;
-                            let checkCol = col - dc;
-
-                            while (checkRow >= 0 && checkRow <= 7 && checkCol >= 0 && checkCol <= 7) {
-                                const threatSquare = board[checkRow][checkCol];
-                                if (threatSquare !== null && threatSquare.name[0] === target) {
-                                    const pieceType = threatSquare.name[1];
-                                    if (Math.abs(dr) === 1 && Math.abs(dc) === 1) {
-                                        if (pieceType === 'b' || pieceType === 'q') {
-                                            validMove = false;
-                                            break;
-                                        }
-                                    } else {
-                                        if (pieceType === 'r' || pieceType === 'q') {
-                                            validMove = false;
-                                            break;
-                                        }
-                                    }
-                                    break;
-                                }
-                                checkRow -= dr;
-                                checkCol -= dc;
-                            }
-                            if (validMove) newMoves.push([newRow, newCol]);
-                        }
-                    }
-                }
-            }
-            let king = board[row][col]
-            if (!king.isMoved) {
-                let newCol = col
-                let exists = newMoves.some(move =>
-                    move[0] === row && move[1] === col - 1
-                );
-                if (exists) {
-                    while (newCol > 0) {
-                        newCol--
-                        let piece = board[row][newCol]
-                        if (piece != null) {
-                            if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                                if (isSafeSquare(row, col - 2, board, target, piece.isPlayable)) {
-                                    newMoves.push([row, col - 2]);
-                                }
-                            }
-                            break
-                        }
-                    }
-                }
-                newCol = col
-                exists = newMoves.some(move =>
-                    move[0] === row && move[1] === col + 1
-                );
-                if (exists) {
-                    while (newCol < 7) {
-                        newCol++
-                        let piece = board[row][newCol]
-                        if (piece != null) {
-                            if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                                if (isSafeSquare(row, col + 2, board, target, piece.isPlayable)) {
-                                    newMoves.push([row, col + 2]);
-                                }
-                            }
-                            break
-                        }
-                    }
-                }
-            }
-            return newMoves;
-        }
-
-        function getVerticalMoves(row, col, board, target) {
-            let newMoves = []
-            let newRow = row
-            while (newRow < 7) {
-                newRow++
-                if (board[newRow][col] === null) {
-                    newMoves.push([newRow, col]);
-                } else {
-                    if (board[newRow][col].name[0] === target) {
-                        newMoves.push([newRow, col]);
-                    }
-                    break;
-                }
-            }
-            newRow = row
-            while (newRow > 0) {
-                newRow--
-                if (board[newRow][col] === null) {
-                    newMoves.push([newRow, col]);
-                } else {
-                    if (board[newRow][col].name[0] === target) {
-                        newMoves.push([newRow, col]);
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getHorizontalMoves(row, col, board, target) {
-            let newMoves = []
-            let newCol = col
-            while (newCol < 7) {
-                newCol++
-                if (board[row][newCol] === null) {
-                    newMoves.push([row, newCol]);
-                } else {
-                    if (board[row][newCol].name[0] === target) {
-                        newMoves.push([row, newCol]);
-                    }
-                    break;
-                }
-            }
-            newCol = col
-            while (newCol > 0) {
-                newCol--
-                if (board[row][newCol] === null) {
-                    newMoves.push([row, newCol]);
-                } else {
-                    if (board[row][newCol].name[0] === target) {
-                        newMoves.push([row, newCol]);
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getMainDiagonal(row, col, board, target) {
-            let newMoves = []
-            let newCol = col
-            let newRow = row
-            while (newCol < 7 && newRow < 7) {
-                newCol++
-                newRow++
-                if (board[newRow][newCol] === null) {
-                    newMoves.push([newRow, newCol]);
-                } else {
-                    if (board[newRow][newCol].name[0] === target) {
-                        newMoves.push([newRow, newCol]);
-                    }
-                    break;
-                }
-            }
-            newCol = col
-            newRow = row
-            while (newCol > 0 && newRow > 0) {
-                newCol--
-                newRow--
-                if (board[newRow][newCol] === null) {
-                    newMoves.push([newRow, newCol]);
-                } else {
-                    if (board[newRow][newCol].name[0] === target) {
-                        newMoves.push([newRow, newCol]);
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getAntiDiagonal(row, col, board, target) {
-            let newMoves = []
-            let newCol = col
-            let newRow = row
-            while (newCol < 7 && newRow > 0) {
-                newCol++
-                newRow--
-                if (board[newRow][newCol] === null) {
-                    newMoves.push([newRow, newCol]);
-                } else {
-                    if (board[newRow][newCol].name[0] === target) {
-                        newMoves.push([newRow, newCol]);
-                    }
-                    break;
-                }
-            }
-            newCol = col
-            newRow = row
-            while (newRow < 7 && newCol > 0) {
-                newCol--
-                newRow++
-                if (board[newRow][newCol] === null) {
-                    newMoves.push([newRow, newCol]);
-                } else {
-                    if (board[newRow][newCol].name[0] === target) {
-                        newMoves.push([newRow, newCol]);
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getHorizontalThreat(row, col, board, targets = []) {
-            let newMoves = []
-            let curMoves = []
-            let newCol = col
-            while (newCol < 7) {
-                newCol++
-                if (board[row][newCol] === null) {
-                    curMoves.push([row, newCol]);
-                } else {
-                    if (targets.includes(board[row][newCol].name)) {
-                        curMoves.push([row, newCol]);
-                        newMoves = newMoves.concat(curMoves)
-                    }
-                    break;
-                }
-            }
-            curMoves = []
-            newCol = col
-            while (newCol > 0) {
-                newCol--
-                if (board[row][newCol] === null) {
-                    curMoves.push([row, newCol]);
-                } else {
-                    if (targets.includes(board[row][newCol].name)) {
-                        curMoves.push([row, newCol]);
-                        newMoves = newMoves.concat(curMoves)
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getVerticalThreat(row, col, board, targets = []) {
-            let newMoves = []
-            let curMoves = []
-            let newRow = row
-            while (newRow < 7) {
-                newRow++
-                if (board[newRow][col] === null) {
-                    curMoves.push([newRow, col]);
-                } else {
-                    if (targets.includes(board[newRow][col].name)) {
-                        curMoves.push([newRow, col]);
-                        newMoves = newMoves.concat(curMoves)
-                    }
-                    break;
-                }
-            }
-            curMoves = []
-            newRow = row
-            while (newRow > 0) {
-                newRow--
-                if (board[newRow][col] === null) {
-                    curMoves.push([newRow, col]);
-                } else {
-                    if (targets.includes(board[newRow][col].name)) {
-                        curMoves.push([newRow, col]);
-                        newMoves = newMoves.concat(curMoves)
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getPawnThreat(row, col, board, target) {
-            let directions = [
-                [1, -1], [1, 1]
-            ];
-            let pawn = board[row][col]
-            if (pawn.isPlayable) {
-                directions = [
-                    [-1, -1], [-1, 1],
-                ]
-            }
-            const newMoves = [];
-            directions.forEach(([dr, dc]) => {
-                const newRow = row + dr;
-                const newCol = col + dc;
-                if (
-                    newRow >= 0 && newRow <= 7 &&
-                    newCol >= 0 && newCol <= 7
-                ) {
-                    const piece = board[newRow][newCol];
-                    if (piece && piece.name === target) {
-                        newMoves.push([newRow, newCol]);
-                    }
-                }
-            });
-
-            return newMoves;
-        }
-
-        function getMainDiagonalThreat(row, col, board, targets = []) {
-            let newMoves = []
-            let curMoves = []
-            let newCol = col
-            let newRow = row
-            while (newCol < 7 && newRow < 7) {
-                newCol++
-                newRow++
-                if (board[newRow][newCol] === null) {
-                    curMoves.push([newRow, newCol]);
-                } else {
-                    if (targets.includes(board[newRow][newCol].name)) {
-                        curMoves.push([newRow, newCol]);
-                        newMoves = newMoves.concat(curMoves)
-                    }
-                    break;
-                }
-            }
-            newCol = col
-            newRow = row
-            curMoves = []
-            while (newCol > 0 && newRow > 0) {
-                newCol--
-                newRow--
-                if (board[newRow][newCol] === null) {
-                    curMoves.push([newRow, newCol]);
-                } else {
-                    if (targets.includes(board[newRow][newCol].name)) {
-                        curMoves.push([newRow, newCol]);
-                        newMoves = newMoves.concat(curMoves)
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getAntiDiagonalThreat(row, col, board, targets = []) {
-            let newMoves = []
-            let curMoves = []
-            let newCol = col
-            let newRow = row
-            while (newCol < 7 && newRow > 0) {
-                newCol++
-                newRow--
-                if (board[newRow][newCol] === null) {
-                    curMoves.push([newRow, newCol]);
-                } else {
-                    if (targets.includes(board[newRow][newCol].name)) {
-                        curMoves.push([newRow, newCol]);
-                        newMoves = newMoves.concat(curMoves);
-                    }
-                    break;
-                }
-            }
-            newCol = col
-            newRow = row
-            curMoves = []
-            while (newRow < 7 && newCol > 0) {
-                newCol--
-                newRow++
-                if (board[newRow][newCol] === null) {
-                    curMoves.push([newRow, newCol]);
-                } else {
-                    if (targets.includes(board[newRow][newCol].name)) {
-                        curMoves.push([newRow, newCol]);
-                        newMoves = newMoves.concat(curMoves);
-                    }
-                    break;
-                }
-            }
-            return newMoves
-        }
-
-        function getKingThreatMoves(target, board) {
-            let kingRow = 0;
-            let kingCol = 0;
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    if (board[row][col] !== null && board[row][col].name === target) {
-                        kingRow = row
-                        kingCol = col
-                    }
-                }
-            }
-            let targetCol
-            if (target[0] === "w") {
-                targetCol = "b"
-            } else {
-                targetCol = "w"
-            }
-            let rook = targetCol + "r", bishop = targetCol + "b", queen = targetCol + "q", knight = targetCol + "n", pawn = targetCol + "p"
-            let threatMoves = getVerticalThreat(kingRow, kingCol, board, [rook, queen])
-                .concat(getHorizontalThreat(kingRow, kingCol, board, [rook, queen]))
-                .concat(getMainDiagonalThreat(kingRow, kingCol, board, [bishop, queen]))
-                .concat(getAntiDiagonalThreat(kingRow, kingCol, board, [bishop, queen]))
-                .concat(getKnightThreatMoves(kingRow, kingCol, board, knight))
-                .concat(getPawnThreat(kingRow, kingCol, board, pawn))
-            return threatMoves
-        }
-
-        function getKnightThreatMoves(row, col, board, target) {
-            let threatMoves = [];
-            const directions = [
-                [-2, -1], [-2, +1],
-                [+2, -1], [+2, +1],
-                [-1, -2], [+1, -2],
-                [-1, +2], [+1, +2]
-            ];
-
-            for (let [drow, dcol] of directions) {
-                let newRow = row + drow;
-                let newCol = col + dcol;
-
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    const piece = board[newRow][newCol];
-                    if (piece !== null && piece.name === target) {
-                        threatMoves.push([newRow, newCol]);
-                    }
-                }
-            }
-
-            return threatMoves;
-        }
-
-        function getPinMoves(row, col, board) {
-            let pinMoves = getMainDiagonalPinMoves(row, col, board)
-                .concat(getAntiDiagonalPinMoves(row, col, board))
-                .concat(getHorizontalPinMoves(row, col, board))
-                .concat(getVerticalPinMoves(row, col, board))
-            return pinMoves
-        }
-
-        function getMainDiagonalPinMoves(row, col, board) {
-            if (board[row][col] == null) return []
-            let pinMoves = []
-            let newCol = col, newRow = row;
-            let isThreat = false, isKing = false
-            let kingCol = board[row][col].name[0], threatCol = 'w'
-            if (kingCol === 'w') {
-                threatCol = 'b'
-            }
-            let king = kingCol + "k", queen = threatCol + 'q', bishop = threatCol + "b"
-            while (newCol > 0 && newRow > 0) {
-                newCol--
-                newRow--
-                pinMoves.push([newRow, newCol]);
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === bishop || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (!isKing && !isThreat) {
-                return []
-            }
-            newCol = col
-            newRow = row
-            while (newCol < 7 && newRow < 7) {
-                newCol++
-                newRow++
-                pinMoves.push([newRow, newCol]);
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === bishop || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (isKing && isThreat) {
-                return pinMoves
-            }
-            return []
-        }
-
-        function getAntiDiagonalPinMoves(row, col, board) {
-            if (board[row][col] == null) return []
-            let pinMoves = []
-            let newCol = col, newRow = row;
-            let isThreat = false, isKing = false
-            let kingCol = board[row][col].name[0], threatCol = 'w'
-            if (kingCol === 'w') {
-                threatCol = 'b'
-            }
-            let king = kingCol + "k", queen = threatCol + 'q', bishop = threatCol + "b"
-            while (newCol < 7 && newRow > 0) {
-                newCol++
-                newRow--
-                pinMoves.push([newRow, newCol]);
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === bishop || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (!isKing && !isThreat) {
-                return []
-            }
-            newCol = col
-            newRow = row
-            while (newRow < 7 && newCol > 0) {
-                newCol--
-                newRow++
-                pinMoves.push([newRow, newCol]);
-                if (board[newRow][newCol] != null) {
-                    let piece = board[newRow][newCol]
-                    if (piece.name === bishop || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (isKing && isThreat) {
-                return pinMoves
-            }
-            return []
-        }
-
-        function getVerticalPinMoves(row, col, board) {
-            if (board[row][col] == null) return []
-            let pinMoves = []
-            let newRow = row;
-            let isThreat = false, isKing = false
-            let kingCol = board[row][col].name[0], threatCol = 'w'
-            if (kingCol === 'w') {
-                threatCol = 'b'
-            }
-            let king = kingCol + "k", queen = threatCol + 'q', rook = threatCol + "r"
-            while (newRow > 0) {
-                newRow--
-                pinMoves.push([newRow, col]);
-                if (board[newRow][col] != null) {
-                    let piece = board[newRow][col]
-                    if (piece.name === rook || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (!isKing && !isThreat) {
-                return []
-            }
-            newRow = row
-            while (newRow < 7) {
-                newRow++
-                pinMoves.push([newRow, col]);
-                if (board[newRow][col] != null) {
-                    let piece = board[newRow][col]
-                    if (piece.name === rook || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (isKing && isThreat) {
-                return pinMoves
-            }
-            return []
-        }
-
-        function getHorizontalPinMoves(row, col, board) {
-            if (board[row][col] == null) return []
-            let pinMoves = []
-            let newCol = col
-            let isThreat = false, isKing = false
-            let kingCol = board[row][col].name[0], threatCol = 'w'
-            if (kingCol === 'w') {
-                threatCol = 'b'
-            }
-            let king = kingCol + "k", queen = threatCol + 'q', rook = threatCol + "r"
-            while (newCol < 7) {
-                newCol++
-                pinMoves.push([row, newCol]);
-                if (board[row][newCol] != null) {
-                    let piece = board[row][newCol]
-                    if (piece.name === rook || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (!isKing && !isThreat) {
-                return []
-            }
-            newCol = col
-            while (newCol > 0) {
-                newCol--
-                pinMoves.push([row, newCol]);
-                if (board[row][newCol] != null) {
-                    let piece = board[row][newCol]
-                    if (piece.name === rook || piece.name === queen) {
-                        isThreat = true
-                    }
-                    if (piece.name === king) {
-                        isKing = true
-                    }
-                    break
-                }
-            }
-            if (isKing && isThreat) {
-                return pinMoves
-            }
-            return []
-        }
-
-        function getNumberOfChecks(board, target) {
-            let kingRow = -1, kingCol = -1, king = target + 'k'
-            let kingIsFound = false
-            for (let row = 0; row <= 7; row++) {
-                for (let col = 0; col <= 7; col++) {
-                    let piece = board[row][col]
-                    if (piece != null && piece.name === king) {
-                        kingRow = row
-                        kingCol = col
-                        kingIsFound = true
-                        break
-                    }
-                }
-                if (kingRow !== -1) break
-            }
-            let numberOfChecks = 0
-            if (kingIsFound) {
-                numberOfChecks += getMainDiagonalCheck(kingRow, kingCol, board)
-                numberOfChecks += getAntiDiagonalCheck(kingRow, kingCol, board)
-                numberOfChecks += getVerticalCheck(kingRow, kingCol, board)
-                numberOfChecks += getHorizontalCheck(kingRow, kingCol, board)
-                numberOfChecks += getKnightCheck(kingRow, kingCol, board)
-                numberOfChecks += getPawnCheck(kingRow, kingCol, board)
-            }
-            return numberOfChecks
-        }
-
-        function getMainDiagonalCheck(row, col, board) {
-            let newRow = row, newCol = col
-            let king = board[row][col]
-            let targetCol = 'w'
-            if (king.name[0] === 'w') {
-                targetCol = 'b'
-            }
-            let queen = targetCol + 'q', bishop = targetCol + 'b', checks = 0
-            while (newRow > 0 && newCol > 0) {
-                newRow--
-                newCol--
-                let piece = board[newRow][newCol]
-                if (piece != null) {
-                    if ([queen, bishop].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            newRow = row
-            newCol = col
-            while (newRow < 7 && newCol < 7) {
-                newRow++
-                newCol++
-                let piece = board[newRow][newCol]
-                if (piece != null) {
-                    if ([queen, bishop].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            return checks
-        }
-
-        function getAntiDiagonalCheck(row, col, board) {
-            let newRow = row, newCol = col
-            let king = board[row][col]
-            let targetCol = 'w'
-            if (king.name[0] === 'w') {
-                targetCol = 'b'
-            }
-            let queen = targetCol + 'q', bishop = targetCol + 'b', checks = 0
-            while (newRow > 0 && newCol < 7) {
-                newRow--
-                newCol++
-                let piece = board[newRow][newCol]
-                if (piece != null) {
-                    if ([queen, bishop].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            newRow = row
-            newCol = col
-            while (newCol > 0 && newRow < 7) {
-                newRow++
-                newCol--
-                let piece = board[newRow][newCol]
-                if (piece != null) {
-                    if ([queen, bishop].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            return checks
-        }
-
-        function getVerticalCheck(row, col, board) {
-            let newRow = row
-            let king = board[row][col]
-            let targetCol = 'w'
-            if (king.name[0] === 'w') {
-                targetCol = 'b'
-            }
-            let queen = targetCol + 'q', rook = targetCol + 'r', checks = 0
-            while (newRow > 0) {
-                newRow--
-                let piece = board[newRow][col]
-                if (piece != null) {
-                    if ([queen, rook].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            newRow = row
-            while (newRow < 7) {
-                newRow++
-                let piece = board[newRow][col]
-                if (piece != null) {
-                    if ([queen, rook].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            return checks
-        }
-
-        function getHorizontalCheck(row, col, board) {
-            let newCol = col
-            let king = board[row][col]
-            let targetCol = 'w'
-            if (king.name[0] === 'w') {
-                targetCol = 'b'
-            }
-            let queen = targetCol + 'q', rook = targetCol + 'r', checks = 0
-            while (newCol < 7) {
-                newCol++
-                let piece = board[row][newCol]
-                if (piece != null) {
-                    if ([queen, rook].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            newCol = col
-            while (newCol > 0) {
-                newCol--
-                let piece = board[row][newCol]
-                if (piece != null) {
-                    if ([queen, rook].includes(piece.name)) {
-                        checks++
-                    }
-                    break
-                }
-            }
-            return checks
-        }
-
-        function getMainDiagonalPreMoves(row, col) {
-            let newCol = col, newRow = row
-            let newMoves = []
-            while (newCol > 0 && newRow > 0) {
-                newCol--
-                newRow--
-                newMoves.push([newRow, newCol])
-            }
-            newCol = col
-            newRow = row
-            while (newCol < 7 && newRow < 7) {
-                newCol++
-                newRow++
-                newMoves.push([newRow, newCol])
-            }
-            return newMoves
-        }
-
-        function getAntiDiagonalPreMoves(row, col) {
-            let newCol = col, newRow = row
-            let newMoves = []
-            while (newCol > 0 && newRow < 7) {
-                newCol--
-                newRow++
-                newMoves.push([newRow, newCol])
-            }
-            newCol = col
-            newRow = row
-            while (newCol < 7 && newRow > 0) {
-                newCol++
-                newRow--
-                newMoves.push([newRow, newCol])
-            }
-            return newMoves
-        }
-
-        function getVerticalPreMoves(row, col) {
-            let newRow = row
-            let newMoves = []
-            while (newRow < 7) {
-                newRow++
-                newMoves.push([newRow, col])
-            }
-            newRow = row
-            while (newRow > 0) {
-                newRow--
-                newMoves.push([newRow, col])
-            }
-            return newMoves
-        }
-
-        function getHorizontalPreMoves(row, col) {
-            let newCol = col
-            let newMoves = []
-            while (newCol < 7) {
-                newCol++
-                newMoves.push([row, newCol])
-            }
-            newCol = col
-            while (newCol > 0) {
-                newCol--
-                newMoves.push([row, newCol])
-            }
-            return newMoves
-        }
-
-        function getWPawnPreMoves(row, col) {
-            let newMoves = [];
-            newMoves.push([row - 1, col]);
-            if (row === 6) {
-                newMoves.push([row - 2, col]);
-            }
-            if (col > 0) {
-                newMoves.push([row - 1, col - 1]);
-            }
-            if (col < 7) {
-                newMoves.push([row - 1, col + 1]);
-            }
-            return newMoves;
-        }
-
-        function getBPawnPreMoves(row, col) {
-            let newMoves = [];
-            newMoves.push([row + 1, col]);
-            if (row === 1) {
-                newMoves.push([row + 2, col]);
-            }
-            if (col > 0) {
-                newMoves.push([row + 1, col - 1]);
-            }
-            if (col < 7) {
-                newMoves.push([row + 1, col + 1]);
-            }
-            return newMoves;
-        }
-
-        function getKnightPreMoves(row, col) {
-            let newMoves = [];
-            const directions = [
-                [-2, -1], [-2, +1],
-                [+2, -1], [+2, +1],
-                [-1, -2], [+1, -2],
-                [-1, +2], [+1, +2]
-            ];
-
-            for (let [drow, dcol] of directions) {
-                let newRow = row + drow;
-                let newCol = col + dcol;
-
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    newMoves.push([newRow, newCol]);
-                }
-            }
-
-            return newMoves;
-        }
-
-        function getKingPreMoves(row, col) {
-            let newMoves = [];
-            const directions = [
-                [-1, 0],
-                [1, 0],
-                [0, -1],
-                [0, 1],
-                [-1, -1],
-                [-1, 1],
-                [1, -1],
-                [1, 1]
-            ];
-
-            for (let [dr, dc] of directions) {
-                let newRow = row + dr;
-                let newCol = col + dc;
-
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    newMoves.push([newRow, newCol]);
-                }
-            }
-            return newMoves;
-        }
-
-        function getKnightCheck(row, col, board) {
-            let king = board[row][col]
-            let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
-            let knight = targetCol + 'n'
-            let checks = 0
-
-            let knightMoves = [
-                [-2, -1], [-2, +1],
-                [-1, -2], [-1, +2],
-                [+1, -2], [+1, +2],
-                [+2, -1], [+2, +1]
-            ]
-
-            for (let [dr, dc] of knightMoves) {
-                let newRow = row + dr
-                let newCol = col + dc
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    let piece = board[newRow][newCol]
-                    if (piece && piece.name === knight) {
-                        checks++
-                    }
-                }
-            }
-
-            return checks
-        }
-
-
-        function getPawnCheck(row, col, board) {
-            let king = board[row][col]
-            let targetCol = (king.name[0] === 'w') ? 'b' : 'w'
-            let pawn = targetCol + 'p'
-            let checks = 0
-
-            let direction = (!king.isPlayable) ? +1 : -1
-
-            let attackSquares = [
-                [row + direction, col - 1],
-                [row + direction, col + 1]
-            ]
-
-            for (let [newRow, newCol] of attackSquares) {
-                if (newRow >= 0 && newRow <= 7 && newCol >= 0 && newCol <= 7) {
-                    let piece = board[newRow][newCol]
-                    if (piece && piece.name === pawn) {
-                        checks++
-                    }
-                }
-            }
-
-            return checks
-        }
 
         const getMousePos = (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -1618,7 +1904,7 @@ export default function ChessBoard({ size = 500 }) {
                 e.preventDefault();
                 setPreMovesBoard(structuredClone(board));
                 setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
-
+                setPreMoves([])
                 setStartPos(pos);
                 setMousePos(pos);
                 setIsRightDragging(true);
@@ -1633,271 +1919,10 @@ export default function ChessBoard({ size = 500 }) {
                 setMousePos(pos);
                 let newMoves = [];
                 if (piece.isPlayable === turn) {
-                    let whiteThreatMoves
-                    let blackThreatMoves
-                    let pinMoves = getPinMoves(row, col, board)
-                    if (piece.name[0] === "w") {
-                        whiteThreatMoves = getKingThreatMoves("wk", board)
-                    } else {
-                        blackThreatMoves = getKingThreatMoves("bk", board)
-                    }
-                    switch (piece.name) {
-                        case "wp":
-                            if (piece.isPlayable) {
-                                newMoves = getWPawnMoves(row, col, piece.isMoved);
-                            } else {
-                                newMoves = getBPawnMoves(row, col, piece.isMoved);
-                            }
-                            if (whiteThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    whiteThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "bp":
-                            if (piece.isPlayable) {
-                                newMoves = getWPawnMoves(row, col, piece.isMoved);
-                            } else {
-                                newMoves = getBPawnMoves(row, col, piece.isMoved);
-                            }
-                            if (blackThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    blackThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "bn":
-                            newMoves = getKnightMoves(row, col, board, "w");
-                            if (blackThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    blackThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "wn":
-                            newMoves = getKnightMoves(row, col, board, "b");
-                            if (whiteThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    whiteThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "bk":
-                            newMoves = getKingMoves(row, col, board, "w");
-                            break;
-                        case "wk":
-                            newMoves = getKingMoves(row, col, board, "b");
-                            break;
-                        case "br":
-                            newMoves = getVerticalMoves(row, col, board, "w")
-                                .concat(getHorizontalMoves(row, col, board, "w"))
-                            if (blackThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    blackThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "wr":
-                            newMoves = getVerticalMoves(row, col, board, "b")
-                                .concat(getHorizontalMoves(row, col, board, "b"));
-                            if (whiteThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    whiteThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "bb":
-                            newMoves = getMainDiagonal(row, col, board, "w")
-                                .concat(getAntiDiagonal(row, col, board, "w"));
-                            if (blackThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    blackThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "wb":
-                            newMoves = getMainDiagonal(row, col, board, "b")
-                                .concat(getAntiDiagonal(row, col, board, "b"));
-                            if (whiteThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    whiteThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "wq":
-                            newMoves = getMainDiagonal(row, col, board, "b")
-                                .concat(getAntiDiagonal(row, col, board, "b"))
-                                .concat(getVerticalMoves(row, col, board, "b"))
-                                .concat(getHorizontalMoves(row, col, board, "b"));
-                            if (whiteThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    whiteThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        case "bq":
-                            newMoves = getMainDiagonal(row, col, board, "w")
-                                .concat(getAntiDiagonal(row, col, board, "w"))
-                                .concat(getVerticalMoves(row, col, board, "w"))
-                                .concat(getHorizontalMoves(row, col, board, "w"));
-                            if (blackThreatMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    blackThreatMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            if (pinMoves.length !== 0) {
-                                newMoves = newMoves.filter(element =>
-                                    pinMoves.some(move =>
-                                        move[0] === element[0] && move[1] === element[1]
-                                    )
-                                );
-                            }
-                            break;
-                        default:
-                            console.log("Invalid piece name");
-                    }
+                    newMoves = getPieceMoves(row, col, piece)
                 } else {
-                    switch (piece.name) {
-                        case "wp":
-                            if (piece.isPlayable) {
-                                newMoves = getWPawnPreMoves(row, col);
-                            } else {
-                                newMoves = getBPawnPreMoves(row, col);
-                            }
-                            break;
-                        case "bp":
-                            if (piece.isPlayable) {
-                                newMoves = getWPawnPreMoves(row, col);
-                            } else {
-                                newMoves = getBPawnPreMoves(row, col);
-                            }
-                            break;
-                        case "bn":
-                            newMoves = getKnightPreMoves(row, col);
-                            break;
-                        case "wn":
-                            newMoves = getKnightPreMoves(row, col);
-                            break;
-                        case "bk":
-                            newMoves = getKingPreMoves(row, col);
-                            break;
-                        case "wk":
-                            newMoves = getKingPreMoves(row, col);
-                            break;
-                        case "br":
-                            newMoves = getVerticalPreMoves(row, col)
-                                .concat(getHorizontalPreMoves(row, col))
-                            break;
-                        case "wr":
-                            newMoves = getVerticalPreMoves(row, col)
-                                .concat(getHorizontalPreMoves(row, col));
-                            break;
-                        case "bb":
-                            newMoves = getMainDiagonalPreMoves(row, col)
-                                .concat(getAntiDiagonalPreMoves(row, col));
-                            break;
-                        case "wb":
-                            newMoves = getMainDiagonalPreMoves(row, col)
-                                .concat(getAntiDiagonalPreMoves(row, col));
-                            break;
-                        case "wq":
-                            newMoves = getMainDiagonalPreMoves(row, col)
-                                .concat(getAntiDiagonalPreMoves(row, col))
-                                .concat(getVerticalPreMoves(row, col))
-                                .concat(getHorizontalPreMoves(row, col));
-                            break;
-                        case "bq":
-                            newMoves = getMainDiagonalPreMoves(row, col)
-                                .concat(getAntiDiagonalPreMoves(row, col))
-                                .concat(getVerticalPreMoves(row, col))
-                                .concat(getHorizontalPreMoves(row, col));
-                            break;
-                        default:
-                            console.log("Invalid piece name");
-                    }
+                    if (!piece.isPlayable) return;
+                    newMoves = getPiecePreMoves(row, col, piece)
                 }
                 setMoves(newMoves);
             }
