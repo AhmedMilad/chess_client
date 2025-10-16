@@ -320,11 +320,12 @@ export default function ChessBoard({ size = 500 }) {
     );
 
     useEffect(() => {
-        // if (!turn) {
-        //     let temp = preMovesBoard[0][0];
-        //     preMovesBoard[0][0] = preMovesBoard[0][1];
-        //     preMovesBoard[0][1] = temp;
-        // }
+        if (!turn && preMoves.length !== 0) {
+            // let temp = preMovesBoard[0][0];
+            // preMovesBoard[0][0] = preMovesBoard[0][1];
+            // preMovesBoard[0][1] = temp;
+            
+        }
     }, [turn]);
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
@@ -613,7 +614,7 @@ export default function ChessBoard({ size = 500 }) {
         return true
     }
 
-    function getKingMoves(row, col, board, target) {
+    const getKingMoves = useCallback((row, col, board, target) => {
         let newMoves = [];
         const directions = [
             [-1, 0],
@@ -706,7 +707,7 @@ export default function ChessBoard({ size = 500 }) {
             }
         }
         return newMoves;
-    }
+    }, [])
 
     function getVerticalMoves(row, col, board, target) {
         let newMoves = []
@@ -1000,7 +1001,7 @@ export default function ChessBoard({ size = 500 }) {
         return newMoves
     }
 
-    function getKingThreatMoves(target, board) {
+    const getKingThreatMoves = useCallback((target, board) => {
         let kingRow = 0;
         let kingCol = 0;
         for (let row = 0; row < rows; row++) {
@@ -1025,7 +1026,7 @@ export default function ChessBoard({ size = 500 }) {
             .concat(getKnightThreatMoves(kingRow, kingCol, board, knight))
             .concat(getPawnThreat(kingRow, kingCol, board, pawn))
         return threatMoves
-    }
+    }, [])
 
     function getKnightThreatMoves(row, col, board, target) {
         let threatMoves = [];
@@ -1051,13 +1052,13 @@ export default function ChessBoard({ size = 500 }) {
         return threatMoves;
     }
 
-    function getPinMoves(row, col, board) {
+    const getPinMoves = useCallback((row, col, board) => {
         let pinMoves = getMainDiagonalPinMoves(row, col, board)
             .concat(getAntiDiagonalPinMoves(row, col, board))
             .concat(getHorizontalPinMoves(row, col, board))
             .concat(getVerticalPinMoves(row, col, board))
         return pinMoves
-    }
+    }, [])
 
     function getMainDiagonalPinMoves(row, col, board) {
         if (board[row][col] == null) return []
@@ -1257,7 +1258,7 @@ export default function ChessBoard({ size = 500 }) {
         return []
     }
 
-    function getNumberOfChecks(board, target) {
+    const getNumberOfChecks = useCallback((board, target) => {
         let kingRow = -1, kingCol = -1, king = target + 'k'
         let kingIsFound = false
         for (let row = 0; row <= 7; row++) {
@@ -1282,7 +1283,7 @@ export default function ChessBoard({ size = 500 }) {
             numberOfChecks += getPawnCheck(kingRow, kingCol, board)
         }
         return numberOfChecks
-    }
+    }, [])
 
     function getMainDiagonalCheck(row, col, board) {
         let newRow = row, newCol = col
@@ -1586,10 +1587,10 @@ export default function ChessBoard({ size = 500 }) {
         return checks
     }
 
-    function getPieceMoves(row, col, piece) {
+    const getPieceMoves = useCallback((row, col, piece, board) => {
         let newMoves = []
-        if (turn && preMoves.length !== 0) {
-            return
+        if (board[row][col] == null || board[row][col].name !== piece.name) {
+            return newMoves
         }
         let whiteThreatMoves
         let blackThreatMoves
@@ -1798,9 +1799,11 @@ export default function ChessBoard({ size = 500 }) {
                 console.log("Invalid piece name");
         }
         return newMoves
-    }
+    }, [
+        getKingMoves, getKingThreatMoves, getPinMoves
+    ])
 
-    function getPiecePreMoves(row, col, piece) {
+    const getPiecePreMoves = useCallback((row, col, piece) => {
         let newMoves = []
         switch (piece.name) {
             case "wp":
@@ -1861,7 +1864,7 @@ export default function ChessBoard({ size = 500 }) {
                 console.log("Invalid piece name");
         }
         return newMoves
-    }
+    }, [])
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1919,7 +1922,7 @@ export default function ChessBoard({ size = 500 }) {
                 setMousePos(pos);
                 let newMoves = [];
                 if (piece.isPlayable === turn) {
-                    newMoves = getPieceMoves(row, col, piece)
+                    newMoves = getPieceMoves(row, col, piece, board)
                 } else {
                     if (!piece.isPlayable) return;
                     newMoves = getPiecePreMoves(row, col, piece)
@@ -2182,7 +2185,13 @@ export default function ChessBoard({ size = 500 }) {
         preMoves,
         setPreMoves,
         preMovesBoard,
-        boardCol
+        boardCol,
+        getKingMoves,
+        getKingThreatMoves,
+        getNumberOfChecks,
+        getPieceMoves,
+        getPiecePreMoves,
+        getPinMoves
     ]);
 
     function getFenFromBoard(board, turn = "w") {
