@@ -123,6 +123,7 @@ export default function ChessBoard({ size = 500 }) {
     const [lines, setLines] = useState([]);
     const [preMoves, setPreMoves] = useState([]);
     const [previousMove, setPreviousMove] = useState([]);
+    const [previousRightClickCords, setPreviousRightClickCords] = useState([]);
     const [currentPiece, setCurrentPiece] = useState(null);
     const [boardPosition, setBoardPosition] = useState(() => {
         const boardPosition = localStorage.getItem("boardPosition");
@@ -2223,12 +2224,12 @@ export default function ChessBoard({ size = 500 }) {
             const piece = preMovesBoard[row][col];
             if (e.button === 2) {
                 e.preventDefault();
+                setPreviousRightClickCords([row, col])
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
                         preMovesBoard[row][col] = board[row][col]
                     }
                 }
-                highlightBoard[row][col] = true
                 setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
                 setPreMoves([])
                 setStartPos(pos);
@@ -2262,16 +2263,20 @@ export default function ChessBoard({ size = 500 }) {
         };
 
         const handleMouseUp = (e) => {
+            const pos = getMousePos(e);
+            const newCol = Math.floor(pos.x / cellSize);
+            const newRow = Math.floor(pos.y / cellSize);
             if (e.button === 2) {
                 if (!isDraw) setLines((prev) => [...prev, { start: startPos, end: mousePos }]);
+                if (previousRightClickCords.length > 0 && previousRightClickCords[0] === newRow && previousRightClickCords[1] === newCol) {
+                    highlightBoard[newRow][newCol] = true
+                    setPreviousRightClickCords([])
+                }
                 setIsRightDragging(false);
                 setStartPos(null);
                 setMousePos(null);
             }
             if (!draggingPiece) return
-            const pos = getMousePos(e);
-            const newCol = Math.floor(pos.x / cellSize);
-            const newRow = Math.floor(pos.y / cellSize);
 
             handleMove(newRow, newCol, draggingPiece)
 
