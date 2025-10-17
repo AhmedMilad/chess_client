@@ -330,6 +330,7 @@ export default function ChessBoard({ size = 500 }) {
     );
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
+        if (isCheckMate) return
         const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
         const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
         const ex = Math.floor(end.x / cellSize) * cellSize + cellSize / 2;
