@@ -387,13 +387,12 @@ export default function ChessBoard({ size = 500 }) {
         return checks
     }
 
-
-    function getWPawnMoves(row, col, isMoved) {
+    function getWPawnMoves(row, col) {
         let newMoves = [];
         let pawn = board[row][col]
         if (row > 0 && board[row - 1][col] === null) {
             newMoves.push([row - 1, col]);
-            if (!isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
+            if (!pawn.isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
         }
         if (col > 0) {
             if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
@@ -418,12 +417,12 @@ export default function ChessBoard({ size = 500 }) {
         return newMoves;
     }
 
-    function getBPawnMoves(row, col, isMoved) {
+    function getBPawnMoves(row, col) {
         let newMoves = [];
         let pawn = board[row][col]
         if (row < 7 && board[row + 1][col] === null) {
             newMoves.push([row + 1, col]);
-            if (!isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
+            if (!pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
         }
         if (col > 0) {
             if (board[row][col - 1] !== null) {
@@ -1635,9 +1634,9 @@ export default function ChessBoard({ size = 500 }) {
         switch (piece.name) {
             case "wp":
                 if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col, piece.isMoved);
+                    newMoves = getWPawnMoves(row, col);
                 } else {
-                    newMoves = getBPawnMoves(row, col, piece.isMoved);
+                    newMoves = getBPawnMoves(row, col);
                 }
                 if (whiteThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
@@ -1656,9 +1655,9 @@ export default function ChessBoard({ size = 500 }) {
                 break;
             case "bp":
                 if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col, piece.isMoved);
+                    newMoves = getWPawnMoves(row, col);
                 } else {
-                    newMoves = getBPawnMoves(row, col, piece.isMoved);
+                    newMoves = getBPawnMoves(row, col);
                 }
                 if (blackThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
@@ -2048,8 +2047,8 @@ export default function ChessBoard({ size = 500 }) {
                                 break;
                             case pawn:
                                 moves = piece.isPlayable
-                                    ? getWPawnMoves(row, col, piece.isMoved)
-                                    : getBPawnMoves(row, col, piece.isMoved);
+                                    ? getWPawnMoves(row, col)
+                                    : getBPawnMoves(row, col);
                                 break;
                             default: console.log("Invalid piece.")
                         }
@@ -2162,6 +2161,8 @@ export default function ChessBoard({ size = 500 }) {
                 setPreMoves(remainingPreMoves);
                 setTurn(!turn)
             } else {
+                console.log(getPieceMoves(row, col, piece, board))
+                console.log(board)
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
                         boardCol[row][col] = false
