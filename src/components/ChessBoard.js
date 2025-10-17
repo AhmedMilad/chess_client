@@ -122,6 +122,7 @@ export default function ChessBoard({ size = 500 }) {
     const [startPos, setStartPos] = useState(null);
     const [lines, setLines] = useState([]);
     const [preMoves, setPreMoves] = useState([]);
+    const [previousMove, setPreviousMove] = useState([]);
     const [boardPosition, setBoardPosition] = useState(() => {
         const boardPosition = localStorage.getItem("boardPosition");
         return boardPosition ? JSON.parse(boardPosition) : [];
@@ -150,6 +151,8 @@ export default function ChessBoard({ size = 500 }) {
     const darkBlue = "#073B6E"
     const checkMateColor = "#880808";
     const drawColor = "#3238ad"
+    const lightGreen = "#008000"
+    const darkGreen = "#0F4D0F"
     const imageScale = 0.75;
 
     const [preMovesBoard, setPreMovesBoard] = useState(structuredClone(board)); // preMovesBoard should not be identically as board.
@@ -192,6 +195,12 @@ export default function ChessBoard({ size = 500 }) {
                     if (isDraw) {
                         if (piece != null && ["wk", "bk"].includes(piece.name)) {
                             color = drawColor
+                        }
+                    }
+                    if (previousMove.length > 0) {
+                        let [from, to] = previousMove
+                        if ((row === from[0] && col === from[1]) || (row === to[0] && col === to[1])) {
+                            color = (row + col) % 2 === 0 ? lightGreen : darkGreen
                         }
                     }
                     if (boardCol[row][col]) {
@@ -2101,6 +2110,8 @@ export default function ChessBoard({ size = 500 }) {
             } else {
                 setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
             }
+            setPreviousMove([[row, col], [newRow, newCol]])
+            setMoves([]);
         }
         return isValid
     }, [
@@ -2219,6 +2230,7 @@ export default function ChessBoard({ size = 500 }) {
                 setIsRightDragging(true);
                 return;
             } else if (e.button === 0) {
+                setMoves([]);
                 setLines([]);
                 drawBoard(ctx);
             }
@@ -2244,7 +2256,7 @@ export default function ChessBoard({ size = 500 }) {
                 setStartPos(null);
                 setMousePos(null);
             }
-            if (!draggingPiece) return; //TODO this needs to be checked.
+            if (!draggingPiece) return
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
@@ -2280,12 +2292,12 @@ export default function ChessBoard({ size = 500 }) {
                         preMovesBoard[newRow][newCol] = currentPiece
                         boardCol[newRow][newCol] = true
                     }
+                    setMoves([]);
                 }
             } else {
                 play(draggingPiece.row, draggingPiece.col, newRow, newCol, draggingPiece.piece)
             }
             setDraggingPiece(null);
-            setMoves([]);
             drawBoard(ctx);
         };
 
