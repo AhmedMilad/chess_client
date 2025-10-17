@@ -1990,24 +1990,7 @@ export default function ChessBoard({ size = 500 }) {
             setTurn(!turn)
             setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, currentPiece, isCapture)]);
 
-            let fenKey = getFenFromBoard(board);
-
-            const index = boardPosition.findIndex((item) => item.key === fenKey);
-
-            if (index !== -1) {
-                const boardPos = [...boardPosition];
-                boardPos[index].value++;
-
-                if (boardPos[index].value >= 3) {
-                    setBoardPosition([]);
-                    setIsDraw(true);
-                } else {
-                    setBoardPosition(boardPos);
-                }
-
-            } else {
-                setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
-            }
+            handleDraw()
             setPreviousMove([[row, col], [newRow, newCol]])
             setCurrentPiece(null)
             setMoves([]);
@@ -2061,7 +2044,8 @@ export default function ChessBoard({ size = 500 }) {
                     board[row][col] = null
                 }
                 handleCheckMate(piece)
-                setPreMoves(remainingPreMoves);
+                setPreMoves(remainingPreMoves)
+                handleDraw()
                 setTurn(!turn)
             } else {
                 for (let row = 0; row <= 7; row++) {
@@ -2215,6 +2199,27 @@ export default function ChessBoard({ size = 500 }) {
         getPinMoves,
         play
     ]);
+
+    function handleDraw() {
+        let fenKey = getFenFromBoard(board);
+
+        const index = boardPosition.findIndex((item) => item.key === fenKey);
+
+        if (index !== -1) {
+            const boardPos = [...boardPosition];
+            boardPos[index].value++;
+
+            if (boardPos[index].value >= 3) {
+                setBoardPosition([]);
+                setIsDraw(true);
+            } else {
+                setBoardPosition(boardPos);
+            }
+
+        } else {
+            setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
+        }
+    }
 
     function handleCheckMate(piece) {
         let targetCol = piece.name[0]
