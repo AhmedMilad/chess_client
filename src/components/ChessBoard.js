@@ -1921,16 +1921,28 @@ export default function ChessBoard({ size = 500 }) {
                 let dc = newCol - col;
                 if (Math.abs(dc) === 2) {
                     if (dc > 0) {
-                        [board[row][7], board[row][newCol - 1]] =
-                            [board[row][newCol - 1], board[row][7]];
-                        [preMovesBoard[row][7], preMovesBoard[row][newCol - 1]] =
-                            [preMovesBoard[row][newCol - 1], preMovesBoard[row][7]];
+                        let tempBoard = board[row][7];
+                        board[row][7] = board[row][newCol - 1];
+                        board[row][newCol - 1] = tempBoard;
+                        let tempPreMoves = preMovesBoard[row][7];
+                        if (!boardCol[row][7]) {
+                            preMovesBoard[row][7] = preMovesBoard[row][newCol - 1];
+                        }
+                        if (!boardCol[row][newCol - 1]) {
+                            preMovesBoard[row][newCol - 1] = tempPreMoves;
+                        }
                         board[row][newCol - 1].isMoved = true
                     } else {
-                        [board[row][0], board[row][newCol + 1]] =
-                            [board[row][newCol + 1], board[row][0]];
-                        [preMovesBoard[row][0], preMovesBoard[row][newCol + 1]] =
-                            [preMovesBoard[row][newCol + 1], preMovesBoard[row][0]];
+                        let tempBoard3 = board[row][0];
+                        board[row][0] = board[row][newCol + 1];
+                        board[row][newCol + 1] = tempBoard3;
+                        let tempPreMoves3 = preMovesBoard[row][0];
+                        if (!boardCol[row][0]) {
+                            preMovesBoard[row][0] = preMovesBoard[row][newCol + 1];
+                        }
+                        if (!boardCol[row][newCol + 1]) {
+                            preMovesBoard[row][newCol + 1] = tempPreMoves3;
+                        }
                         board[row][newCol + 1].isMoved = true
                     }
                 }
@@ -1950,13 +1962,19 @@ export default function ChessBoard({ size = 500 }) {
             let queen = currentPiece.name[0] + "q"
             if (newRow === 7 && !currentPiece.isPlayable && currentPiece.name[1] === 'p') {
                 board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                if (!boardCol[newRow][newCol]) {
+                    preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                }
             } else if (newRow === 0 && currentPiece.isPlayable && currentPiece.name[1] === 'p') {
                 board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                if (!boardCol[newRow][newCol]) {
+                    preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                }
             } else {
                 board[newRow][newCol] = currentPiece;
-                preMovesBoard[newRow][newCol] = currentPiece;
+                if (!boardCol[newRow][newCol]) {
+                    preMovesBoard[newRow][newCol] = currentPiece;
+                }
             }
             let targetCol = currentPiece.name[0]
             targetCol = (targetCol === 'w') ? 'b' : 'w'
@@ -2130,6 +2148,12 @@ export default function ChessBoard({ size = 500 }) {
                         boardCol[7][newCol] = false
                         boardCol[7][newCol - 1] = false
                     }
+                } else if (piece.name[1] === 'p' && newCol !== col && board[row][newCol] != null && board[row][newCol].isEnpassant) {
+                    board[row][newCol] = null
+                    preMovesBoard[row][newCol] = null
+                    boardCol[newRow][newCol] = false
+                    board[newRow][newCol] = piece
+                    board[row][col] = null
                 } else {
                     boardCol[newRow][newCol] = false
                     board[newRow][newCol] = piece
