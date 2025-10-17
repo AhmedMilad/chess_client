@@ -73,28 +73,49 @@ let board = [
     ],
 ];
 
-const rotateMatrix180C = source => {
+const rotateMatrix180 = source => {
     const M = source.length;
     const N = source[0].length;
-    let destination = new Array(N);
-    for (let i = 0; i < N; i++) {
-        destination[i] = new Array(M);
-    }
-    for (let i = 0; i < N; i++) {
-        for (let j = 0; j < M; j++) {
-            destination[i][j] = source[M - j - 1][i];
+    let destination = new Array(M);
+    for (let i = 0; i < M; i++) {
+        destination[i] = new Array(N);
+        for (let j = 0; j < N; j++) {
+            destination[i][j] = source[M - i - 1][N - j - 1];
         }
-    } return destination;
+    }
+    return destination;
 };
+
+let isBlack = false
+
+if (isBlack) {
+    board = rotateMatrix180(board)
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            let piece = board[row][col]
+            if (piece != null && piece.name[0] === 'b') {
+                piece.isPlayable = true;
+            }
+        }
+    }
+} else {
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            let piece = board[row][col]
+            if (piece != null && piece.name[0] === 'w') {
+                piece.isPlayable = true;
+            }
+        }
+    }
+}
 
 export default function ChessBoard({ size = 500 }) {
     const canvasRef = useRef(null);
     const [images, setImages] = useState({});
-    const [loaded, setLoaded] = useState(false);
     const [draggingPiece, setDraggingPiece] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [moves, setMoves] = useState([]);
-    const [turn, setTurn] = useState(true)
+    const [turn, setTurn] = useState(!isBlack)
     const [isCheckMate, setIsCheckMate] = useState(false)
     const [isDraw, setIsDraw] = useState(false)
     const [isRightDragging, setIsRightDragging] = useState(false);
@@ -131,36 +152,7 @@ export default function ChessBoard({ size = 500 }) {
     const drawColor = "#3238ad"
     const imageScale = 0.75;
 
-    let isBlack = false
-
-    if (isBlack) {
-        if (!loaded) {
-            board = rotateMatrix180C(board)
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    let piece = board[row][col]
-                    if (piece != null && piece.name[0] === 'b') {
-                        piece.isPlayable = true;
-                    }
-                }
-            }
-        }
-    } else if (!loaded) {
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                let piece = board[row][col]
-                if (piece != null && piece.name[0] === 'w') {
-                    piece.isPlayable = true;
-                }
-            }
-        }
-    }
     const [preMovesBoard, setPreMovesBoard] = useState(structuredClone(board)); // preMovesBoard should not be identically as board.
-
-    useEffect(() => {
-        setLoaded(true)
-    }, []);
-
 
     useEffect(() => {
         const loadedImages = {};
@@ -2212,6 +2204,8 @@ export default function ChessBoard({ size = 500 }) {
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
             if (e.button === 2) {
+                console.log(preMovesBoard)
+                console.log(board)
                 e.preventDefault();
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
