@@ -123,6 +123,7 @@ export default function ChessBoard({ size = 500 }) {
     const [lines, setLines] = useState([]);
     const [preMoves, setPreMoves] = useState([]);
     const [previousMove, setPreviousMove] = useState([]);
+    const [currentPiece, setCurrentPiece] = useState(null);
     const [boardPosition, setBoardPosition] = useState(() => {
         const boardPosition = localStorage.getItem("boardPosition");
         return boardPosition ? JSON.parse(boardPosition) : [];
@@ -131,6 +132,7 @@ export default function ChessBoard({ size = 500 }) {
     const [movesHistory, setMovesHistory] = useState([]);
     const scrollRef = useRef(null);
     const [boardCol, setBoardCol] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
+    const [highlightBoard, setHighLightBoard] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -153,6 +155,8 @@ export default function ChessBoard({ size = 500 }) {
     const drawColor = "#3238ad"
     const lightGreen = "#008000"
     const darkGreen = "#0F4D0F"
+    const lightBoysenberry = "#873260"
+    const darkBoysenberry = "#6C284D"
     const imageScale = 0.75;
 
     const [preMovesBoard, setPreMovesBoard] = useState(structuredClone(board)); // preMovesBoard should not be identically as board.
@@ -205,6 +209,9 @@ export default function ChessBoard({ size = 500 }) {
                     }
                     if (boardCol[row][col]) {
                         color = (row + col) % 2 === 0 ? lightBlue : darkBlue
+                    }
+                    if (highlightBoard[row][col]) {
+                        color = (row + col) % 2 === 0 ? lightBoysenberry : darkBoysenberry
                     }
                     ctx.fillStyle = color;
                     ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
@@ -2111,6 +2118,7 @@ export default function ChessBoard({ size = 500 }) {
                 setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
             }
             setPreviousMove([[row, col], [newRow, newCol]])
+            setCurrentPiece(null)
             setMoves([]);
         }
         return isValid
@@ -2164,8 +2172,6 @@ export default function ChessBoard({ size = 500 }) {
                 setPreMoves(remainingPreMoves);
                 setTurn(!turn)
             } else {
-                console.log(getPieceMoves(row, col, piece, board))
-                console.log(board)
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
                         boardCol[row][col] = false
@@ -2214,15 +2220,15 @@ export default function ChessBoard({ size = 500 }) {
             const pos = getMousePos(e);
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
+            const piece = preMovesBoard[row][col];
             if (e.button === 2) {
-                console.log(preMovesBoard)
-                console.log(board)
                 e.preventDefault();
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
                         preMovesBoard[row][col] = board[row][col]
                     }
                 }
+                highlightBoard[row][col] = true
                 setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
                 setPreMoves([])
                 setStartPos(pos);
@@ -2230,14 +2236,20 @@ export default function ChessBoard({ size = 500 }) {
                 setIsRightDragging(true);
                 return;
             } else if (e.button === 0) {
+                setHighLightBoard(Array.from({ length: 16 }, () => Array(16).fill(false)));
+                if (moves.some(([r, c]) => r === row && c === col)) {
+                    if (currentPiece) {
+                        handleMove(row, col, currentPiece)
+                    }
+                }
                 setMoves([]);
                 setLines([]);
                 drawBoard(ctx);
             }
-            const piece = preMovesBoard[row][col];
             if (piece) {
                 setDraggingPiece({ piece, row, col });
-                setMousePos(pos);
+                setCurrentPiece({ piece, row, col });
+                setMousePos(pos)
                 let newMoves = [];
                 if (piece.isPlayable === turn) {
                     newMoves = getPieceMoves(row, col, piece, board)
@@ -2260,43 +2272,9 @@ export default function ChessBoard({ size = 500 }) {
             const pos = getMousePos(e);
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
-            if (draggingPiece.piece.isPlayable !== turn) {
-                if (moves.some(([r, c]) => r === newRow && c === newCol)) {
-                    let currentPiece = structuredClone(preMovesBoard[draggingPiece.row][draggingPiece.col]);
-                    currentPiece.isMoved = true
-                    setPreMoves([...preMoves, {
-                        from: [draggingPiece.row, draggingPiece.col],
-                        to: [newRow, newCol],
-                        piece: currentPiece
-                    }]);
-                    if (currentPiece.name[1] === 'k' && Math.abs(newCol - draggingPiece.col) > 1) {
-                        if (newCol < draggingPiece.col) {
-                            let rook = board[7][0]
-                            preMovesBoard[7][0] = null
-                            preMovesBoard[draggingPiece.row][draggingPiece.col] = null
-                            preMovesBoard[7][newCol] = currentPiece
-                            preMovesBoard[7][newCol + 1] = rook
-                            boardCol[7][newCol] = true
-                            boardCol[7][newCol + 1] = true
-                        } else {
-                            let rook = board[7][7]
-                            preMovesBoard[7][7] = null
-                            preMovesBoard[draggingPiece.row][draggingPiece.col] = null
-                            preMovesBoard[7][newCol] = currentPiece
-                            preMovesBoard[7][newCol - 1] = rook
-                            boardCol[7][newCol] = true
-                            boardCol[7][newCol - 1] = true
-                        }
-                    } else {
-                        preMovesBoard[draggingPiece.row][draggingPiece.col] = null
-                        preMovesBoard[newRow][newCol] = currentPiece
-                        boardCol[newRow][newCol] = true
-                    }
-                    setMoves([]);
-                }
-            } else {
-                play(draggingPiece.row, draggingPiece.col, newRow, newCol, draggingPiece.piece)
-            }
+
+            handleMove(newRow, newCol, draggingPiece)
+
             setDraggingPiece(null);
             drawBoard(ctx);
         };
@@ -2341,6 +2319,46 @@ export default function ChessBoard({ size = 500 }) {
         getPinMoves,
         play
     ]);
+
+    function handleMove(newRow, newCol, piece) {
+        if (piece.piece.isPlayable !== turn) {
+            if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+                let currentPiece = structuredClone(preMovesBoard[piece.row][piece.col]);
+                currentPiece.isMoved = true
+                setPreMoves([...preMoves, {
+                    from: [piece.row, piece.col],
+                    to: [newRow, newCol],
+                    piece: currentPiece
+                }]);
+                if (currentPiece.name[1] === 'k' && Math.abs(newCol - piece.col) > 1) {
+                    if (newCol < piece.col) {
+                        let rook = board[7][0]
+                        preMovesBoard[7][0] = null
+                        preMovesBoard[piece.row][piece.col] = null
+                        preMovesBoard[7][newCol] = currentPiece
+                        preMovesBoard[7][newCol + 1] = rook
+                        boardCol[7][newCol] = true
+                        boardCol[7][newCol + 1] = true
+                    } else {
+                        let rook = board[7][7]
+                        preMovesBoard[7][7] = null
+                        preMovesBoard[piece.row][piece.col] = null
+                        preMovesBoard[7][newCol] = currentPiece
+                        preMovesBoard[7][newCol - 1] = rook
+                        boardCol[7][newCol] = true
+                        boardCol[7][newCol - 1] = true
+                    }
+                } else {
+                    preMovesBoard[piece.row][piece.col] = null
+                    preMovesBoard[newRow][newCol] = currentPiece
+                    boardCol[newRow][newCol] = true
+                }
+                setMoves([]);
+            }
+        } else {
+            play(piece.row, piece.col, newRow, newCol, piece.piece)
+        }
+    }
 
     function getFenFromBoard(board, turn = "w") {
         let fenRows = [];
