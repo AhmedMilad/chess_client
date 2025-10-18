@@ -188,6 +188,18 @@ export default function ChessBoard({ size = 500 }) {
                 for (let col = 0; col < cols; col++) {
                     let color = (row + col) % 2 === 0 ? lightColor : darkColor
                     let piece = board[row][col]
+                    if (previousMove.length > 0) {
+                        let [from, to] = previousMove
+                        if ((row === from[0] && col === from[1]) || (row === to[0] && col === to[1])) {
+                            color = (row + col) % 2 === 0 ? lightGreen : darkGreen
+                        }
+                    }
+                    if (boardCol[row][col]) {
+                        color = (row + col) % 2 === 0 ? lightBlue : darkBlue
+                    }
+                    if (highlightBoard[row][col]) {
+                        color = (row + col) % 2 === 0 ? lightBoysenberry : darkBoysenberry
+                    }
                     if (isCheckMate) {
                         let king = "bk"
                         if (winner === 'black') {
@@ -201,18 +213,6 @@ export default function ChessBoard({ size = 500 }) {
                         if (piece != null && ["wk", "bk"].includes(piece.name)) {
                             color = drawColor
                         }
-                    }
-                    if (previousMove.length > 0) {
-                        let [from, to] = previousMove
-                        if ((row === from[0] && col === from[1]) || (row === to[0] && col === to[1])) {
-                            color = (row + col) % 2 === 0 ? lightGreen : darkGreen
-                        }
-                    }
-                    if (boardCol[row][col]) {
-                        color = (row + col) % 2 === 0 ? lightBlue : darkBlue
-                    }
-                    if (highlightBoard[row][col]) {
-                        color = (row + col) % 2 === 0 ? lightBoysenberry : darkBoysenberry
                     }
                     ctx.fillStyle = color;
                     ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
