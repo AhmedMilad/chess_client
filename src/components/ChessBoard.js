@@ -1927,10 +1927,16 @@ export default function ChessBoard({ size = 500 }) {
             board[row][col] = null;
             preMovesBoard[row][col] = null;
             currentPiece.isMoved = true;
+            let isCastle = false, isLongCastle = false
             if (currentPiece.name[1] === 'k') {
                 let dc = newCol - col;
                 if (Math.abs(dc) === 2) {
                     if (dc > 0) {
+                        if (isBlack) {
+                            isCastle = true
+                        } else {
+                            isLongCastle = true
+                        }
                         let tempBoard = board[row][7];
                         board[row][7] = board[row][newCol - 1];
                         board[row][newCol - 1] = tempBoard;
@@ -1943,6 +1949,11 @@ export default function ChessBoard({ size = 500 }) {
                         }
                         board[row][newCol - 1].isMoved = true
                     } else {
+                        if (isBlack) {
+                            isLongCastle = true
+                        } else {
+                            isCastle = true
+                        }
                         let tempBoard3 = board[row][0];
                         board[row][0] = board[row][newCol + 1];
                         board[row][newCol + 1] = tempBoard3;
@@ -1990,7 +2001,7 @@ export default function ChessBoard({ size = 500 }) {
             handleCheckMate(currentPiece)
 
             setTurn(!turn)
-            setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, currentPiece, isCapture)]);
+            setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)]);
 
             handleDraw()
             setPreviousMove([[row, col], [newRow, newCol]])
@@ -2016,9 +2027,15 @@ export default function ChessBoard({ size = 500 }) {
             const [row, col] = from;
             const [newRow, newCol] = to;
             let isCapture = false
+            let isCastle = false, isLongCastle = false
             if (getPieceMoves(row, col, piece, board).some(([r, c]) => r === newRow && c === newCol)) {
                 if (piece.name[1] === 'k' && Math.abs(newCol - col) > 1) {
                     if (newCol < col) {
+                        if (isBlack) {
+                            isCastle = true
+                        } else {
+                            isLongCastle = true
+                        }
                         let rook = board[7][0]
                         board[7][0] = null
                         board[row][col] = null
@@ -2027,6 +2044,11 @@ export default function ChessBoard({ size = 500 }) {
                         boardCol[7][newCol] = false
                         boardCol[7][newCol + 1] = false
                     } else {
+                        if (isBlack) {
+                            isLongCastle = true
+                        } else {
+                            isCastle = true
+                        }
                         let rook = board[7][7]
                         board[7][7] = null
                         board[row][col] = null
@@ -2055,7 +2077,7 @@ export default function ChessBoard({ size = 500 }) {
                     board[row][col] = null
                 }
                 setPreviousMove([])
-                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, board[newRow][newCol], isCapture)]);
+                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, board[newRow][newCol], isCapture, isCastle, isLongCastle)]);
                 handleCheckMate(piece)
                 setPreMoves(remainingPreMoves)
                 handleDraw()
@@ -2424,22 +2446,26 @@ export default function ChessBoard({ size = 500 }) {
         return fen;
     }
 
-    function getNotation(row, col, isWhite, piece, isCapture) {
-        let rank, file, capture = "";
-        if (isCapture) capture = "x"
+    function getNotation(row, col, isWhite, piece, isCapture, isCastle, isLongCastle) {
+        if (!isCastle && !isLongCastle) {
+            let rank, file, capture = "";
+            if (isCapture) capture = "x"
 
-        if (isWhite) {
-            rank = 8 - row;
-            file = String.fromCharCode(97 + col);
+            if (isWhite) {
+                rank = 8 - row;
+                file = String.fromCharCode(97 + col);
+            } else {
+                rank = row + 1;
+                file = String.fromCharCode(104 - col);
+            }
+
+            let pieceName = piece.name[1]
+            if (pieceName === 'p') pieceName = ""
+
+            return pieceName + capture + file + rank.toString();
         } else {
-            rank = row + 1;
-            file = String.fromCharCode(104 - col);
+            return (isCastle) ? "o-o" : "o-o-o"
         }
-
-        let pieceName = piece.name[1]
-        if (pieceName === 'p') pieceName = ""
-
-        return pieceName + capture + file + rank.toString();
     }
 
     return (
