@@ -134,6 +134,26 @@ export default function ChessBoard({ size = 500 }) {
     const scrollRef = useRef(null);
     const [boardCol, setBoardCol] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
     const [highlightBoard, setHighLightBoard] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
+    const [whiteTime, setWhiteTime] = useState(300);
+    const [blackTime, setBlackTime] = useState(300);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (turn) {
+                setWhiteTime((prev) => Math.max(prev - 1, 0));
+            } else {
+                setBlackTime((prev) => Math.max(prev - 1, 0));
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [turn]);
+
+    const formatTime = (t) => {
+        const m = Math.floor(t / 60);
+        const s = t % 60;
+        return `${m}:${s.toString().padStart(2, "0")}`;
+    };
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -2485,31 +2505,37 @@ export default function ChessBoard({ size = 500 }) {
             <div className="flex flex-col">
                 {(() => {
                     if (winner) {
-                        if (winner === "white") {
-                            return (
-                                <div className="text-white p-4">White won!</div>
-                            )
-                        } else {
-                            return (
-                                <div className="text-white p-4">Black won!</div>
-                            )
-                        }
+                        return (
+                            <div className="text-white p-4">
+                                {winner === "white" ? "White won!" : "Black won!"}
+                            </div>
+                        );
                     }
                     if (isDraw) {
-                        return (
-                            <div className="text-white p-4">Draw!</div>
-                        )
+                        return <div className="text-white p-4">Draw!</div>;
                     }
                 })()}
+                <div className="p-4">
+                    <div className="flex justify-between items-center text-white text-xl">
+                        <div className="flex flex-col">
+                            <span>Ahmed Milad</span>
+                            <span className="text-sm text-gray-400">1000</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className={!turn ? "text-green-400 font-mono" : "text-gray-400 font-mono"}>
+                                {formatTime(blackTime)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
                     <div className="bg-gray-700 text-white p-2 text-center font-semibold">
                         Moves
                     </div>
 
-                    <div
-                        ref={scrollRef}
-                        className="h-72 overflow-y-auto"
-                    >
+                    <div ref={scrollRef} className="h-72 overflow-y-auto">
                         <div className="grid grid-cols-2 text-white">
                             <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
                             <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
@@ -2530,7 +2556,22 @@ export default function ChessBoard({ size = 500 }) {
                         </div>
                     </div>
                 </div>
+                <div className="p-4">
+                    <div className="flex justify-between items-center text-white text-xl">
+                        <div className="flex flex-col">
+                            <span>Ahmed Milad</span>
+                            <span className="text-sm text-gray-400">1000</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className={turn ? "text-green-400 font-mono" : "text-gray-400 font-mono"}>
+                                {formatTime(whiteTime)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </div>
     );
 }
