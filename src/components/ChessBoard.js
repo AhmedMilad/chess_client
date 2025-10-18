@@ -2105,7 +2105,7 @@ export default function ChessBoard({ size = 500 }) {
             } else {
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
-                        boardCol[row][col]--
+                        boardCol[row][col] = 0
                         preMovesBoard[row][col] = board[row][col]
                     }
                 }
