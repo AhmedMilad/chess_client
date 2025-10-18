@@ -325,7 +325,8 @@ export default function ChessBoard({ size = 500 }) {
             isRightDragging,
             lines,
             preMovesBoard,
-            boardCol
+            boardCol,
+            previousMove
         ]
     );
 
@@ -1962,6 +1963,7 @@ export default function ChessBoard({ size = 500 }) {
                     if (board[newRow][newCol] === null) {
                         board[row][newCol] = null
                         preMovesBoard[row][newCol] = null
+                        isCapture = true
                     }
                 }
                 if (Math.abs(row - newRow) === 2) {
@@ -2013,6 +2015,7 @@ export default function ChessBoard({ size = 500 }) {
             const [{ from, to, piece }, ...remainingPreMoves] = preMoves;
             const [row, col] = from;
             const [newRow, newCol] = to;
+            let isCapture = false
             if (getPieceMoves(row, col, piece, board).some(([r, c]) => r === newRow && c === newCol)) {
                 if (piece.name[1] === 'k' && Math.abs(newCol - col) > 1) {
                     if (newCol < col) {
@@ -2033,6 +2036,7 @@ export default function ChessBoard({ size = 500 }) {
                         boardCol[7][newCol - 1] = false
                     }
                 } else if (piece.name[1] === 'p' && newCol !== col && board[row][newCol] != null && board[row][newCol].isEnpassant) {
+                    isCapture = true
                     board[row][newCol] = null
                     preMovesBoard[row][newCol] = null
                     boardCol[newRow][newCol] = false
@@ -2040,9 +2044,12 @@ export default function ChessBoard({ size = 500 }) {
                     board[row][col] = null
                 } else {
                     boardCol[newRow][newCol] = false
+                    if (board[newRow][newCol]) isCapture = true
                     board[newRow][newCol] = piece
                     board[row][col] = null
                 }
+                setPreviousMove([])
+                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, board[newRow][newCol], isCapture)]);
                 handleCheckMate(piece)
                 setPreMoves(remainingPreMoves)
                 handleDraw()
