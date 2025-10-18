@@ -132,7 +132,7 @@ export default function ChessBoard({ size = 500 }) {
     const [winner, setWinner] = useState()
     const [movesHistory, setMovesHistory] = useState([]);
     const scrollRef = useRef(null);
-    const [boardCol, setBoardCol] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
+    const [boardCol, setBoardCol] = useState(Array.from({ length: 16 }, () => Array(16).fill(0)));
     const [highlightBoard, setHighLightBoard] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
     const [whiteTime, setWhiteTime] = useState(300);
     const [blackTime, setBlackTime] = useState(300);
@@ -2061,8 +2061,8 @@ export default function ChessBoard({ size = 500 }) {
                         board[row][col] = null
                         board[7][newCol] = piece
                         board[7][newCol + 1] = rook
-                        boardCol[7][newCol] = false
-                        boardCol[7][newCol + 1] = false
+                        boardCol[7][newCol]--
+                        boardCol[7][newCol + 1]--
                     } else {
                         if (isBlack) {
                             isLongCastle = true
@@ -2074,18 +2074,18 @@ export default function ChessBoard({ size = 500 }) {
                         board[row][col] = null
                         board[7][newCol] = piece
                         board[7][newCol - 1] = rook
-                        boardCol[7][newCol] = false
-                        boardCol[7][newCol - 1] = false
+                        boardCol[7][newCol]--
+                        boardCol[7][newCol - 1]--
                     }
                 } else if (piece.name[1] === 'p' && newCol !== col && board[row][newCol] != null && board[row][newCol].isEnpassant) {
                     isCapture = true
                     board[row][newCol] = null
                     preMovesBoard[row][newCol] = null
-                    boardCol[newRow][newCol] = false
+                    boardCol[newRow][newCol]--
                     board[newRow][newCol] = piece
                     board[row][col] = null
                 } else {
-                    boardCol[newRow][newCol] = false
+                    boardCol[newRow][newCol]--
                     if (board[newRow][newCol]) isCapture = true
                     if (piece.name[1] === 'p' && newRow === 0) {
                         let queen = piece.name[0] + "q"
@@ -2105,7 +2105,7 @@ export default function ChessBoard({ size = 500 }) {
             } else {
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
-                        boardCol[row][col] = false
+                        boardCol[row][col]--
                         preMovesBoard[row][col] = board[row][col]
                     }
                 }
@@ -2160,7 +2160,7 @@ export default function ChessBoard({ size = 500 }) {
                         preMovesBoard[row][col] = board[row][col]
                     }
                 }
-                setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(false)));
+                setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(0)));
                 setPreMoves([])
                 setStartPos(pos);
                 setMousePos(pos);
@@ -2408,20 +2408,20 @@ export default function ChessBoard({ size = 500 }) {
                         preMovesBoard[piece.row][piece.col] = null
                         preMovesBoard[7][newCol] = currentPiece
                         preMovesBoard[7][newCol + 1] = rook
-                        boardCol[7][newCol] = true
-                        boardCol[7][newCol + 1] = true
+                        boardCol[7][newCol]++
+                        boardCol[7][newCol + 1]++
                     } else {
                         let rook = board[7][7]
                         preMovesBoard[7][7] = null
                         preMovesBoard[piece.row][piece.col] = null
                         preMovesBoard[7][newCol] = currentPiece
                         preMovesBoard[7][newCol - 1] = rook
-                        boardCol[7][newCol] = true
-                        boardCol[7][newCol - 1] = true
+                        boardCol[7][newCol]++
+                        boardCol[7][newCol - 1]++
                     }
                 } else {
                     preMovesBoard[piece.row][piece.col] = null
-                    boardCol[newRow][newCol] = true
+                    boardCol[newRow][newCol]++
                     if (currentPiece.name[1] === 'p' && newRow === 0) {
                         let queen = currentPiece.name[0] + "q"
                         preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
