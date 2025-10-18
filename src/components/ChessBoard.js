@@ -2464,7 +2464,13 @@ export default function ChessBoard({ size = 500 }) {
 
             return pieceName + capture + file + rank.toString();
         } else {
-            return (isCastle) ? "o-o" : "o-o-o"
+            let leftCastle = "o-o", rightCastle = "o-o-o"
+            if (!piece.isPlayable) {
+                let temp = leftCastle
+                leftCastle = rightCastle
+                rightCastle = temp
+            }
+            return (isCastle) ? leftCastle : rightCastle
         }
     }
 
