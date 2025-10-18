@@ -2045,7 +2045,13 @@ export default function ChessBoard({ size = 500 }) {
                 } else {
                     boardCol[newRow][newCol] = false
                     if (board[newRow][newCol]) isCapture = true
-                    board[newRow][newCol] = piece
+                    if (piece.name[1] === 'p' && newRow === 0) {
+                        let queen = piece.name[0] + "q"
+                        board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                        board[newRow][newCol].isPlayable = true
+                    } else {
+                        board[newRow][newCol] = piece
+                    }
                     board[row][col] = null
                 }
                 setPreviousMove([])
@@ -2373,8 +2379,14 @@ export default function ChessBoard({ size = 500 }) {
                     }
                 } else {
                     preMovesBoard[piece.row][piece.col] = null
-                    preMovesBoard[newRow][newCol] = currentPiece
                     boardCol[newRow][newCol] = true
+                    if (currentPiece.name[1] === 'p' && newRow === 0) {
+                        let queen = currentPiece.name[0] + "q"
+                        preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                        preMovesBoard[newRow][newCol].isPlayable = true
+                    } else {
+                        preMovesBoard[newRow][newCol] = currentPiece
+                    }
                 }
                 setMoves([]);
             }
