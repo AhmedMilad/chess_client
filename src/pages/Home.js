@@ -56,7 +56,7 @@ export default function Home() {
 
             </div>
             <div className="flex flex-col items-center justify-center bg-gray-900 mt-8">
-                <ChessBoard size={750} />
+                <ChessBoard size={750} isBlack={false} />
             </div>
         </div>
     );
