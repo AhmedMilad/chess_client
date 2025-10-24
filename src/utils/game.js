@@ -140,7 +140,7 @@ export function getWPawnMoves(row, col) {
     let pawn = board[row][col]
     if (row > 0 && board[row - 1][col] === null) {
         newMoves.push([row - 1, col]);
-        if (!pawn.isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
+        if (pawn != null && !pawn.isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
     }
     if (col > 0) {
         if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
@@ -170,11 +170,11 @@ export function getBPawnMoves(row, col) {
     let pawn = board[row][col]
     if (row < 7 && board[row + 1][col] === null) {
         newMoves.push([row + 1, col]);
-        if (!pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
+        if (pawn != null && !pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
     }
     if (col > 0) {
         if (board[row][col - 1] !== null) {
-            if (pawn !== null && board[row][col - 1].name[0] !== pawn.name[0] && board[row][col - 1].isEnpassant) {
+            if (pawn != null && board[row][col - 1].name[0] !== pawn.name[0] && board[row][col - 1].isEnpassant) {
                 newMoves.push([row + 1, col - 1]);
             }
         }
@@ -1421,4 +1421,31 @@ export function getNotation(row, col, isWhite, piece, isCapture, isCastle, isLon
         }
         return (isCastle) ? leftCastle : rightCastle
     }
+}
+
+export function notationToIndex(square, isBlack = false) {
+    const move = square.toLowerCase().replace(/0/g, "o");
+    if (move === "o-o" || move === "oo") {
+        return isBlack ? [[0, 3], [0, 1]] : [[0, 4], [0, 6]]
+    }
+
+    if (move === "o-o-o" || move === "ooo") {
+        return isBlack ? [[0, 3], [0, 5]] : [[0, 4], [0, 2]]
+    }
+
+    const match = move.match(/([a-h][1-8])$/i);
+    if (!match) {
+        throw new Error("Invalid square notation: " + square);
+    }
+    const pureSquare = match[1].toLowerCase();
+    const file = pureSquare[0];
+    const rank = Number(pureSquare[1]);
+    let col = file.charCodeAt(0) - "a".charCodeAt(0);
+    let row = 8 - rank;
+    if (isBlack) {
+        row = 7 - row;
+        col = 7 - col;
+    }
+
+    return [row, col];
 }

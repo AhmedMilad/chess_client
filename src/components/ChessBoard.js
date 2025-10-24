@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback, Fragment } from "react";
+import { socket, sendMessage } from "../utils/websocket";
+
 import {
     Piece,
     pieceImages,
@@ -23,10 +25,33 @@ import {
     getAntiDiagonalPreMoves,
     getNumberOfChecks,
     getFenFromBoard,
-    getNotation
+    getNotation,
+    notationToIndex
 } from "../utils/game"
 
-export default function ChessBoard({ size = 500, isBlack }) {
+export default function ChessBoard({ size = 750, message }) {
+
+    const gameId = message.game_id
+
+    const [opponentMove, setOpponentMove] = useState(null)
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleMessage = (event) => {
+            const data = JSON.parse(event.data);
+            setOpponentMove(data);
+        };
+
+        socket.addEventListener("message", handleMessage);
+
+        return () => {
+            socket.removeEventListener("message", handleMessage);
+        };
+    }, []);
+
+    const isBlack = message.is_black
+    const [board, setBoard] = useState(getBoard(isBlack))
+
     const canvasRef = useRef(null);
     const [images, setImages] = useState({});
     const [draggingPiece, setDraggingPiece] = useState(null);
@@ -55,6 +80,109 @@ export default function ChessBoard({ size = 500, isBlack }) {
     const [blackTime, setBlackTime] = useState(300);
 
     useEffect(() => {
+        if (!opponentMove) return;
+
+        console.log("Opponent Move:", opponentMove);
+
+        const { from, to } = opponentMove.data;
+
+        let fromIndexes = notationToIndex(from, isBlack);
+        let toIndexes = notationToIndex(to, isBlack);
+
+        if (!Array.isArray(fromIndexes[0])) fromIndexes = [fromIndexes];
+        if (!Array.isArray(toIndexes[0])) toIndexes = [toIndexes];
+
+        if (fromIndexes.length === 2) {
+            const [[kingRow, kingCol], [kingNewRow, kingNewCol]] = fromIndexes;
+
+            const king = board[kingRow][kingCol];
+            board[kingRow][kingCol] = null;
+            board[kingNewRow][kingNewCol] = king;
+            preMovesBoard[kingRow][kingCol] = null;
+            preMovesBoard[kingNewRow][kingNewCol] = king;
+
+            // Determine row of the king
+            const row = kingRow; // kingRow is already defined
+
+            if (kingCol > kingNewCol) {
+                // Queenside castling
+                const rook = board[row][0];
+                board[row][0] = null;
+                preMovesBoard[row][0] = null;
+
+                board[row][kingNewCol + 1] = rook;
+                preMovesBoard[row][kingNewCol + 1] = rook;
+
+                // Move king
+                board[kingRow][kingCol] = null;
+                board[kingNewRow][kingNewCol] = king;
+                preMovesBoard[kingRow][kingCol] = null;
+                preMovesBoard[kingNewRow][kingNewCol] = king;
+            } else {
+                // Kingside castling
+                const rook = board[row][7];
+                board[row][7] = null;
+                preMovesBoard[row][7] = null;
+
+                board[row][kingNewCol - 1] = rook;
+                preMovesBoard[row][kingNewCol - 1] = rook;
+
+                // Move king
+                board[kingRow][kingCol] = null;
+                board[kingNewRow][kingNewCol] = king;
+                preMovesBoard[kingRow][kingCol] = null;
+                preMovesBoard[kingNewRow][kingNewCol] = king;
+            }
+
+
+            if (king) {
+                console.log(kingNewCol === 1 || kingNewCol === 6)
+                console.log(kingNewCol === 2 || kingNewCol === 5)
+                setMovesHistory(prev =>
+                    [...prev, getNotation(kingNewRow, kingNewCol, !isBlack, king, false, kingNewCol === 1 || kingNewCol === 6, kingNewCol === 2 || kingNewCol === 5)]
+                );
+            }
+
+        } else {
+            const [[row, col]] = fromIndexes;
+            const [[newRow, newCol]] = toIndexes;
+            const piece = board[row][col];
+            let isCapture = !!board[newRow][newCol];
+
+            if (piece.name[1] === 'p' && col !== newCol && board[newRow][newCol] == null) {
+                isCapture = true;
+                const epRow = isBlack ? newRow + 1 : newRow - 1;
+                board[epRow][newCol] = null;
+                preMovesBoard[epRow][newCol] = null;
+            }
+
+            if (piece.name[1] === 'p' && (newRow === 0 || newRow === 7)) {
+                const queen = piece.name[0] + "q";
+                board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+            } else {
+                board[newRow][newCol] = piece;
+            }
+
+            board[row][col] = null;
+            preMovesBoard[newRow][newCol] = board[newRow][newCol];
+            preMovesBoard[row][col] = null;
+            handleCheckMate(board[newRow][newCol]);
+
+            let notaionPiece = board[newRow][newCol]
+            if (notaionPiece) {
+                setMovesHistory(prev =>
+                    [...prev, getNotation(newRow, newCol, !isBlack, piece, isCapture, false, false)]
+                );
+            }
+        }
+
+        setPreviousMove([]);
+        // handleDraw();
+        setTurn(!turn);
+
+    }, [opponentMove]);
+
+    useEffect(() => {
         const interval = setInterval(() => {
             if (turn) {
                 setWhiteTime((prev) => Math.max(prev - 1, 0));
@@ -71,8 +199,6 @@ export default function ChessBoard({ size = 500, isBlack }) {
         const s = t % 60;
         return `${m}:${s.toString().padStart(2, "0")}`;
     };
-
-    const board = getBoard(isBlack)
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -683,9 +809,21 @@ export default function ChessBoard({ size = 500, isBlack }) {
             handleCheckMate(currentPiece)
 
             setTurn(!turn)
-            setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)]);
+            if (currentPiece) {
+                let oldPos = getNotation(row, col, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)
+                let newPos = getNotation(newRow, newCol, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)
+                sendMessage({
+                    "game_id": gameId,
+                    "type": "move",
+                    "data": {
+                        "from": oldPos,
+                        "to": newPos,
+                    }
+                })
+                setMovesHistory(prev => [...prev, newPos]);
+            }
 
-            handleDraw()
+            // handleDraw()
             setPreviousMove([[row, col], [newRow, newCol]])
             setCurrentPiece(null)
             setMoves([]);
@@ -759,10 +897,25 @@ export default function ChessBoard({ size = 500, isBlack }) {
                     board[row][col] = null
                 }
                 setPreviousMove([])
-                setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, board[newRow][newCol], isCapture, isCastle, isLongCastle)]);
+                let notationPiece = board[newRow][newCol]
+                if (notationPiece) {
+                    setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, notationPiece, isCapture, isCastle, isLongCastle)]);
+                }
                 handleCheckMate(piece)
                 setPreMoves(remainingPreMoves)
-                handleDraw()
+                // handleDraw()
+                if (piece) {
+                    let oldPos = getNotation(row, col, !isBlack, piece, isCapture, isCastle, isLongCastle)
+                    let newPos = getNotation(newRow, newCol, !isBlack, piece, isCapture, isCastle, isLongCastle)
+                    sendMessage({
+                        "game_id": gameId,
+                        "type": "move",
+                        "data": {
+                            "from": oldPos,
+                            "to": newPos,
+                        }
+                    })
+                }
                 setTurn(!turn)
             } else {
                 for (let row = 0; row <= 7; row++) {
@@ -839,7 +992,7 @@ export default function ChessBoard({ size = 500, isBlack }) {
                 setLines([]);
                 drawBoard(ctx);
             }
-            if (piece) {
+            if (piece && piece.isPlayable) {
                 setDraggingPiece({ piece, row, col });
                 setCurrentPiece({ piece, row, col });
                 setMousePos(pos)
@@ -939,6 +1092,7 @@ export default function ChessBoard({ size = 500, isBlack }) {
     }
 
     function handleCheckMate(piece) {
+        if (!piece) return
         let targetCol = piece.name[0]
         targetCol = (targetCol === 'w') ? 'b' : 'w'
         let numberOfChecks = getNumberOfChecks(board, targetCol)
