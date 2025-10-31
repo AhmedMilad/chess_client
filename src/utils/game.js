@@ -643,7 +643,7 @@ export function getPawnThreat(row, col, board, target) {
         [1, -1], [1, 1]
     ];
     let pawn = board[row][col]
-    if (pawn.isPlayable) {
+    if (pawn && pawn.isPlayable) {
         directions = [
             [-1, -1], [-1, 1],
         ]

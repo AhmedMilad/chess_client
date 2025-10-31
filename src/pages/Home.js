@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import GameTypes from "../components/GameTypes";
-
-const token = localStorage.getItem("token");
 
 async function getGameTypes(token) {
     try {
@@ -49,20 +48,36 @@ export default function Home() {
     const [games, setGames] = useState([]);
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            navigate("/login");
+            return;
+        }
+
         async function fetchData() {
             setLoading(true);
             const [gameTypes, user] = await Promise.all([
                 getGameTypes(token),
                 getUserData(token),
             ]);
+
+            if (!user) {
+                localStorage.removeItem("token");
+                navigate("/login");
+                return;
+            }
+
             setGames(gameTypes);
             setUserData(user);
             setLoading(false);
         }
+
         fetchData();
-    }, []);
+    }, [navigate]);
 
     if (loading) {
         return (

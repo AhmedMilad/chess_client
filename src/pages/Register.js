@@ -1,16 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import axios from "axios";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setConfirmPassword] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
+
+    if (data.password !== data.password_confirmation) {
+      alert("Passwords do not match!");
+      return;
+    }
 
     const payload = {
       email: data.email,
@@ -20,8 +34,16 @@ export default function SignUpForm() {
 
     try {
       const response = await axios.post("http://127.0.0.1:8080/api/register", payload);
-      console.log("SignUp successful:", response.status);
-      console.log("SignUp successful:", response.data);
+
+      if (response.status === 200) {
+        const token = response.data?.data;
+        if (token) {
+          localStorage.setItem("token", token);
+        }
+        console.log("SignUp successful:", response.data);
+
+        navigate("/");
+      }
     } catch (error) {
       console.error("SignUp error:", error.response?.data || error.message);
     }
@@ -69,11 +91,9 @@ export default function SignUpForm() {
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm leading-6 text-white text-left">
-                  Password
-                </label>
-              </div>
+              <label htmlFor="password" className="block text-sm leading-6 text-white text-left">
+                Password
+              </label>
               <div className="relative">
                 <input
                   id="password"
@@ -81,7 +101,7 @@ export default function SignUpForm() {
                   type={showPassword ? "text" : "password"}
                   required
                   placeholder="Enter your password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className="block w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 pr-10"
                 />
                 <button
@@ -97,11 +117,9 @@ export default function SignUpForm() {
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password_confirmation" className="block text-sm leading-6 text-white text-left">
-                  Password Confirmation
-                </label>
-              </div>
+              <label htmlFor="password_confirmation" className="block text-sm leading-6 text-white text-left">
+                Password Confirmation
+              </label>
               <div className="relative">
                 <input
                   id="password_confirmation"
@@ -109,7 +127,7 @@ export default function SignUpForm() {
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   placeholder="Password Confirmation"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className="block w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 pr-10"
                 />
                 <button
@@ -131,6 +149,16 @@ export default function SignUpForm() {
               Sign up
             </button>
           </form>
+
+          <p className="mt-4 text-center text-sm text-gray-400">
+            Already have an account?{" "}
+            <button
+              onClick={() => navigate("/login")}
+              className="text-indigo-400 hover:text-indigo-300 font-medium"
+            >
+              Log in
+            </button>
+          </p>
         </div>
       </div>
     </div>
