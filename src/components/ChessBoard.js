@@ -735,44 +735,36 @@ export default function ChessBoard({ size = 750, message }) {
             board[row][col] = null;
             preMovesBoard[row][col] = null;
             currentPiece.isMoved = true;
-            let isCastle = false, isLongCastle = false
+            let isCastle = false, isLongCastle = false;
             if (currentPiece.name[1] === 'k') {
-                let dc = newCol - col;
+                const dc = newCol - col;
                 if (Math.abs(dc) === 2) {
-                    if (dc > 0) {
-                        if (isBlack) {
-                            isCastle = true
+                    const isKingside = dc > 0;
+                    if (isBlack) {
+                        if (isKingside) {
+                            isCastle = false;
+                            isLongCastle = true;
                         } else {
-                            isLongCastle = true
+                            isCastle = true;
+                            isLongCastle = false;
                         }
-                        let tempBoard = board[row][7];
-                        board[row][7] = board[row][newCol - 1];
-                        board[row][newCol - 1] = tempBoard;
-                        let tempPreMoves = preMovesBoard[row][7];
-                        if (!boardCol[row][7]) {
-                            preMovesBoard[row][7] = preMovesBoard[row][newCol - 1];
-                        }
-                        if (!boardCol[row][newCol - 1]) {
-                            preMovesBoard[row][newCol - 1] = tempPreMoves;
-                        }
-                        board[row][newCol - 1].isMoved = true
                     } else {
-                        if (isBlack) {
-                            isLongCastle = true
+                        if (isKingside) {
+                            isCastle = true;
+                            isLongCastle = false;
                         } else {
-                            isCastle = true
+                            isCastle = false;
+                            isLongCastle = true;
                         }
-                        let tempBoard3 = board[row][0];
-                        board[row][0] = board[row][newCol + 1];
-                        board[row][newCol + 1] = tempBoard3;
-                        let tempPreMoves3 = preMovesBoard[row][0];
-                        if (!boardCol[row][0]) {
-                            preMovesBoard[row][0] = preMovesBoard[row][newCol + 1];
-                        }
-                        if (!boardCol[row][newCol + 1]) {
-                            preMovesBoard[row][newCol + 1] = tempPreMoves3;
-                        }
-                        board[row][newCol + 1].isMoved = true
+                    }
+                    const rookFromCol = isKingside ? 7 : 0;
+                    const rookToCol = isKingside ? newCol - 1 : newCol + 1;
+                    board[row][rookToCol] = board[row][rookFromCol];
+                    board[row][rookFromCol] = null;
+                    preMovesBoard[row][rookToCol] = preMovesBoard[row][rookFromCol];
+                    preMovesBoard[row][rookFromCol] = null;
+                    if (board[row][rookToCol]) {
+                        board[row][rookToCol].isMoved = true;
                     }
                 }
             }
