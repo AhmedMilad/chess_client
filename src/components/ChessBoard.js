@@ -140,7 +140,7 @@ export default function ChessBoard({ size = 750, message }) {
         } else {
             const [[row, col]] = fromIndexes;
             const [[newRow, newCol]] = toIndexes;
-            const piece = board[row][col];
+            let piece = board[row][col];
             let isCapture = !!board[newRow][newCol];
             if (piece != null && piece.name[1] === 'p') {
                 if (col !== newCol && board[newRow][newCol] == null) {
@@ -155,7 +155,7 @@ export default function ChessBoard({ size = 750, message }) {
                 }
                 if ((newRow === 0 || newRow === 7)) {
                     const queen = piece.name[0] + "q";
-                    board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                    piece = new Piece(queen, pieceImages[queen], 9);
                 } else {
                     if (Math.abs(row - newRow) > 1) {
                         piece.isEnpassant = true
