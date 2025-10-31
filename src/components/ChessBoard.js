@@ -67,6 +67,7 @@ export default function ChessBoard({ size = 750, message }) {
     const [previousMove, setPreviousMove] = useState([]);
     const [previousRightClickCords, setPreviousRightClickCords] = useState([]);
     const [currentPiece, setCurrentPiece] = useState(null);
+    localStorage.setItem("boardPosition", []);
     const [boardPosition, setBoardPosition] = useState(() => {
         const boardPosition = localStorage.getItem("boardPosition");
         return boardPosition ? JSON.parse(boardPosition) : [];
@@ -177,7 +178,7 @@ export default function ChessBoard({ size = 750, message }) {
             }
         }
 
-        // handleDraw();
+        handleDraw();
         setTurn(!turn);
 
     }, [opponentMove]);
@@ -815,7 +816,7 @@ export default function ChessBoard({ size = 750, message }) {
                 setMovesHistory(prev => [...prev, newPos]);
             }
 
-            // handleDraw()
+            handleDraw()
             setPreviousMove([[row, col], [newRow, newCol]])
             setCurrentPiece(null)
             setMoves([]);
@@ -895,7 +896,7 @@ export default function ChessBoard({ size = 750, message }) {
                 }
                 handleCheckMate(piece)
                 setPreMoves(remainingPreMoves)
-                // handleDraw()
+                handleDraw()
                 if (piece) {
                     let oldPos = getNotation(row, col, !isBlack, piece, isCapture, isCastle, isLongCastle)
                     let newPos = getNotation(newRow, newCol, !isBlack, piece, isCapture, isCastle, isLongCastle)

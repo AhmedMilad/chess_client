@@ -18,7 +18,7 @@ export default function GameTypes({ games }) {
           if (data.type === "start_game") {
             setSocketMessage(data);
 
-            navigate(`/game/${game.id}`, { state: { message: data } });
+            navigate(`/game/${data.game_id}`, { state: { message: data } });
           }
         } catch (error) {
           console.error("Invalid message format:", msg);
