@@ -82,8 +82,6 @@ export default function ChessBoard({ size = 750, message }) {
     useEffect(() => {
         if (!opponentMove) return;
 
-        console.log("Opponent Move:", opponentMove);
-
         const { from, to } = opponentMove.data;
 
         let fromIndexes = notationToIndex(from, isBlack);
@@ -101,11 +99,9 @@ export default function ChessBoard({ size = 750, message }) {
             preMovesBoard[kingRow][kingCol] = null;
             preMovesBoard[kingNewRow][kingNewCol] = king;
 
-            // Determine row of the king
-            const row = kingRow; // kingRow is already defined
+            const row = kingRow;
 
             if (kingCol > kingNewCol) {
-                // Queenside castling
                 const rook = board[row][0];
                 board[row][0] = null;
                 preMovesBoard[row][0] = null;
@@ -113,13 +109,11 @@ export default function ChessBoard({ size = 750, message }) {
                 board[row][kingNewCol + 1] = rook;
                 preMovesBoard[row][kingNewCol + 1] = rook;
 
-                // Move king
                 board[kingRow][kingCol] = null;
                 board[kingNewRow][kingNewCol] = king;
                 preMovesBoard[kingRow][kingCol] = null;
                 preMovesBoard[kingNewRow][kingNewCol] = king;
             } else {
-                // Kingside castling
                 const rook = board[row][7];
                 board[row][7] = null;
                 preMovesBoard[row][7] = null;
@@ -127,13 +121,11 @@ export default function ChessBoard({ size = 750, message }) {
                 board[row][kingNewCol - 1] = rook;
                 preMovesBoard[row][kingNewCol - 1] = rook;
 
-                // Move king
                 board[kingRow][kingCol] = null;
                 board[kingNewRow][kingNewCol] = king;
                 preMovesBoard[kingRow][kingCol] = null;
                 preMovesBoard[kingNewRow][kingNewCol] = king;
             }
-
 
             if (king) {
                 console.log(kingNewCol === 1 || kingNewCol === 6)
@@ -142,30 +134,39 @@ export default function ChessBoard({ size = 750, message }) {
                     [...prev, getNotation(kingNewRow, kingNewCol, !isBlack, king, false, kingNewCol === 1 || kingNewCol === 6, kingNewCol === 2 || kingNewCol === 5)]
                 );
             }
+            setPreviousMove([[kingRow, kingCol], [kingNewRow, kingNewCol]])
 
         } else {
             const [[row, col]] = fromIndexes;
             const [[newRow, newCol]] = toIndexes;
             const piece = board[row][col];
             let isCapture = !!board[newRow][newCol];
-
-            if (piece.name[1] === 'p' && col !== newCol && board[newRow][newCol] == null) {
-                isCapture = true;
-                const epRow = isBlack ? newRow + 1 : newRow - 1;
-                board[epRow][newCol] = null;
-                preMovesBoard[epRow][newCol] = null;
+            if (piece != null && piece.name[1] === 'p') {
+                if (col !== newCol && board[newRow][newCol] == null) {
+                    isCapture = true;
+                    const epRow = isBlack ? newRow + 1 : newRow - 1;
+                    if (board[newRow][newCol] == null) {
+                        board[newRow - 1][newCol] = null
+                        preMovesBoard[newRow - 1][newCol] = null;
+                    }
+                    board[epRow][newCol] = null;
+                    preMovesBoard[epRow][newCol] = null;
+                }
+                if ((newRow === 0 || newRow === 7)) {
+                    const queen = piece.name[0] + "q";
+                    board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                } else {
+                    if (Math.abs(row - newRow) > 1) {
+                        piece.isEnpassant = true
+                    }
+                }
             }
-
-            if (piece.name[1] === 'p' && (newRow === 0 || newRow === 7)) {
-                const queen = piece.name[0] + "q";
-                board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-            } else {
-                board[newRow][newCol] = piece;
-            }
+            board[newRow][newCol] = piece;
 
             board[row][col] = null;
             preMovesBoard[newRow][newCol] = board[newRow][newCol];
             preMovesBoard[row][col] = null;
+            setPreviousMove([[row, col], [newRow, newCol]])
             handleCheckMate(board[newRow][newCol]);
 
             let notaionPiece = board[newRow][newCol]
@@ -176,7 +177,6 @@ export default function ChessBoard({ size = 750, message }) {
             }
         }
 
-        setPreviousMove([]);
         // handleDraw();
         setTurn(!turn);
 
