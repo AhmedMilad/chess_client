@@ -348,10 +348,10 @@ export default function ChessBoard({ size = 750, message }) {
                     }
                 }
             }
-            lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", 20, cellSize));
+            lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", cellSize / 4, cellSize));
 
             if (isRightDragging && startPos && mousePos) {
-                drawArrow(ctx, startPos, mousePos, "orange", 20, cellSize);
+                drawArrow(ctx, startPos, mousePos, "orange", cellSize / 4, cellSize);
             }
 
             if (draggingPiece && images[draggingPiece.piece.name]) {
@@ -453,9 +453,9 @@ export default function ChessBoard({ size = 750, message }) {
         switch (piece.name) {
             case "wp":
                 if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col);
+                    newMoves = getWPawnMoves(row, col, board);
                 } else {
-                    newMoves = getBPawnMoves(row, col);
+                    newMoves = getBPawnMoves(row, col, board);
                 }
                 if (whiteThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
@@ -474,9 +474,9 @@ export default function ChessBoard({ size = 750, message }) {
                 break;
             case "bp":
                 if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col);
+                    newMoves = getWPawnMoves(row, col, board);
                 } else {
-                    newMoves = getBPawnMoves(row, col);
+                    newMoves = getBPawnMoves(row, col, board);
                 }
                 if (blackThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
@@ -1165,8 +1165,8 @@ export default function ChessBoard({ size = 750, message }) {
                             break;
                         case pawn:
                             moves = piece.isPlayable
-                                ? getWPawnMoves(row, col)
-                                : getBPawnMoves(row, col);
+                                ? getWPawnMoves(row, col, board)
+                                : getBPawnMoves(row, col, board);
                             break;
                         default: console.log("Invalid piece.")
                     }

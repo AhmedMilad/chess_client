@@ -9,12 +9,10 @@ export function connectWebSocket(url, onMessage, onOpen, onClose, onError) {
     socket = new WebSocket(url);
 
     socket.onopen = () => {
-        console.log("WebSocket connected");
         if (onOpen) onOpen();
     };
 
     socket.onmessage = (event) => {
-        console.log("Message from server:", event.data);
         if (onMessage) onMessage(event.data);
     };
 

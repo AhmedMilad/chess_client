@@ -135,12 +135,12 @@ export function getPawnCheck(row, col, board) {
     return checks
 }
 
-export function getWPawnMoves(row, col) {
+export function getWPawnMoves(row, col, board) {
     let newMoves = [];
     let pawn = board[row][col]
     if (row > 0 && board[row - 1][col] === null) {
         newMoves.push([row - 1, col]);
-        if (pawn != null && !pawn.isMoved && board[row - 2][col] === null) newMoves.push([row - 2, col]);
+        if (pawn != null && !pawn.isMoved && row - 2 >= 0 && board[row - 2][col] === null) newMoves.push([row - 2, col]);
     }
     if (col > 0) {
         if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
@@ -165,12 +165,12 @@ export function getWPawnMoves(row, col) {
     return newMoves;
 }
 
-export function getBPawnMoves(row, col) {
+export function getBPawnMoves(row, col, board) {
     let newMoves = [];
     let pawn = board[row][col]
     if (row < 7 && board[row + 1][col] === null) {
         newMoves.push([row + 1, col]);
-        if (pawn != null && !pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
+        if (row + 2 <= 7 && pawn != null && !pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
     }
     if (col > 0) {
         if (board[row][col - 1] !== null) {
@@ -1413,18 +1413,15 @@ export function getNotation(row, col, isWhite, piece, isCapture, isCastle, isLon
 
         return pieceName + capture + file + rank.toString();
     } else {
-        let leftCastle = "o-o", rightCastle = "o-o-o"
-        if (!piece.isPlayable) {
-            let temp = leftCastle
-            leftCastle = rightCastle
-            rightCastle = temp
-        }
-        return (isCastle) ? leftCastle : rightCastle
+        let castle = "o-o"
+        if (isLongCastle) castle = "o-o-o"
+        return castle
     }
 }
 
 export function notationToIndex(square, isBlack = false) {
     const move = square.toLowerCase().replace(/0/g, "o");
+    console.log(move)
     if (move === "o-o" || move === "oo") {
         return isBlack ? [[0, 3], [0, 1]] : [[0, 4], [0, 6]]
     }
