@@ -1,5 +1,6 @@
 import { useLocation, useParams } from "react-router-dom";
 import ChessBoard from "../components/ChessBoard";
+import { getBoard } from "../utils/game"
 
 export default function GamePage() {
   const { id } = useParams();
@@ -10,10 +11,12 @@ export default function GamePage() {
     return <div className="text-white p-6">Waiting for game to start...</div>;
   }
 
+  let gameBoard = getBoard(socketMessage.is_black)
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
       <h2 className="text-white text-2xl mb-4">Game #{id}</h2>
-      <ChessBoard size={500} message={socketMessage} />
+      <ChessBoard size={500} message={socketMessage} gameBoard={gameBoard} />
     </div>
   );
 }

@@ -86,8 +86,9 @@ const rotateMatrix180 = source => {
 };
 
 export const getBoard = (isBlack) => {
+    let currentBoard = board
     if (isBlack) {
-        board = rotateMatrix180(board)
+        currentBoard = rotateMatrix180(board)
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
                 let piece = board[row][col]
@@ -106,9 +107,8 @@ export const getBoard = (isBlack) => {
             }
         }
     }
-    return board
+    return currentBoard
 };
-
 
 export function getPawnCheck(row, col, board) {
     let king = board[row][col]

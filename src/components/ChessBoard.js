@@ -4,7 +4,6 @@ import { socket, sendMessage } from "../utils/websocket";
 import {
     Piece,
     pieceImages,
-    getBoard,
     getKingThreatMoves,
     getBPawnMoves,
     getWPawnMoves,
@@ -29,7 +28,7 @@ import {
     notationToIndex
 } from "../utils/game"
 
-export default function ChessBoard({ size = 750, message }) {
+export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     const gameId = message.game_id
 
@@ -50,7 +49,7 @@ export default function ChessBoard({ size = 750, message }) {
     }, []);
 
     const isBlack = message.is_black
-    const [board, setBoard] = useState(getBoard(isBlack))
+    const [board, setBoard] = useState(gameBoard)
 
     const canvasRef = useRef(null);
     const [images, setImages] = useState({});
