@@ -802,7 +802,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             board[row][col] = null;
             preMovesBoard[row][col] = null;
             currentPiece.isMoved = true;
-            let isCastle = false, isLongCastle = false;
+            let isCastle = false, isLongCastle = false, isEnpassant = false;
             if (currentPiece.name[1] === 'k') {
                 const dc = newCol - col;
                 if (Math.abs(dc) === 2) {
@@ -842,6 +842,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         board[row][newCol] = null
                         preMovesBoard[row][newCol] = null
                         isCapture = true
+                        isEnpassant = true
                     }
                 }
                 if (Math.abs(row - newRow) === 2) {
@@ -884,6 +885,16 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         "type": "king_side_castle",
                         "color": currentPiece.name[0],
                         "data": {}
+                    })
+                } else if (isEnpassant) {
+                    sendMessage({
+                        "game_id": gameId,
+                        "type": "enpassant",
+                        "color": currentPiece.name[0],
+                        "data": {
+                            "from": oldPos,
+                            "to": newPos,
+                        }
                     })
                 } else {
                     sendMessage({
