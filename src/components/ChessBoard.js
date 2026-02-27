@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, Fragment } from "react";
-import { socket, sendMessage, connectWebSocket } from "../utils/websocket";
+import { sendMessage, connectWebSocket } from "../utils/websocket";
 import { fenToBoard, rotateMatrix180 } from "../utils/game"
 import { useParams } from "react-router-dom";
 
@@ -871,14 +871,31 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             if (currentPiece) {
                 let oldPos = getNotation(row, col, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)
                 let newPos = getNotation(newRow, newCol, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)
-                sendMessage({
-                    "game_id": gameId,
-                    "type": "move",
-                    "data": {
-                        "from": oldPos,
-                        "to": newPos,
-                    }
-                })
+                if (isLongCastle) {
+                    sendMessage({
+                        "game_id": gameId,
+                        "type": "long_castle",
+                        "color": currentPiece.name[0],
+                        "data": {}
+                    })
+                } else if (isCastle) {
+                    sendMessage({
+                        "game_id": gameId,
+                        "type": "king_side_castle",
+                        "color": currentPiece.name[0],
+                        "data": {}
+                    })
+                } else {
+                    sendMessage({
+                        "game_id": gameId,
+                        "type": "move",
+                        "color": currentPiece.name[0],
+                        "data": {
+                            "from": oldPos,
+                            "to": newPos,
+                        }
+                    })
+                }
                 setMovesHistory(prev => [...prev, newPos]);
             }
 
@@ -966,14 +983,31 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 if (piece) {
                     let oldPos = getNotation(row, col, !isBlack, piece, isCapture, isCastle, isLongCastle)
                     let newPos = getNotation(newRow, newCol, !isBlack, piece, isCapture, isCastle, isLongCastle)
-                    sendMessage({
-                        "game_id": gameId,
-                        "type": "move",
-                        "data": {
-                            "from": oldPos,
-                            "to": newPos,
-                        }
-                    })
+                    if (isLongCastle) {
+                        sendMessage({
+                            "game_id": gameId,
+                            "type": "long_castle",
+                            "color": piece.name[0],
+                            "data": {}
+                        })
+                    } else if (isCastle) {
+                        sendMessage({
+                            "game_id": gameId,
+                            "type": "king_side_castle",
+                            "color": piece.name[0],
+                            "data": {}
+                        })
+                    } else {
+                        sendMessage({
+                            "game_id": gameId,
+                            "type": "move",
+                            "color": piece.name[0],
+                            "data": {
+                                "from": oldPos,
+                                "to": newPos,
+                            }
+                        })
+                    }
                 }
                 setTurn(!turn)
             } else {
