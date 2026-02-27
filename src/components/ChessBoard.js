@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback, Fragment } from "react";
-import { socket, sendMessage } from "../utils/websocket";
+import { socket, sendMessage, connectWebSocket } from "../utils/websocket";
+import { fenToBoard, rotateMatrix180 } from "../utils/game"
+import { useParams } from "react-router-dom";
 
 import {
     Piece,
@@ -31,22 +33,25 @@ import {
 export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     const gameId = message.game_id
-
     const [opponentMove, setOpponentMove] = useState(null)
+    const [preMoves, setPreMoves] = useState([]);
+    const socketRef = useRef(null);
+
     useEffect(() => {
-        if (!socket) return;
+        const ws = socketRef.current;
+        if (!ws) return;
 
         const handleMessage = (event) => {
             const data = JSON.parse(event.data);
             setOpponentMove(data);
         };
 
-        socket.addEventListener("message", handleMessage);
+        ws.addEventListener("message", handleMessage);
 
         return () => {
-            socket.removeEventListener("message", handleMessage);
+            ws.removeEventListener("message", handleMessage);
         };
-    }, []);
+    }, [socketRef.current]);
 
     const isBlack = message.is_black
     const [board, setBoard] = useState(gameBoard)
@@ -62,7 +67,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [isRightDragging, setIsRightDragging] = useState(false);
     const [startPos, setStartPos] = useState(null);
     const [lines, setLines] = useState([]);
-    const [preMoves, setPreMoves] = useState([]);
     const [previousMove, setPreviousMove] = useState([]);
     const [previousRightClickCords, setPreviousRightClickCords] = useState([]);
     const [currentPiece, setCurrentPiece] = useState(null);
@@ -80,7 +84,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [blackTime, setBlackTime] = useState(300);
 
     useEffect(() => {
-        if (!opponentMove) return;
+        if (!opponentMove || opponentMove.data === undefined) return;
 
         const { from, to } = opponentMove.data;
 
@@ -226,6 +230,69 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const imageScale = 0.75;
 
     const [preMovesBoard, setPreMovesBoard] = useState(structuredClone(board)); // preMovesBoard should not be identically as board.
+
+    const { id } = useParams()
+
+    const token = localStorage.getItem("token");
+
+    useEffect(() => {
+        if (
+            socketRef.current &&
+            (socketRef.current.readyState === WebSocket.OPEN ||
+                socketRef.current.readyState === WebSocket.CONNECTING)
+        ) {
+            return;
+        }
+
+        socketRef.current = connectWebSocket(
+            `ws://localhost:8080/api/games/${id}/reconnect?token=${token}`,
+            (msg) => {
+                try {
+                    const data = JSON.parse(msg);
+
+                    if (data.type === "start_game") {
+                        console.log("Game started");
+                    }
+
+                    if (data.type === "reconnect_game") {
+                        console.log("Game reconnected");
+                        let currentBoard = fenToBoard(data.board, isBlack)
+                        if (data.is_black) {
+                            currentBoard = rotateMatrix180(currentBoard)
+                        }
+                        setTurn(false)
+                        if (data.turn === 2 && data.is_black) {
+                            setTurn(true)
+                        }
+                        if (data.turn === 1 && !data.is_black) {
+                            setTurn(true)
+                        }
+                        setBoard(currentBoard)
+                        setPreMovesBoard(currentBoard)
+                    }
+
+                    console.log(data)
+                } catch (e) {
+                    console.error("Invalid message:", msg);
+                }
+            },
+            () => console.log("Connected"),
+            () => console.log("Disconnected"),
+            (err) => console.error("WS error", err)
+        );
+
+        return () => {
+            if (
+                socketRef.current &&
+                socketRef.current.readyState === WebSocket.OPEN
+            ) {
+                console.log("Cleanup socket");
+                socketRef.current.close();
+            }
+
+            socketRef.current = null;
+        };
+    }, []);
 
     useEffect(() => {
         const loadedImages = {};

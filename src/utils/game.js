@@ -72,7 +72,7 @@ let board = [
     ],
 ];
 
-const rotateMatrix180 = source => {
+export const rotateMatrix180 = source => {
     const M = source.length;
     const N = source[0].length;
     let destination = new Array(M);
@@ -1445,4 +1445,58 @@ export function notationToIndex(square, isBlack = false) {
     }
 
     return [row, col];
+}
+
+export function fenToBoard(fen, isBlack) {
+    const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+
+    const rows = fen.split(" ")[0].split("/");
+    const fenToPiece = {
+        r: "r",
+        n: "n",
+        b: "b",
+        q: "q",
+        k: "k",
+        p: "p",
+    };
+    const pieceValues = {
+        r: 5,
+        n: 3,
+        b: 3,
+        q: 9,
+        k: 100,
+        p: 1,
+    };
+
+
+    for (let row = 0; row < 8; row++) {
+        let col = 0;
+
+        for (const char of rows[row]) {
+            if (!isNaN(char)) {
+                col += Number(char);
+            } else {
+                const isWhite = char === char.toUpperCase();
+                const color = isWhite ? "w" : "b";
+                const type = fenToPiece[char.toLowerCase()];
+
+                const code = color + type;
+
+                board[row][col] = new Piece(
+                    code,
+                    pieceImages[code],
+                    pieceValues[type]
+                );
+
+                if (isBlack && color === 'b') {
+                    board[row][col].isPlayable = true;
+                } else if (!isBlack && color === 'w') {
+                    board[row][col].isPlayable = true;
+                }
+
+                col++;
+            }
+        }
+    }
+    return board;
 }
