@@ -84,101 +84,118 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [blackTime, setBlackTime] = useState(300);
 
     useEffect(() => {
+        //TODO change this to reflect the castling
         if (!opponentMove || opponentMove.data === undefined) return;
 
-        const { from, to } = opponentMove.data;
+        console.log(opponentMove.type)
 
-        let fromIndexes = notationToIndex(from, isBlack);
-        let toIndexes = notationToIndex(to, isBlack);
+        switch (opponentMove.type) {
+            case "move":
+                const { from, to } = opponentMove.data;
 
-        if (!Array.isArray(fromIndexes[0])) fromIndexes = [fromIndexes];
-        if (!Array.isArray(toIndexes[0])) toIndexes = [toIndexes];
+                let fromIndexes = notationToIndex(from, isBlack);
+                let toIndexes = notationToIndex(to, isBlack);
 
-        if (fromIndexes.length === 2) {
-            const [[kingRow, kingCol], [kingNewRow, kingNewCol]] = fromIndexes;
+                const [row, col] = fromIndexes;
+                const [newRow, newCol] = toIndexes;
 
-            const king = board[kingRow][kingCol];
-            board[kingRow][kingCol] = null;
-            board[kingNewRow][kingNewCol] = king;
-            preMovesBoard[kingRow][kingCol] = null;
-            preMovesBoard[kingNewRow][kingNewCol] = king;
-
-            const row = kingRow;
-
-            if (kingCol > kingNewCol) {
-                const rook = board[row][0];
-                board[row][0] = null;
-                preMovesBoard[row][0] = null;
-
-                board[row][kingNewCol + 1] = rook;
-                preMovesBoard[row][kingNewCol + 1] = rook;
-
-                board[kingRow][kingCol] = null;
-                board[kingNewRow][kingNewCol] = king;
-                preMovesBoard[kingRow][kingCol] = null;
-                preMovesBoard[kingNewRow][kingNewCol] = king;
-            } else {
-                const rook = board[row][7];
-                board[row][7] = null;
-                preMovesBoard[row][7] = null;
-
-                board[row][kingNewCol - 1] = rook;
-                preMovesBoard[row][kingNewCol - 1] = rook;
-
-                board[kingRow][kingCol] = null;
-                board[kingNewRow][kingNewCol] = king;
-                preMovesBoard[kingRow][kingCol] = null;
-                preMovesBoard[kingNewRow][kingNewCol] = king;
-            }
-
-            if (king) {
-                console.log(kingNewCol === 1 || kingNewCol === 6)
-                console.log(kingNewCol === 2 || kingNewCol === 5)
-                setMovesHistory(prev =>
-                    [...prev, getNotation(kingNewRow, kingNewCol, !isBlack, king, false, kingNewCol === 1 || kingNewCol === 6, kingNewCol === 2 || kingNewCol === 5)]
-                );
-            }
-            setPreviousMove([[kingRow, kingCol], [kingNewRow, kingNewCol]])
-
-        } else {
-            const [[row, col]] = fromIndexes;
-            const [[newRow, newCol]] = toIndexes;
-            let piece = board[row][col];
-            let isCapture = !!board[newRow][newCol];
-            if (piece != null && piece.name[1] === 'p') {
-                if (col !== newCol && board[newRow][newCol] == null) {
-                    isCapture = true;
-                    const epRow = isBlack ? newRow + 1 : newRow - 1;
-                    if (board[newRow][newCol] == null) {
-                        board[newRow - 1][newCol] = null
-                        preMovesBoard[newRow - 1][newCol] = null;
+                let piece = board[row][col];
+                let isCapture = !!board[newRow][newCol];
+                if (piece != null && piece.name[1] === 'p') {
+                    if (col !== newCol && board[newRow][newCol] == null) {
+                        isCapture = true;
+                        const epRow = isBlack ? newRow + 1 : newRow - 1;
+                        if (board[newRow][newCol] == null) {
+                            board[newRow - 1][newCol] = null
+                            preMovesBoard[newRow - 1][newCol] = null;
+                        }
+                        board[epRow][newCol] = null;
+                        preMovesBoard[epRow][newCol] = null;
                     }
-                    board[epRow][newCol] = null;
-                    preMovesBoard[epRow][newCol] = null;
-                }
-                if ((newRow === 0 || newRow === 7)) {
-                    const queen = piece.name[0] + "q";
-                    piece = new Piece(queen, pieceImages[queen], 9);
-                } else {
-                    if (Math.abs(row - newRow) > 1) {
-                        piece.isEnpassant = true
+                    if ((newRow === 0 || newRow === 7)) {
+                        const queen = piece.name[0] + "q";
+                        piece = new Piece(queen, pieceImages[queen], 9);
+                    } else {
+                        if (Math.abs(row - newRow) > 1) {
+                            piece.isEnpassant = true
+                        }
                     }
                 }
-            }
-            board[newRow][newCol] = piece;
+                board[newRow][newCol] = piece;
 
-            board[row][col] = null;
-            preMovesBoard[newRow][newCol] = board[newRow][newCol];
-            preMovesBoard[row][col] = null;
-            setPreviousMove([[row, col], [newRow, newCol]])
-            handleCheckMate(board[newRow][newCol]);
+                board[row][col] = null;
+                preMovesBoard[newRow][newCol] = board[newRow][newCol];
+                preMovesBoard[row][col] = null;
+                setPreviousMove([[row, col], [newRow, newCol]])
+                handleCheckMate(board[newRow][newCol]);
 
-            let notaionPiece = board[newRow][newCol]
-            if (notaionPiece) {
-                setMovesHistory(prev =>
-                    [...prev, getNotation(newRow, newCol, !isBlack, piece, isCapture, false, false)]
-                );
-            }
+                let notaionPiece = board[newRow][newCol]
+                if (notaionPiece) {
+                    setMovesHistory(prev =>
+                        [...prev, getNotation(newRow, newCol, !isBlack, piece, isCapture, false, false)]
+                    );
+                }
+                break;
+            case "enpassant":
+                let currentBoard = fenToBoard(opponentMove.board, isBlack)
+                if (isBlack) {
+                    currentBoard = rotateMatrix180(currentBoard)
+                }
+                setTurn(false)
+                if (opponentMove.turn === 2 && opponentMove.is_black) {
+                    setTurn(true)
+                }
+                if (opponentMove.turn === 1 && !opponentMove.is_black) {
+                    setTurn(true)
+                }
+
+                const enFrom = opponentMove.data.from.substring(1);
+                const enTo = opponentMove.data.to.substring(1);
+
+                let enFromIndexes = notationToIndex(enFrom, isBlack);
+                let enToIndexes = notationToIndex(enTo, isBlack);
+
+                const [enRow, enCol] = enFromIndexes;
+                const [enNewRow, enNewCol] = enToIndexes;
+
+
+                setPreviousMove([[enRow, enCol], [enNewRow, enNewCol]])
+                setBoard(currentBoard)
+                setPreMovesBoard(currentBoard)
+                break;
+            case "long_castle":
+                let curBoard = fenToBoard(opponentMove.board, isBlack)
+                if (isBlack) {
+                    curBoard = rotateMatrix180(curBoard)
+                }
+                setTurn(false)
+                if (opponentMove.turn === 2 && opponentMove.is_black) {
+                    setTurn(true)
+                }
+                if (opponentMove.turn === 1 && !opponentMove.is_black) {
+                    setTurn(true)
+                }
+
+                setBoard(curBoard)
+                setPreMovesBoard(curBoard)
+                break;
+            case "king_side_castle":
+                let ksBoard = fenToBoard(opponentMove.board, isBlack)
+                if (isBlack) {
+                    ksBoard = rotateMatrix180(ksBoard)
+                }
+                setTurn(false)
+                if (opponentMove.turn === 2 && opponentMove.is_black) {
+                    setTurn(true)
+                }
+                if (opponentMove.turn === 1 && !opponentMove.is_black) {
+                    setTurn(true)
+                }
+
+                setBoard(ksBoard)
+                setPreMovesBoard(ksBoard)
+                break;
+            default: console.log("Unhandled move type")
         }
 
         handleDraw();
@@ -827,8 +844,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     const rookFromCol = isKingside ? 7 : 0;
                     const rookToCol = isKingside ? newCol - 1 : newCol + 1;
                     board[row][rookToCol] = board[row][rookFromCol];
-                    board[row][rookFromCol] = null;
                     preMovesBoard[row][rookToCol] = preMovesBoard[row][rookFromCol];
+                    board[row][rookFromCol] = null;
                     preMovesBoard[row][rookFromCol] = null;
                     if (board[row][rookToCol]) {
                         board[row][rookToCol].isMoved = true;
