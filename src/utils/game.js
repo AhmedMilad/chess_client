@@ -1301,7 +1301,7 @@ export function getKingPreMoves(row, col, preMovesBoard) {
     if (!king.isMoved) {
         let rook = king.name[0] + 'r'
         let op = (king.name[0] === 'w') ? 'b' : 'w';
-        for (let i = col - 1; col >= 0; col--) {
+        for (let i = col - 1; i >= 0; i--) {
             let piece = preMovesBoard[row][i]
             if (piece != null) {
                 if (piece.name === rook && !piece.isMoved) {
@@ -1313,9 +1313,8 @@ export function getKingPreMoves(row, col, preMovesBoard) {
             }
         }
 
-        for (let i = col + 1; col < 8; col++) {
+        for (let i = col + 1; i < 8; i++) {
             let piece = preMovesBoard[row][i]
-            console.log(piece)
             if (piece != null) {
                 if (piece.name === rook && !piece.isMoved) {
                     if (isSafeSquare(row, col + 2, preMovesBoard, op, piece.isPlayable)) {
