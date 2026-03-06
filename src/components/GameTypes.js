@@ -24,8 +24,8 @@ export default function GameTypes({ games }) {
           console.error("Invalid message format:", msg);
         }
       },
-      () => console.log("Connected!"),
-      () => console.log("Disconnected"),
+      () => { },
+      () => { },
       (err) => console.error(err)
     );
   };

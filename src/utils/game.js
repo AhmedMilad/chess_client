@@ -1296,43 +1296,33 @@ export function getKingPreMoves(row, col, preMovesBoard) {
             newMoves.push([newRow, newCol]);
         }
     }
+
     let king = preMovesBoard[row][col]
     if (!king.isMoved) {
-        let target = (king.name[0] === 'w') ? 'b' : 'w'
-        let newCol = col
-        let exists = newMoves.some(move =>
-            move[0] === row && move[1] === col - 1
-        );
-        if (exists) {
-            while (newCol > 0) {
-                newCol--
-                let piece = preMovesBoard[row][newCol]
-                if (piece != null) {
-                    if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                        if (isSafeSquare(row, col - 2, preMovesBoard, target, piece.isPlayable)) {
-                            newMoves.push([row, col - 2]);
-                        }
+        let rook = king.name[0] + 'r'
+        let op = (king.name[0] === 'w') ? 'b' : 'w';
+        for (let i = col - 1; col >= 0; col--) {
+            let piece = preMovesBoard[row][i]
+            if (piece != null) {
+                if (piece.name === rook && !piece.isMoved) {
+                    if (isSafeSquare(row, col - 2, preMovesBoard, op, piece.isPlayable)) {
+                        newMoves.push([row, col - 2]);
                     }
-                    break
                 }
+                break;
             }
         }
-        newCol = col
-        exists = newMoves.some(move =>
-            move[0] === row && move[1] === col + 1
-        );
-        if (exists) {
-            while (newCol < 7) {
-                newCol++
-                let piece = preMovesBoard[row][newCol]
-                if (piece != null) {
-                    if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                        if (isSafeSquare(row, col + 2, preMovesBoard, target, piece.isPlayable)) {
-                            newMoves.push([row, col + 2]);
-                        }
+
+        for (let i = col + 1; col < 8; col++) {
+            let piece = preMovesBoard[row][i]
+            console.log(piece)
+            if (piece != null) {
+                if (piece.name === rook && !piece.isMoved) {
+                    if (isSafeSquare(row, col + 2, preMovesBoard, op, piece.isPlayable)) {
+                        newMoves.push([row, col + 2]);
                     }
-                    break
                 }
+                break;
             }
         }
     }
@@ -1421,7 +1411,6 @@ export function getNotation(row, col, isWhite, piece, isCapture, isCastle, isLon
 
 export function notationToIndex(square, isBlack = false) {
     const move = square.toLowerCase().replace(/0/g, "o");
-    console.log(move)
     if (move === "o-o" || move === "oo") {
         return isBlack ? [[0, 3], [0, 1]] : [[0, 4], [0, 6]]
     }

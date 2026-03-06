@@ -37,24 +37,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [preMoves, setPreMoves] = useState([]);
     const socketRef = useRef(null);
 
-    useEffect(() => {
-        const ws = socketRef.current;
-        if (!ws) return;
-
-        const handleMessage = (event) => {
-            const data = JSON.parse(event.data);
-            setOpponentMove(data);
-        };
-
-        ws.addEventListener("message", handleMessage);
-
-        return () => {
-            ws.removeEventListener("message", handleMessage);
-        };
-    }, [socketRef.current]);
-
     const isBlack = message.is_black
-    const [board, setBoard] = useState(gameBoard)
+    const [board, setBoard] = useState(() => structuredClone(gameBoard));
 
     const canvasRef = useRef(null);
     const [images, setImages] = useState({});
@@ -82,12 +66,51 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [highlightBoard, setHighLightBoard] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
     const [whiteTime, setWhiteTime] = useState(300);
     const [blackTime, setBlackTime] = useState(300);
+    const [preMovesBoard, setPreMovesBoard] = useState(() => structuredClone(gameBoard));
+
+    const rows = 8;
+    const cols = 8;
+    const cellSize = size / 8;
+    const lightColor = "#f0d9b5";
+    const darkColor = "#b58863";
+    const lightBlue = "#2E90F2"
+    const darkBlue = "#073B6E"
+    const checkMateColor = "#880808";
+    const drawColor = "#3238ad"
+    const lightGreen = "#008000"
+    const darkGreen = "#0F4D0F"
+    const lightBoysenberry = "#873260"
+    const darkBoysenberry = "#6C284D"
+    const imageScale = 0.75;
+
+    const { id } = useParams()
+    const token = localStorage.getItem("token");
+    const formatTime = (t) => {
+        const m = Math.floor(t / 60);
+        const s = t % 60;
+        return `${m}:${s.toString().padStart(2, "0")}`;
+    };
+
+
+    useEffect(() => {
+        const ws = socketRef.current;
+        if (!ws) return;
+
+        const handleMessage = (event) => {
+            const data = JSON.parse(event.data);
+            setOpponentMove(data);
+        };
+
+        ws.addEventListener("message", handleMessage);
+
+        return () => {
+            ws.removeEventListener("message", handleMessage);
+        };
+    }, [socketRef.current]);
 
     useEffect(() => {
         //TODO change this to reflect the castling
         if (!opponentMove || opponentMove.data === undefined) return;
-
-        console.log(opponentMove.type)
 
         switch (opponentMove.type) {
             case "move":
@@ -107,10 +130,18 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         const epRow = isBlack ? newRow + 1 : newRow - 1;
                         if (board[newRow][newCol] == null) {
                             board[newRow - 1][newCol] = null
-                            preMovesBoard[newRow - 1][newCol] = null;
+                            setPreMovesBoard(prev => {
+                                const newBoard = structuredClone(prev);
+                                newBoard[newRow - 1][newCol] = null
+                                return newBoard;
+                            });
                         }
                         board[epRow][newCol] = null;
-                        preMovesBoard[epRow][newCol] = null;
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[epRow][newCol] = null;
+                            return newBoard;
+                        });
                     }
                     if ((newRow === 0 || newRow === 7)) {
                         const queen = piece.name[0] + "q";
@@ -122,10 +153,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     }
                 }
                 board[newRow][newCol] = piece;
-
                 board[row][col] = null;
-                preMovesBoard[newRow][newCol] = board[newRow][newCol];
-                preMovesBoard[row][col] = null;
+
+                setPreMovesBoard(prev => {
+                    const newBoard = structuredClone(prev);
+                    newBoard[newRow][newCol] = board[newRow][newCol];
+                    newBoard[row][col] = null;
+                    return newBoard;
+                });
                 setPreviousMove([[row, col], [newRow, newCol]])
                 handleCheckMate(board[newRow][newCol]);
 
@@ -215,12 +250,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         return () => clearInterval(interval);
     }, [turn]);
 
-    const formatTime = (t) => {
-        const m = Math.floor(t / 60);
-        const s = t % 60;
-        return `${m}:${s.toString().padStart(2, "0")}`;
-    };
-
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -230,27 +259,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     useEffect(() => {
         localStorage.setItem("boardPosition", JSON.stringify(boardPosition));
     }, [boardPosition]);
-
-    const rows = 8;
-    const cols = 8;
-    const cellSize = size / 8;
-    const lightColor = "#f0d9b5";
-    const darkColor = "#b58863";
-    const lightBlue = "#2E90F2"
-    const darkBlue = "#073B6E"
-    const checkMateColor = "#880808";
-    const drawColor = "#3238ad"
-    const lightGreen = "#008000"
-    const darkGreen = "#0F4D0F"
-    const lightBoysenberry = "#873260"
-    const darkBoysenberry = "#6C284D"
-    const imageScale = 0.75;
-
-    const [preMovesBoard, setPreMovesBoard] = useState(structuredClone(board)); // preMovesBoard should not be identically as board.
-
-    const { id } = useParams()
-
-    const token = localStorage.getItem("token");
 
     useEffect(() => {
         if (
@@ -267,12 +275,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 try {
                     const data = JSON.parse(msg);
 
-                    if (data.type === "start_game") {
-                        console.log("Game started");
-                    }
-
                     if (data.type === "reconnect_game") {
-                        console.log("Game reconnected");
                         let currentBoard = fenToBoard(data.board, isBlack)
                         if (data.is_black) {
                             currentBoard = rotateMatrix180(currentBoard)
@@ -288,13 +291,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         setPreMovesBoard(currentBoard)
                     }
 
-                    console.log(data)
                 } catch (e) {
                     console.error("Invalid message:", msg);
                 }
             },
-            () => console.log("Connected"),
-            () => console.log("Disconnected"),
+            () => { },
+            () => { },
             (err) => console.error("WS error", err)
         );
 
@@ -303,7 +305,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 socketRef.current &&
                 socketRef.current.readyState === WebSocket.OPEN
             ) {
-                console.log("Cleanup socket");
                 socketRef.current.close();
             }
 
@@ -761,6 +762,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 newMoves = getKnightPreMoves(row, col);
                 break;
             case "bk":
+                console.log(preMovesBoard)
                 newMoves = getKingPreMoves(row, col, preMovesBoard);
                 break;
             case "wk":
@@ -817,7 +819,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 }
             }
             board[row][col] = null;
-            preMovesBoard[row][col] = null;
+            setPreMovesBoard(prev => {
+                const newBoard = structuredClone(prev);
+                newBoard[row][col] = null;
+                return newBoard;
+            });
             currentPiece.isMoved = true;
             let isCastle = false, isLongCastle = false, isEnpassant = false;
             if (currentPiece.name[1] === 'k') {
@@ -844,9 +850,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     const rookFromCol = isKingside ? 7 : 0;
                     const rookToCol = isKingside ? newCol - 1 : newCol + 1;
                     board[row][rookToCol] = board[row][rookFromCol];
-                    preMovesBoard[row][rookToCol] = preMovesBoard[row][rookFromCol];
                     board[row][rookFromCol] = null;
-                    preMovesBoard[row][rookFromCol] = null;
+
+                    setPreMovesBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[row][rookToCol] = newBoard[row][rookFromCol];
+                        newBoard[row][rookFromCol] = null;
+                        return newBoard;
+                    });
                     if (board[row][rookToCol]) {
                         board[row][rookToCol].isMoved = true;
                     }
@@ -857,7 +868,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 if (col !== newCol) {
                     if (board[newRow][newCol] === null) {
                         board[row][newCol] = null
-                        preMovesBoard[row][newCol] = null
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[row][newCol] = null
+                            return newBoard;
+                        });
                         isCapture = true
                         isEnpassant = true
                     }
@@ -870,17 +885,29 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             if (newRow === 7 && !currentPiece.isPlayable && currentPiece.name[1] === 'p') {
                 board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                 if (!boardCol[newRow][newCol]) {
-                    preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                    setPreMovesBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                        return newBoard;
+                    });
                 }
             } else if (newRow === 0 && currentPiece.isPlayable && currentPiece.name[1] === 'p') {
                 board[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
                 if (!boardCol[newRow][newCol]) {
-                    preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                    setPreMovesBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                        return newBoard;
+                    });
                 }
             } else {
                 board[newRow][newCol] = currentPiece;
                 if (!boardCol[newRow][newCol]) {
-                    preMovesBoard[newRow][newCol] = currentPiece;
+                    setPreMovesBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[newRow][newCol] = currentPiece;
+                        return newBoard;
+                    });
                 }
             }
             handleCheckMate(currentPiece)
@@ -984,7 +1011,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 } else if (piece.name[1] === 'p' && newCol !== col && board[row][newCol] != null && board[row][newCol].isEnpassant) {
                     isCapture = true
                     board[row][newCol] = null
-                    preMovesBoard[row][newCol] = null
+                    setPreMovesBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[row][newCol] = null
+                        return newBoard;
+                    });
                     boardCol[newRow][newCol]--
                     board[newRow][newCol] = piece
                     board[row][col] = null
@@ -1042,7 +1073,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 for (let row = 0; row <= 7; row++) {
                     for (let col = 0; col <= 7; col++) {
                         boardCol[row][col] = 0
-                        preMovesBoard[row][col] = board[row][col]
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[row][col] = board[row][col]
+                            return newBoard;
+                        });
                     }
                 }
                 setPreMoves([]);
@@ -1091,11 +1126,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             if (e.button === 2) {
                 e.preventDefault();
                 setPreviousRightClickCords([row, col])
-                for (let row = 0; row <= 7; row++) {
-                    for (let col = 0; col <= 7; col++) {
-                        preMovesBoard[row][col] = board[row][col]
-                    }
-                }
+                setPreMovesBoard(structuredClone(board));
                 setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(0)));
                 setPreMoves([])
                 setStartPos(pos);
@@ -1341,30 +1372,70 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 if (currentPiece.name[1] === 'k' && Math.abs(newCol - piece.col) > 1) {
                     if (newCol < piece.col) {
                         let rook = board[7][0]
-                        preMovesBoard[7][0] = null
-                        preMovesBoard[piece.row][piece.col] = null
-                        preMovesBoard[7][newCol] = currentPiece
-                        preMovesBoard[7][newCol + 1] = rook
-                        boardCol[7][newCol]++
-                        boardCol[7][newCol + 1]++
+
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[7][0] = null
+                            newBoard[piece.row][piece.col] = null
+                            newBoard[7][newCol] = currentPiece
+                            newBoard[7][newCol + 1] = rook
+                            return newBoard;
+                        });
+
+                        setBoardCol(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[7][newCol]++
+                            newBoard[7][newCol + 1]++
+                            return newBoard
+                        })
+
                     } else {
                         let rook = board[7][7]
-                        preMovesBoard[7][7] = null
-                        preMovesBoard[piece.row][piece.col] = null
-                        preMovesBoard[7][newCol] = currentPiece
-                        preMovesBoard[7][newCol - 1] = rook
-                        boardCol[7][newCol]++
-                        boardCol[7][newCol - 1]++
+
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[7][7] = null
+                            newBoard[piece.row][piece.col] = null
+                            newBoard[7][newCol] = currentPiece
+                            newBoard[7][newCol - 1] = rook
+                            return newBoard;
+                        });
+
+                        setBoardCol(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[7][newCol]++
+                            newBoard[7][newCol - 1]++
+                            return newBoard
+                        })
                     }
                 } else {
-                    preMovesBoard[piece.row][piece.col] = null
-                    boardCol[newRow][newCol]++
+                    setPreMovesBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[piece.row][piece.col] = null;
+                        return newBoard;
+                    });
+                    setBoardCol(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[newRow][newCol]++
+                        return newBoard
+                    })
                     if (currentPiece.name[1] === 'p' && newRow === 0) {
                         let queen = currentPiece.name[0] + "q"
-                        preMovesBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                        preMovesBoard[newRow][newCol].isPlayable = true
+
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                            newBoard[newRow][newCol].isPlayable = true
+                            return newBoard;
+                        });
+
                     } else {
-                        preMovesBoard[newRow][newCol] = currentPiece
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[newRow][newCol] = currentPiece
+                            return newBoard;
+                        });
+
                     }
                 }
                 setMoves([]);
