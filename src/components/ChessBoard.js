@@ -128,6 +128,17 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 setBoard(mvBoard)
                 setPreMovesBoard(mvBoard)
+
+
+                const from = opponentMove.data.from;
+                const to = opponentMove.data.to;
+
+                let fromIndexes = notationToIndex(from, isBlack);
+                let toIndexes = notationToIndex(to, isBlack);
+
+                const [fromRow, fromCol] = fromIndexes;
+                const [toNewRow, toNewCol] = toIndexes;
+                setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]])
                 break;
             case "enpassant":
                 let currentBoard = fenToBoard(opponentMove.board, isBlack)
@@ -142,8 +153,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     setTurn(true)
                 }
 
-                const enFrom = opponentMove.data.from.substring(1);
-                const enTo = opponentMove.data.to.substring(1);
+                const enFrom = opponentMove.data.from;
+                const enTo = opponentMove.data.to;
 
                 let enFromIndexes = notationToIndex(enFrom, isBlack);
                 let enToIndexes = notationToIndex(enTo, isBlack);
@@ -171,6 +182,13 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 setBoard(curBoard)
                 setPreMovesBoard(curBoard)
+
+                if (!isBlack) {
+                    setPreviousMove([[0, 1], [0, 3]])
+                } else {
+                    setPreviousMove([[0, 3], [0, 5]])
+                }
+
                 break;
             case "king_side_castle":
                 let ksBoard = fenToBoard(opponentMove.board, isBlack)
@@ -187,6 +205,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 setBoard(ksBoard)
                 setPreMovesBoard(ksBoard)
+                if (!isBlack) {
+                    setPreviousMove([[0, 4], [0, 6]])
+                } else {
+                    setPreviousMove([[0, 1], [0, 3]])
+                }
+
                 break;
             default: console.log("Unhandled move type")
         }
@@ -1041,6 +1065,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             newBoard[7][newCol - 1]--
                             return newBoard;
                         });
+
                     }
                 } else if (piece.name[1] === 'p' && newCol !== col && board[row][newCol] != null && board[row][newCol].isEnpassant) {
                     isCapture = true
@@ -1152,6 +1177,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             }
                         })
                     }
+                    setPreviousMove([[row, col], [newRow, newCol]])
                 }
                 setTurn(!turn)
             } else {
@@ -1168,7 +1194,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 setPreMoves([]);
             }
         }
-    }, [turn]);
+    }, [turn, setPreviousMove]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
