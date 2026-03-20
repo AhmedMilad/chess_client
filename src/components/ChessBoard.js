@@ -1082,14 +1082,35 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             newBoard[newRow][newCol].isPlayable = true
                             return newBoard;
                         });
+
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
+                            newBoard[newRow][newCol].isPlayable = true
+                            return newBoard;
+                        });
+
                     } else {
                         setBoard(prev => {
                             const newBoard = structuredClone(prev);
                             newBoard[newRow][newCol] = piece
                             return newBoard;
                         });
+
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[newRow][newCol] = piece
+                            return newBoard;
+                        });
+
                     }
                     setBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[row][col] = null
+                        return newBoard;
+                    });
+
+                    setPreMovesBoard(prev => {
                         const newBoard = structuredClone(prev);
                         newBoard[row][col] = null
                         return newBoard;
