@@ -135,16 +135,25 @@ export function getPawnCheck(row, col, board) {
     return checks
 }
 
-export function getWPawnMoves(row, col, board) {
+export function getWPawnMoves(row, col, board, enpassantSquare) {
+    let [r, c] = squareToIndex(enpassantSquare)
+
     let newMoves = [];
     let pawn = board[row][col]
+
+    if (pawn != null && pawn.name[0] === 'b') {
+        c = 7 - c
+    } else {
+        r = 7 - r
+    }
+
     if (row > 0 && board[row - 1][col] === null) {
         newMoves.push([row - 1, col]);
         if (pawn != null && !pawn.isMoved && row - 2 >= 0 && board[row - 2][col] === null) newMoves.push([row - 2, col]);
     }
     if (col > 0) {
-        if (board[row][col - 1] !== null && pawn !== null && board[row][col - 1].name[0] !== pawn.name[0]) {
-            if (board[row][col - 1].isEnpassant) {
+        if (enpassantSquare != null && enpassantSquare !== "") {
+            if (r === row && c === (col - 1)) {
                 newMoves.push([row - 1, col - 1]);
             }
         }
@@ -153,8 +162,8 @@ export function getWPawnMoves(row, col, board) {
         }
     }
     if (col < 7) {
-        if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1].name[0] !== pawn.name[0]) {
-            if (board[row][col + 1].isEnpassant) {
+        if (enpassantSquare != null && enpassantSquare !== "") {
+            if (r === row && c === (col + 1)) {
                 newMoves.push([row - 1, col + 1]);
             }
         }
@@ -165,16 +174,25 @@ export function getWPawnMoves(row, col, board) {
     return newMoves;
 }
 
-export function getBPawnMoves(row, col, board) {
+export function getBPawnMoves(row, col, board, enpassantSquare) {
+    let [r, c] = squareToIndex(enpassantSquare)
+
     let newMoves = [];
     let pawn = board[row][col]
+
+    if (pawn != null && pawn.name[0] === 'b') {
+        c = 7 - c
+    } else {
+        r = 7 - r
+    }
+
     if (row < 7 && board[row + 1][col] === null) {
         newMoves.push([row + 1, col]);
         if (row + 2 <= 7 && pawn != null && !pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
     }
     if (col > 0) {
-        if (board[row][col - 1] !== null) {
-            if (pawn != null && board[row][col - 1].name[0] !== pawn.name[0] && board[row][col - 1].isEnpassant) {
+        if (enpassantSquare != null && enpassantSquare !== "") {
+            if (r === row && c === (col - 1)) {
                 newMoves.push([row + 1, col - 1]);
             }
         }
@@ -183,8 +201,8 @@ export function getBPawnMoves(row, col, board) {
         }
     }
     if (col < 7) {
-        if (board[row][col + 1] !== null && pawn !== null && board[row][col + 1] !== pawn.name[0]) {
-            if (board[row][col + 1].isEnpassant) {
+        if (enpassantSquare != null && enpassantSquare !== "") {
+            if (r === row && c === (col + 1)) {
                 newMoves.push([row + 1, col + 1]);
             }
         }
@@ -1487,4 +1505,15 @@ export function fenToBoard(fen, isBlack) {
         }
     }
     return board;
+}
+
+export function squareToIndex(square) {
+    if (square == null || square.length !== 2) {
+        return []
+    }
+
+    let col = square[0].charCodeAt(0) - 97
+    let row = parseInt(square[1], 10) - 1
+
+    return [row, col]
 }

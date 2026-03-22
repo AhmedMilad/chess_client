@@ -27,7 +27,8 @@ import {
     getNumberOfChecks,
     getFenFromBoard,
     getNotation,
-    notationToIndex
+    notationToIndex,
+    squareToIndex
 } from "../utils/game"
 
 export default function ChessBoard({ size = 750, message, gameBoard }) {
@@ -67,6 +68,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [whiteTime, setWhiteTime] = useState(300);
     const [blackTime, setBlackTime] = useState(300);
     const [preMovesBoard, setPreMovesBoard] = useState(() => structuredClone(gameBoard));
+    const [enpassantSquare, setEnpassantSquare] = useState(null);
 
     const rows = 8;
     const cols = 8;
@@ -112,6 +114,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         //TODO change this to reflect the castling
         if (!opponentMove || opponentMove.data === undefined) return;
 
+        setEnpassantSquare(opponentMove.enpassant_square)
+
         switch (opponentMove.type) {
             case "move":
                 let mvBoard = fenToBoard(opponentMove.board, isBlack)
@@ -127,9 +131,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 }
 
                 setBoard(mvBoard)
-                setPreMovesBoard(mvBoard)
-
-
+                setPreMovesBoard(prev => {
+                    const newBoard = structuredClone(prev);
+                    newBoard[toNewRow][toNewCol] = newBoard[fromRow][fromCol];
+                    newBoard[fromRow][fromCol] = null;
+                    return newBoard;
+                });
                 const from = opponentMove.data.from;
                 const to = opponentMove.data.to;
 
@@ -161,7 +168,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 const [enRow, enCol] = enFromIndexes;
                 const [enNewRow, enNewCol] = enToIndexes;
-
 
                 setPreviousMove([[enRow, enCol], [enNewRow, enNewCol]])
                 setBoard(currentBoard)
@@ -215,7 +221,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             default: console.log("Unhandled move type")
         }
 
-        handleDraw();
         setTurn(!turn);
 
     }, [opponentMove]);
@@ -521,9 +526,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         switch (piece.name) {
             case "wp":
                 if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col, board);
+                    newMoves = getWPawnMoves(row, col, board, enpassantSquare);
                 } else {
-                    newMoves = getBPawnMoves(row, col, board);
+                    newMoves = getBPawnMoves(row, col, board, enpassantSquare);
                 }
                 if (whiteThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
@@ -542,9 +547,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 break;
             case "bp":
                 if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col, board);
+                    newMoves = getWPawnMoves(row, col, board, enpassantSquare);
                 } else {
-                    newMoves = getBPawnMoves(row, col, board);
+                    newMoves = getBPawnMoves(row, col, board, enpassantSquare);
                 }
                 if (blackThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
@@ -720,7 +725,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }, [
         getKingMoves,
         getKingThreatMoves,
-        getPinMoves
+        getPinMoves,
+        enpassantSquare
     ])
 
     const getPiecePreMoves = useCallback((row, col, piece) => {
@@ -999,7 +1005,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             const [row, col] = from;
             const [newRow, newCol] = to;
             let isCapture = false
-            let isCastle = false, isLongCastle = false
+            let isCastle = false
+            let isLongCastle = false
+            let isEnpassant = false
             if (getPieceMoves(row, col, piece, board).some(([r, c]) => r === newRow && c === newCol)) {
                 if (piece.name[1] === 'k' && Math.abs(newCol - col) > 1) {
                     if (newCol < col) {
@@ -1067,35 +1075,45 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         });
 
                     }
-                } else if (piece.name[1] === 'p' && newCol !== col && board[row][newCol] != null && board[row][newCol].isEnpassant) {
-                    isCapture = true
-                    setBoard(prev => {
-                        const newBoard = structuredClone(prev);
-                        newBoard[row][newCol] = null
-                        return newBoard;
-                    });
+                } else if (piece.name[1] === 'p') {
+                    let [r, c] = squareToIndex(enpassantSquare)
 
-                    setPreMovesBoard(prev => {
-                        const newBoard = structuredClone(prev);
-                        newBoard[row][newCol] = null
-                        return newBoard;
-                    });
+                    if (piece.name[0] === 'b') {
+                        c = 7 - c
+                    } else {
+                        r = 7 - r
+                    }
+
+                    if (newRow === r - 1 && newCol === c) {
+                        isCapture = true
+                        isEnpassant = true
+                        setBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[row][col] = null
+                            newBoard[row][newCol] = null
+                            newBoard[newRow][newCol] = piece
+                            return newBoard;
+                        });
+
+                        setPreMovesBoard(prev => {
+                            const newBoard = structuredClone(prev);
+                            newBoard[row][col] = null
+                            newBoard[row][newCol] = null
+                            newBoard[newRow][newCol] = piece
+                            return newBoard;
+                        });
+                    }
                     setBoardCol(prev => {
                         const newBoard = structuredClone(prev);
-                        newBoard[newRow][newCol]--
-                        return newBoard;
-                    });
-                    setBoard(prev => {
-                        const newBoard = structuredClone(prev);
-                        newBoard[newRow][newCol] = piece
-                        newBoard[row][col] = null
+                        newBoard[newRow][newCol] = Math.max(0, newBoard[newRow][newCol] - 1)
+                        newBoard[row][col] = Math.max(0, newBoard[row][col] - 1)
                         return newBoard;
                     });
 
                 } else {
                     setBoardCol(prev => {
                         const newBoard = structuredClone(prev);
-                        newBoard[newRow][newCol]--
+                        newBoard[newRow][newCol] = Math.max(0, newBoard[newRow][newCol] - 1)
                         return newBoard;
                     });
                     if (board[newRow][newCol]) isCapture = true
@@ -1165,6 +1183,16 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             "type": "king_side_castle",
                             "color": piece.name[0],
                             "data": {}
+                        })
+                    } else if (isEnpassant) {
+                        sendMessage({
+                            "game_id": gameId,
+                            "type": "enpassant",
+                            "color": piece.name[0],
+                            "data": {
+                                "from": oldPos,
+                                "to": newPos,
+                            }
                         })
                     } else {
                         sendMessage({
@@ -1428,8 +1456,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             break;
                         case pawn:
                             moves = piece.isPlayable
-                                ? getWPawnMoves(row, col, board)
-                                : getBPawnMoves(row, col, board);
+                                ? getWPawnMoves(row, col, board, enpassantSquare)
+                                : getBPawnMoves(row, col, board, enpassantSquare);
                             break;
                         default: console.log("Invalid piece.")
                     }
