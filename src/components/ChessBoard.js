@@ -267,6 +267,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         if (data.is_black) {
                             currentBoard = rotateMatrix180(currentBoard)
                         }
+                        setEnpassantSquare(data.enpassant_square)
+
                         setTurn(false)
                         if (data.turn === 2 && data.is_black) {
                             setTurn(true)
