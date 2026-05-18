@@ -1517,3 +1517,24 @@ export function squareToIndex(square) {
 
     return [row, col]
 }
+
+export function coordinatesToNotation(row, col, isBlack = false) {
+    if (row < 0 || row > 7 || col < 0 || col > 7) {
+        throw new Error("Coordinates must be between 0 and 7");
+    }
+
+    let targetRow = row;
+    let targetCol = col;
+
+    if (isBlack) {
+        targetRow = 7 - row;
+        targetCol = 7 - col;
+    }
+
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const fileNotation = files[targetCol];
+
+    const rankNotation = 8 - targetRow;
+
+    return `${fileNotation}${rankNotation}`;
+}
