@@ -1402,30 +1402,6 @@ export function getFenFromBoard(board, turn = "w") {
     return fen;
 }
 
-export function getNotation(row, col, isWhite, piece, isCapture, isCastle, isLongCastle) {
-    if (!isCastle && !isLongCastle) {
-        let rank, file, capture = "";
-        if (isCapture) capture = "x"
-
-        if (isWhite) {
-            rank = 8 - row;
-            file = String.fromCharCode(97 + col);
-        } else {
-            rank = row + 1;
-            file = String.fromCharCode(104 - col);
-        }
-
-        let pieceName = piece.name[1]
-        if (pieceName === 'p') pieceName = ""
-
-        return pieceName + capture + file + rank.toString();
-    } else {
-        let castle = "o-o"
-        if (isLongCastle) castle = "o-o-o"
-        return castle
-    }
-}
-
 export function notationToIndex(square, isBlack = false) {
     const move = square.toLowerCase().replace(/0/g, "o");
     if (move === "o-o" || move === "oo") {

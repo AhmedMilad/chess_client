@@ -26,7 +26,6 @@ import {
     getAntiDiagonalPreMoves,
     getNumberOfChecks,
     getFenFromBoard,
-    getNotation,
     notationToIndex,
     coordinatesToNotation
 } from "../utils/game"
@@ -840,8 +839,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             return newBoard;
                         });
 
-                        isCapture = true
-                        isEnpassant = true
                     }
                 }
                 if (Math.abs(row - newRow) === 2) {
@@ -875,43 +872,18 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             setTurn(!turn)
             if (currentPiece) {
-                let oldPos = getNotation(row, col, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)
-                let newPos = getNotation(newRow, newCol, !isBlack, currentPiece, isCapture, isCastle, isLongCastle)
-                if (isLongCastle) {
-                    sendMessage({
-                        "game_id": gameId,
-                        "type": "long_castle",
-                        "color": currentPiece.name[0],
-                        "data": {}
-                    })
-                } else if (isCastle) {
-                    sendMessage({
-                        "game_id": gameId,
-                        "type": "king_side_castle",
-                        "color": currentPiece.name[0],
-                        "data": {}
-                    })
-                } else if (isEnpassant) {
-                    sendMessage({
-                        "game_id": gameId,
-                        "type": "enpassant",
-                        "color": currentPiece.name[0],
-                        "data": {
-                            "from": oldPos,
-                            "to": newPos,
-                        }
-                    })
-                } else {
-                    sendMessage({
-                        "game_id": gameId,
-                        "type": "move",
-                        "color": currentPiece.name[0],
-                        "data": {
-                            "from": oldPos,
-                            "to": newPos,
-                        }
-                    })
-                }
+                let oldPos = coordinatesToNotation(row, col, isBlack)
+                let newPos = coordinatesToNotation(newRow, newCol, isBlack)
+
+                sendMessage({
+                    "game_id": gameId,
+                    "type": "move",
+                    "color": currentPiece.name[0],
+                    "data": {
+                        "from": oldPos,
+                        "to": newPos,
+                    }
+                })
                 setMovesHistory(prev => [...prev, newPos]);
             }
 
@@ -931,200 +903,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         moves,
         turn
     ])
-
-    // useEffect(() => {
-    //     if (turn && preMoves.length !== 0) {
-
-    //         const [{ from, to }, ...remainingPreMoves] = preMoves;
-    //         const [row, col] = from;
-    //         const [newRow, newCol] = to;
-    //         let isCapture = false
-    //         let isCastle = false
-    //         let isLongCastle = false
-    //         let isEnpassant = false
-    //         let piece = board[row][col]
-    //         if (getPieceMoves(row, col, piece, board).some(([r, c]) => r === newRow && c === newCol)) {
-    //             if (piece !== null && piece.name[1] === 'k' && Math.abs(newCol - col) > 1) {
-    //                 if (newCol < col) {
-    //                     if (isBlack) {
-    //                         isCastle = true
-    //                     } else {
-    //                         isLongCastle = true
-    //                     }
-    //                     let rook = board[7][0]
-    //                     setBoard(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[7][0] = null
-    //                         newBoard[row][col] = null
-    //                         newBoard[7][newCol] = piece
-    //                         newBoard[7][newCol + 1] = rook
-    //                         return newBoard;
-    //                     });
-
-
-
-    //                     setBoardCol(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[7][newCol]--
-    //                         newBoard[7][newCol + 1]--
-    //                         return newBoard;
-    //                     });
-
-    //                 } else {
-    //                     if (isBlack) {
-    //                         isLongCastle = true
-    //                     } else {
-    //                         isCastle = true
-    //                     }
-    //                     let rook = board[7][7]
-    //                     setBoard(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[7][7] = null
-    //                         newBoard[row][col] = null
-    //                         newBoard[7][newCol] = piece
-    //                         newBoard[7][newCol - 1] = rook
-    //                         return newBoard;
-    //                     });
-
-
-
-    //                     setBoardCol(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[7][newCol]--
-    //                         newBoard[7][newCol - 1]--
-    //                         return newBoard;
-    //                     });
-
-    //                 }
-    //             } else if (piece.name[1] === 'p') {
-    //                 let [r, c] = squareToIndex(enpassantSquare)
-
-    //                 if (piece.name[0] === 'b') {
-    //                     c = 7 - c
-    //                 } else {
-    //                     r = 7 - r
-    //                 }
-
-    //                 if (newRow === r - 1 && newCol === c) {
-    //                     isCapture = true
-    //                     isEnpassant = true
-    //                     setBoard(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[row][col] = null
-    //                         newBoard[row][newCol] = null
-    //                         newBoard[newRow][newCol] = piece
-    //                         return newBoard;
-    //                     });
-
-
-    //                 }
-    //                 setBoardCol(prev => {
-    //                     const newBoard = structuredClone(prev);
-    //                     newBoard[newRow][newCol] = Math.max(0, newBoard[newRow][newCol] - 1)
-    //                     newBoard[row][col] = Math.max(0, newBoard[row][col] - 1)
-    //                     return newBoard;
-    //                 });
-
-    //             } else {
-    //                 setBoardCol(prev => {
-    //                     const newBoard = structuredClone(prev);
-    //                     newBoard[newRow][newCol] = Math.max(0, newBoard[newRow][newCol] - 1)
-    //                     return newBoard;
-    //                 });
-    //                 if (board[newRow][newCol]) isCapture = true
-    //                 if (piece.name[1] === 'p' && newRow === 0) {
-    //                     let queen = piece.name[0] + "q"
-    //                     setBoard(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-    //                         newBoard[newRow][newCol].isPlayable = true
-    //                         return newBoard;
-    //                     });
-
-
-
-    //                 } else {
-    //                     setBoard(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[newRow][newCol] = piece
-    //                         return newBoard;
-    //                     });
-
-
-
-    //                 }
-    //                 setBoard(prev => {
-    //                     const newBoard = structuredClone(prev);
-    //                     newBoard[row][col] = null
-    //                     return newBoard;
-    //                 });
-
-
-    //             }
-    //             setPreviousMove([])
-    //             let notationPiece = board[newRow][newCol]
-    //             if (notationPiece) {
-    //                 setMovesHistory(prev => [...prev, getNotation(newRow, newCol, !isBlack, notationPiece, isCapture, isCastle, isLongCastle)]);
-    //             }
-    //             handleCheckMate(piece)
-    //             setPreMoves(remainingPreMoves)
-    //             handleDraw()
-    //             if (piece) {
-    //                 let oldPos = getNotation(row, col, !isBlack, piece, isCapture, isCastle, isLongCastle)
-    //                 let newPos = getNotation(newRow, newCol, !isBlack, piece, isCapture, isCastle, isLongCastle)
-    //                 if (isLongCastle) {
-    //                     sendMessage({
-    //                         "game_id": gameId,
-    //                         "type": "long_castle",
-    //                         "color": piece.name[0],
-    //                         "data": {}
-    //                     })
-    //                 } else if (isCastle) {
-    //                     sendMessage({
-    //                         "game_id": gameId,
-    //                         "type": "king_side_castle",
-    //                         "color": piece.name[0],
-    //                         "data": {}
-    //                     })
-    //                 } else if (isEnpassant) {
-    //                     sendMessage({
-    //                         "game_id": gameId,
-    //                         "type": "enpassant",
-    //                         "color": piece.name[0],
-    //                         "data": {
-    //                             "from": oldPos,
-    //                             "to": newPos,
-    //                         }
-    //                     })
-    //                 } else {
-    //                     sendMessage({
-    //                         "game_id": gameId,
-    //                         "type": "move",
-    //                         "color": piece.name[0],
-    //                         "data": {
-    //                             "from": oldPos,
-    //                             "to": newPos,
-    //                         }
-    //                     })
-    //                 }
-    //                 setPreviousMove([[row, col], [newRow, newCol]])
-    //             }
-    //             setTurn(!turn)
-    //         } else {
-    //             for (let row = 0; row <= 7; row++) {
-    //                 for (let col = 0; col <= 7; col++) {
-    //                     boardCol[row][col] = 0
-    //                     setBoard(prev => {
-    //                         const newBoard = structuredClone(prev);
-    //                         newBoard[row][col] = board[row][col]
-    //                         return newBoard;
-    //                     });
-    //                 }
-    //             }
-    //             setPreMoves([]);
-    //         }
-    //     }
-    // }, [turn, setPreviousMove]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
