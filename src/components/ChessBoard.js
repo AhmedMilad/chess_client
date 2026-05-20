@@ -112,9 +112,15 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     useEffect(() => {
         if (socketMessage === null) return;
 
+        let enpassantSqr = ""
+
         if (Object.hasOwn(socketMessage, 'turn')) {
             const isMyTurn = isBlack ? socketMessage.turn === 2 : socketMessage.turn === 1;
             setTurn(isMyTurn);
+        }
+
+        if (Object.hasOwn(socketMessage, 'enpassant_square')) {
+            enpassantSqr = socketMessage.enpassant_square;
         }
 
         if (Object.hasOwn(socketMessage, 'board')) {
@@ -148,6 +154,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 setBoard(brd);
                 setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
+                setEnpassantSquare(enpassantSqr)
             }
         }
     }, [socketMessage, isBlack, setBoardCol]);
