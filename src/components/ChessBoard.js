@@ -783,12 +783,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }, [board])
 
     const play = useCallback((row, col, newRow, newCol, currentPiece) => {
-        let isCapture = false
         let isValid = false
         if (moves.some(([r, c]) => r === newRow && c === newCol)) {
             isValid = true
-            let piece = board[newRow][newCol]
-            if (piece != null && currentPiece.name[0] !== piece.name[0]) isCapture = true
             if (newCol !== col || newRow !== row) {
                 for (let row = 0; row < rows; row++) {
                     for (let col = 0; col < cols; col++) {
@@ -810,28 +807,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             });
 
             currentPiece.isMoved = true;
-            let isCastle = false, isLongCastle = false, isEnpassant = false;
             if (currentPiece.name[1] === 'k') {
                 const dc = newCol - col;
                 if (Math.abs(dc) === 2) {
                     const isKingside = dc > 0;
-                    if (isBlack) {
-                        if (isKingside) {
-                            isCastle = false;
-                            isLongCastle = true;
-                        } else {
-                            isCastle = true;
-                            isLongCastle = false;
-                        }
-                    } else {
-                        if (isKingside) {
-                            isCastle = true;
-                            isLongCastle = false;
-                        } else {
-                            isCastle = false;
-                            isLongCastle = true;
-                        }
-                    }
+
                     const rookFromCol = isKingside ? 7 : 0;
                     const rookToCol = isKingside ? newCol - 1 : newCol + 1;
 
