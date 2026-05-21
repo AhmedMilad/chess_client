@@ -20,7 +20,7 @@ export class Piece {
         this.image = image;
         this.weight = weight;
         this.isEnpassant = false;
-        this.isMoved = false;
+        this.isMoved = false; // this needs to be removed
         this.isPlayable = false
     }
 }
@@ -149,7 +149,7 @@ export function getWPawnMoves(row, col, board, enpassantSquare) {
 
     if (row > 0 && board[row - 1][col] === null) {
         newMoves.push([row - 1, col]);
-        if (pawn != null && !pawn.isMoved && row - 2 >= 0 && board[row - 2][col] === null) newMoves.push([row - 2, col]);
+        if (pawn != null && row === 6 && row - 2 >= 0 && board[row - 2][col] === null) newMoves.push([row - 2, col]);
     }
     if (col > 0) {
         if (enpassantSquare != null && enpassantSquare !== "") {
@@ -188,7 +188,7 @@ export function getBPawnMoves(row, col, board, enpassantSquare) {
 
     if (row < 7 && board[row + 1][col] === null) {
         newMoves.push([row + 1, col]);
-        if (row + 2 <= 7 && pawn != null && !pawn.isMoved && board[row + 2][col] === null) newMoves.push([row + 2, col]);
+        if (row + 2 <= 7 && pawn != null && row === 6 && board[row + 2][col] === null) newMoves.push([row + 2, col]);
     }
     if (col > 0) {
         if (enpassantSquare != null && enpassantSquare !== "") {
