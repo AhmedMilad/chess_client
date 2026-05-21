@@ -45,7 +45,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [moves, setMoves] = useState([]);
     const [turn, setTurn] = useState(!isBlack)
     const [isCheckMate, setIsCheckMate] = useState(false)
-    const [isDraw, setIsDraw] = useState(false)
     const [isRightDragging, setIsRightDragging] = useState(false);
     const [startPos, setStartPos] = useState(null);
     const [lines, setLines] = useState([]);
@@ -74,7 +73,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const lightBlue = "#2E90F2"
     const darkBlue = "#073B6E"
     const checkMateColor = "#880808";
-    const drawColor = "#3238ad"
     const lightGreen = "#008000"
     const darkGreen = "#0F4D0F"
     const lightBoysenberry = "#873260"
@@ -89,6 +87,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         return `${m}:${s.toString().padStart(2, "0")}`;
     };
     const [socketMessage, setSocketMessage] = useState(null);
+    const [canKingSideCastle, setCanKingSideCastle] = useState(false)
+    const [canLongCastle, setCanLongCastle] = useState(false)
 
 
     useEffect(() => {
@@ -113,9 +113,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         if (Object.hasOwn(socketMessage, 'type')) {
 
-            if (socketMessage.type === 'move') {
+            // might need to separate the logic in the future
+            if (socketMessage.type === 'move' || socketMessage.type === 'reconnect_game') {
 
                 let enpassantSqr = ""
+                let canKingSideCastle = false
+                let canLongCastle = false
 
                 if (Object.hasOwn(socketMessage, 'turn')) {
                     const isMyTurn = isBlack ? socketMessage.turn === 2 : socketMessage.turn === 1;
@@ -124,6 +127,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 if (Object.hasOwn(socketMessage, 'enpassant_square')) {
                     enpassantSqr = socketMessage.enpassant_square;
+                }
+
+                if (Object.hasOwn(socketMessage, 'can_long_castle')) {
+                    canLongCastle = socketMessage.can_long_castle;
+                }
+
+                if (Object.hasOwn(socketMessage, 'can_king_side_castle')) {
+                    canKingSideCastle = socketMessage.can_king_side_castle;
                 }
 
                 if (Object.hasOwn(socketMessage, 'board')) {
@@ -166,6 +177,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     }
                     setBoard(brd);
                     setEnpassantSquare(enpassantSqr)
+                    setCanKingSideCastle(canKingSideCastle)
+                    setCanLongCastle(canLongCastle)
                 }
             }
         }
@@ -336,11 +349,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             color = checkMateColor;
                         }
                     }
-                    if (isDraw) {
-                        if (piece != null && ["wk", "bk"].includes(piece.name)) {
-                            color = drawColor
-                        }
-                    }
+
                     ctx.fillStyle = color;
                     ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
                 }
@@ -447,7 +456,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             isBlack,
             isCheckMate,
             winner,
-            isDraw,
             startPos,
             isRightDragging,
             lines,
@@ -590,10 +598,10 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 }
                 break;
             case "bk":
-                newMoves = getKingMoves(row, col, board, "w");
+                newMoves = getKingMoves(row, col, board, "w", canKingSideCastle, canLongCastle);
                 break;
             case "wk":
-                newMoves = getKingMoves(row, col, board, "b");
+                newMoves = getKingMoves(row, col, board, "b", canKingSideCastle, canLongCastle);
                 break;
             case "br":
                 newMoves = getVerticalMoves(row, col, board, "w")
@@ -715,6 +723,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         getKingMoves,
         getKingThreatMoves,
         getPinMoves,
+        canKingSideCastle,
+        canLongCastle,
         enpassantSquare
     ])
 
@@ -893,7 +903,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         return isValid
     }, [
         boardPosition,
-        getKingMoves,
         getKingThreatMoves,
         getNumberOfChecks,
         getPinMoves,
@@ -935,7 +944,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         };
 
         const handleMouseDown = (e) => {
-            if (isCheckMate || isDraw) return
             const pos = getMousePos(e);
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
@@ -980,7 +988,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             const newCol = Math.floor(pos.x / cellSize);
             const newRow = Math.floor(pos.y / cellSize);
             if (e.button === 2) {
-                if (!isDraw) setLines((prev) => [...prev, { start: startPos, end: mousePos }]);
                 if (previousRightClickCords.length > 0 && previousRightClickCords[0] === newRow && previousRightClickCords[1] === newCol) {
                     highlightBoard[newRow][newCol] = true
                     setPreviousRightClickCords([])
@@ -1020,7 +1027,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         isBlack,
         isCheckMate,
         setIsCheckMate,
-        isDraw,
         boardPosition,
         isRightDragging,
         mousePos,
@@ -1028,7 +1034,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         preMoves,
         setPreMoves,
         boardCol,
-        getKingMoves,
         getKingThreatMoves,
         getNumberOfChecks,
         getPieceMoves,
@@ -1140,9 +1145,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                             </div>
                         );
                     }
-                    if (isDraw) {
-                        return <div className="text-white p-4">Draw!</div>;
-                    }
+
                 })()}
                 <div className="p-4">
                     <div className="flex justify-between items-center text-white text-xl">

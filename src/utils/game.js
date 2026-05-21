@@ -371,7 +371,7 @@ export function isSafeSquare(row, col, board, target, isPlayable) {
     return true
 }
 
-export const getKingMoves = (row, col, board, target) => {
+export const getKingMoves = (row, col, board, target, canKingSideCastle, canLongCastle) => {
     let newMoves = [];
     const directions = [
         [-1, 0],
@@ -425,41 +425,43 @@ export const getKingMoves = (row, col, board, target) => {
         }
     }
     let king = board[row][col]
-    if (!king.isMoved) {
-        let newCol = col
-        let exists = newMoves.some(move =>
-            move[0] === row && move[1] === col - 1
-        );
-        if (exists) {
-            while (newCol > 0) {
-                newCol--
-                let piece = board[row][newCol]
-                if (piece != null) {
-                    if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                        if (isSafeSquare(row, col - 2, board, target, piece.isPlayable)) {
-                            newMoves.push([row, col - 2]);
-                        }
+    let newCol = col
+    let exists = newMoves.some(move =>
+        move[0] === row && move[1] === col - 1
+    );
+
+    let friendCol = (target === 'w') ? 'b' : 'w'
+    
+    if (exists) {
+        while (newCol > 0) {
+            newCol--
+            let piece = board[row][newCol]
+            if (piece != null) {
+                if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && ((friendCol === 'b' && canKingSideCastle) || (friendCol === 'w' && canLongCastle))) {
+
+                    if (isSafeSquare(row, col - 2, board, target, piece.isPlayable)) {
+                        newMoves.push([row, col - 2]);
                     }
-                    break
                 }
+                break
             }
         }
-        newCol = col
-        exists = newMoves.some(move =>
-            move[0] === row && move[1] === col + 1
-        );
-        if (exists) {
-            while (newCol < 7) {
-                newCol++
-                let piece = board[row][newCol]
-                if (piece != null) {
-                    if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && !piece.isMoved) {
-                        if (isSafeSquare(row, col + 2, board, target, piece.isPlayable)) {
-                            newMoves.push([row, col + 2]);
-                        }
+    }
+    newCol = col
+    exists = newMoves.some(move =>
+        move[0] === row && move[1] === col + 1
+    );
+    if (exists) {
+        while (newCol < 7) {
+            newCol++
+            let piece = board[row][newCol]
+            if (piece != null) {
+                if (piece.name[0] === king.name[0] && piece.name[1] === 'r' && ((friendCol === 'b' && canLongCastle) || (friendCol === 'w' && canKingSideCastle))) {
+                    if (isSafeSquare(row, col + 2, board, target, piece.isPlayable)) {
+                        newMoves.push([row, col + 2]);
                     }
-                    break
                 }
+                break
             }
         }
     }
