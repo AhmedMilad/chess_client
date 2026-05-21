@@ -25,7 +25,6 @@ import {
     getMainDiagonalPreMoves,
     getAntiDiagonalPreMoves,
     getNumberOfChecks,
-    getFenFromBoard,
     notationToIndex,
     coordinatesToNotation
 } from "../utils/game"
@@ -870,7 +869,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 });
 
             }
-            handleCheckMate(currentPiece)
 
             setTurn(!turn)
             if (currentPiece) {
@@ -1039,142 +1037,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         play
     ]);
 
-    function handleDraw() {
-        let fenKey = getFenFromBoard(board);
-
-        const index = boardPosition.findIndex((item) => item.key === fenKey);
-
-        if (index !== -1) {
-            const boardPos = [...boardPosition];
-            boardPos[index].value++;
-
-            if (boardPos[index].value >= 3) {
-                setBoardPosition([]);
-                setIsDraw(true);
-            } else {
-                setBoardPosition(boardPos);
-            }
-
-        } else {
-            setBoardPosition([...boardPosition, { key: fenKey, value: 1 }]);
-        }
-    }
-
-    function handleCheckMate(piece) {
-        if (!piece) return
-        let targetCol = piece.name[0]
-        targetCol = (targetCol === 'w') ? 'b' : 'w'
-        let numberOfChecks = getNumberOfChecks(board, targetCol)
-        let antiTarget = (targetCol === 'w') ? 'b' : 'w'
-        let kingIsFound = false
-        if (numberOfChecks > 1) {
-            let kingCol = -1, kingRow = -1, king = targetCol + 'k'
-            for (let row = 0; row <= 7; row++) {
-                for (let col = 0; col <= 7; col++) {
-                    let piece = board[row][col]
-                    if (piece != null && piece.name === king) {
-                        kingCol = col
-                        kingRow = row
-                        kingIsFound = true
-                        break
-                    }
-                }
-                if (kingRow !== -1) break
-            }
-            if (kingIsFound) {
-                let newMoves = getKingMoves(kingRow, kingCol, board, antiTarget)
-                if (newMoves.length === 0) {
-                    if (antiTarget === 'b') {
-                        setWinner("black")
-                    } else {
-                        setWinner("white")
-                    }
-                    setBoardPosition([]);
-                    setIsCheckMate(true)
-                }
-            }
-        }
-        let queen = targetCol + 'q'
-        let pawn = targetCol + 'p'
-        let rook = targetCol + 'r'
-        let bishop = targetCol + 'b'
-        let knight = targetCol + 'n'
-        let king = targetCol + 'k'
-        let threats = getKingThreatMoves(king, board)
-        let totalAvailableMoves = 0
-
-        for (let row = 0; row <= 7; row++) {
-            for (let col = 0; col <= 7; col++) {
-                let piece = board[row][col]
-                if (piece != null && [king, queen, rook, bishop, knight, pawn].includes(piece.name)) {
-
-                    let pinMoves = getPinMoves(row, col, board)
-                    let moves = []
-
-                    switch (piece.name) {
-                        case king:
-                            moves = getKingMoves(row, col, board, antiTarget)
-                            break;
-                        case queen:
-                            moves = getMainDiagonal(row, col, board, antiTarget)
-                                .concat(getAntiDiagonal(row, col, board, antiTarget))
-                                .concat(getVerticalMoves(row, col, board, antiTarget))
-                                .concat(getHorizontalMoves(row, col, board, antiTarget));
-                            break;
-                        case rook:
-                            moves = getVerticalMoves(row, col, board, antiTarget)
-                                .concat(getHorizontalMoves(row, col, board, antiTarget))
-                            break;
-                        case bishop:
-                            moves = getMainDiagonal(row, col, board, antiTarget)
-                                .concat(getAntiDiagonal(row, col, board, antiTarget));
-                            break;
-                        case knight:
-                            moves = getKnightMoves(row, col, board, antiTarget);
-                            break;
-                        case pawn:
-                            moves = piece.isPlayable
-                                ? getWPawnMoves(row, col, board, enpassantSquare)
-                                : getBPawnMoves(row, col, board, enpassantSquare);
-                            break;
-                        default: console.log("Invalid piece.")
-                    }
-
-                    if (piece.name !== king) {
-
-                        if (threats.length !== 0) {
-                            moves = moves.filter(move =>
-                                threats.some(t => t[0] === move[0] && t[1] === move[1])
-                            );
-                        }
-
-                        if (pinMoves.length !== 0) {
-                            moves = moves.filter(move =>
-                                pinMoves.some(p => p[0] === move[0] && p[1] === move[1])
-                            );
-                        }
-                    }
-
-                    totalAvailableMoves += moves.length
-                }
-            }
-        }
-
-        if (totalAvailableMoves === 0) {
-            if (numberOfChecks === 1) {
-                if (antiTarget === 'b') {
-                    setWinner("black")
-                } else {
-                    setWinner("white")
-                }
-                setBoardPosition([]);
-                setIsCheckMate(true)
-            } else {
-                setBoardPosition([]);
-                setIsDraw(true)
-            }
-        }
-    }
 
     function handleMove(newRow, newCol, piece) {
         if (piece.piece.isPlayable !== turn) {
