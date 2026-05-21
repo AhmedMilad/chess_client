@@ -248,18 +248,20 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 try {
                     const data = JSON.parse(msg);
 
+                    let isBlackColor = (data.color === 'black')
+
                     if (data.type === "reconnect_game") {
-                        let currentBoard = fenToBoard(data.board, isBlack)
-                        if (data.is_black) {
+                        let currentBoard = fenToBoard(data.board, isBlackColor)
+                        if (isBlackColor) {
                             currentBoard = rotateMatrix180(currentBoard)
                         }
                         setEnpassantSquare(data.enpassant_square)
 
                         setTurn(false)
-                        if (data.turn === 2 && data.is_black) {
+                        if (data.turn === 2 && isBlackColor) {
                             setTurn(true)
                         }
-                        if (data.turn === 1 && !data.is_black) {
+                        if (data.turn === 1 && !isBlackColor) {
                             setTurn(true)
                         }
                         setBoard(currentBoard)
