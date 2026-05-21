@@ -112,49 +112,60 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     useEffect(() => {
         if (socketMessage === null) return;
 
-        let enpassantSqr = ""
+        if (Object.hasOwn(socketMessage, 'type')) {
 
-        if (Object.hasOwn(socketMessage, 'turn')) {
-            const isMyTurn = isBlack ? socketMessage.turn === 2 : socketMessage.turn === 1;
-            setTurn(isMyTurn);
-        }
+            if (socketMessage.type === 'move') {
 
-        if (Object.hasOwn(socketMessage, 'enpassant_square')) {
-            enpassantSqr = socketMessage.enpassant_square;
-        }
+                let enpassantSqr = ""
 
-        if (Object.hasOwn(socketMessage, 'board')) {
-            let brd = fenToBoard(socketMessage.board, isBlack);
-
-            if (isBlack) {
-                brd = rotateMatrix180(brd);
-            }
-
-            if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
-                let from = socketMessage.data.from;
-                let to = socketMessage.data.to;
-
-                let fromIndexes = notationToIndex(from, isBlack);
-                let toIndexes = notationToIndex(to, isBlack);
-
-                if (preMoves?.length > 0) {
-                    const tmpBoardCol = Array.from({ length: 8 }, () => Array(8).fill(0));
-                    for (const move of preMoves) {
-                        const [mvFromRow, mvFromCol] = move.from;
-                        const [mvToRow, mvToCol] = move.to;
-                        brd[mvToRow][mvToCol] = brd[mvFromRow][mvFromCol];
-                        brd[mvFromRow][mvFromCol] = null;
-                        tmpBoardCol[mvToRow][mvToCol]++;
-                    }
-                    setBoardCol(tmpBoardCol);
+                if (Object.hasOwn(socketMessage, 'turn')) {
+                    const isMyTurn = isBlack ? socketMessage.turn === 2 : socketMessage.turn === 1;
+                    setTurn(isMyTurn);
                 }
 
-                let [fromRow, fromCol] = fromIndexes;
-                let [toNewRow, toNewCol] = toIndexes;
+                if (Object.hasOwn(socketMessage, 'enpassant_square')) {
+                    enpassantSqr = socketMessage.enpassant_square;
+                }
 
-                setBoard(brd);
-                setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
-                setEnpassantSquare(enpassantSqr)
+                if (Object.hasOwn(socketMessage, 'board')) {
+                    let brd = fenToBoard(socketMessage.board, isBlack);
+
+                    if (isBlack) {
+                        brd = rotateMatrix180(brd);
+                    }
+
+
+                    if (Object.hasOwn(socketMessage, 'status')) {
+                        if (socketMessage.status === 'ok') {
+                            if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                                let from = socketMessage.data.from;
+                                let to = socketMessage.data.to;
+
+                                let fromIndexes = notationToIndex(from, isBlack);
+                                let toIndexes = notationToIndex(to, isBlack);
+
+                                if (preMoves?.length > 0) {
+                                    const tmpBoardCol = Array.from({ length: 8 }, () => Array(8).fill(0));
+                                    for (const move of preMoves) {
+                                        const [mvFromRow, mvFromCol] = move.from;
+                                        const [mvToRow, mvToCol] = move.to;
+                                        brd[mvToRow][mvToCol] = brd[mvFromRow][mvFromCol];
+                                        brd[mvFromRow][mvFromCol] = null;
+                                        tmpBoardCol[mvToRow][mvToCol]++;
+                                    }
+                                    setBoardCol(tmpBoardCol);
+                                }
+
+                                let [fromRow, fromCol] = fromIndexes;
+                                let [toNewRow, toNewCol] = toIndexes;
+
+                                setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
+                            }
+                        }
+                    }
+                    setBoard(brd);
+                    setEnpassantSquare(enpassantSqr)
+                }
             }
         }
     }, [socketMessage, isBlack, setBoardCol]);
@@ -894,8 +905,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 setMovesHistory(prev => [...prev, newPos]);
             }
 
-            handleDraw()
-            setPreviousMove([[row, col], [newRow, newCol]])
             setCurrentPiece(null)
             setMoves([]);
         }
