@@ -136,6 +136,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
 
                     if (Object.hasOwn(socketMessage, 'status')) {
+                        const tmpBoardCol = Array.from({ length: 8 }, () => Array(8).fill(0));
+                        setBoardCol(tmpBoardCol);
+
                         if (socketMessage.status === 'ok') {
                             if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
                                 let from = socketMessage.data.from;
@@ -145,7 +148,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                 let toIndexes = notationToIndex(to, isBlack);
 
                                 if (preMoves?.length > 0) {
-                                    const tmpBoardCol = Array.from({ length: 8 }, () => Array(8).fill(0));
                                     for (const move of preMoves) {
                                         const [mvFromRow, mvFromCol] = move.from;
                                         const [mvToRow, mvToCol] = move.to;
