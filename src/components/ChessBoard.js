@@ -35,7 +35,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [preMoves, setPreMoves] = useState([]);
     const socketRef = useRef(null);
 
-    const isBlack = message.is_black
+    let isBlack = false
+
+    if (Object.hasOwn(message, "color") && message.color === "black") {
+        isBlack = true
+    }
+
     const [board, setBoard] = useState(() => structuredClone(gameBoard));
 
     const canvasRef = useRef(null);
@@ -61,8 +66,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const scrollRef = useRef(null);
     const [boardCol, setBoardCol] = useState(Array.from({ length: 16 }, () => Array(16).fill(0)));
     const [highlightBoard, setHighLightBoard] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
-    const [whiteTime, setWhiteTime] = useState(300);
-    const [blackTime, setBlackTime] = useState(300);
     const [enpassantSquare, setEnpassantSquare] = useState(null);
 
     const rows = 8;
@@ -81,14 +84,21 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     const { id } = useParams()
     const token = localStorage.getItem("token");
+
     const formatTime = (t) => {
-        const m = Math.floor(t / 60);
-        const s = t % 60;
+        const totalSeconds = Math.floor(t / 1000);
+
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+
         return `${m}:${s.toString().padStart(2, "0")}`;
     };
+
     const [socketMessage, setSocketMessage] = useState(null);
     const [canKingSideCastle, setCanKingSideCastle] = useState(false)
     const [canLongCastle, setCanLongCastle] = useState(false)
+    const [myTime, setMyTime] = useState(null)
+    const [opponentTime, setOpponentTime] = useState(null)
 
 
     useEffect(() => {
@@ -110,6 +120,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     useEffect(() => {
         if (socketMessage === null) return;
+
+        if (Object.hasOwn(socketMessage, 'my_time')) {
+            setMyTime(socketMessage.my_time)
+        }
+
+        if (Object.hasOwn(socketMessage, 'opponent_time')) {
+            setOpponentTime(socketMessage.opponent_time)
+        }
 
         if (Object.hasOwn(socketMessage, 'type')) {
 
@@ -228,9 +246,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     useEffect(() => {
         const interval = setInterval(() => {
             if (turn) {
-                setWhiteTime((prev) => Math.max(prev - 1, 0));
+                setMyTime((prev) => Math.max(prev - 1000, 0));
             } else {
-                setBlackTime((prev) => Math.max(prev - 1, 0));
+                setOpponentTime((prev) => Math.max(prev - 1000, 0));
             }
         }, 1000);
 
@@ -1156,7 +1174,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                         <div className="flex items-center gap-2">
                             <span className={!turn ? "text-green-400 font-mono" : "text-gray-400 font-mono"}>
-                                {formatTime(blackTime)}
+                                {formatTime(opponentTime)}
                             </span>
                         </div>
                     </div>
@@ -1197,7 +1215,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                         <div className="flex items-center gap-2">
                             <span className={turn ? "text-green-400 font-mono" : "text-gray-400 font-mono"}>
-                                {formatTime(whiteTime)}
+                                {formatTime(myTime)}
                             </span>
                         </div>
                     </div>
