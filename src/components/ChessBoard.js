@@ -131,6 +131,32 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         if (Object.hasOwn(socketMessage, 'type')) {
 
+            if (socketMessage.type === 'checkmate') {
+
+                if (Object.hasOwn(socketMessage, 'board')) {
+                    let brd = fenToBoard(socketMessage.board, isBlack);
+
+                    if (isBlack) {
+                        brd = rotateMatrix180(brd);
+                    }
+
+                    if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                        let from = socketMessage.data.from;
+                        let to = socketMessage.data.to;
+                        let fromIndexes = notationToIndex(from, isBlack);
+                        let toIndexes = notationToIndex(to, isBlack);
+                        let [fromRow, fromCol] = fromIndexes;
+                        let [toNewRow, toNewCol] = toIndexes;
+                        setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
+
+                        console.log([[fromRow, fromCol], [toNewRow, toNewCol]])
+
+                    }
+
+                    setBoard(brd);
+                }
+            }
+
             // might need to separate the logic in the future
             if (socketMessage.type === 'move' || socketMessage.type === 'reconnect_game') {
 
