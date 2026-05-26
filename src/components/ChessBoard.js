@@ -73,13 +73,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const cellSize = size / 8;
     const lightColor = "#f0d9b5";
     const darkColor = "#b58863";
-    const lightBlue = "#2E90F2"
-    const darkBlue = "#073B6E"
-    const checkMateColor = "#880808";
-    const lightGreen = "#008000"
-    const darkGreen = "#0F4D0F"
-    const lightBoysenberry = "#873260"
-    const darkBoysenberry = "#6C284D"
+    const lightBlue = "#2E90F2";
+    const darkBlue = "#073B6E";
+    const darkRed = "#880808";
+    const lightRed = "#FF6666";
+    const lightGreen = "#008000";
+    const darkGreen = "#0F4D0F";
+    const lightBoysenberry = "#873260";
+    const darkBoysenberry = "#6C284D";
     const imageScale = 0.75;
 
     const { id } = useParams()
@@ -99,6 +100,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [canLongCastle, setCanLongCastle] = useState(false)
     const [myTime, setMyTime] = useState(null)
     const [opponentTime, setOpponentTime] = useState(null)
+    const [isDraw, setIsDraw] = useState(false)
+    const [isWin, setIsWin] = useState(false)
+    const [isDefeat, setIsDefeat] = useState(false)
 
 
     useEffect(() => {
@@ -131,6 +135,36 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         if (Object.hasOwn(socketMessage, 'type')) {
 
+            let isDraw = false
+            let isWin = false
+            let isDefeat = false
+
+            if (Object.hasOwn(socketMessage, 'status') && socketMessage.status === 'draw') {
+
+                if (Object.hasOwn(socketMessage, 'board')) {
+                    let brd = fenToBoard(socketMessage.board, isBlack);
+
+                    if (isBlack) {
+                        brd = rotateMatrix180(brd);
+                    }
+
+                    if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                        let from = socketMessage.data.from;
+                        let to = socketMessage.data.to;
+                        let fromIndexes = notationToIndex(from, isBlack);
+                        let toIndexes = notationToIndex(to, isBlack);
+                        let [fromRow, fromCol] = fromIndexes;
+                        let [toNewRow, toNewCol] = toIndexes;
+                        setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
+
+                    }
+
+                    setBoard(brd);
+                }
+
+                isDraw = true
+            }
+
             if (socketMessage.type === 'checkmate') {
 
                 if (Object.hasOwn(socketMessage, 'board')) {
@@ -149,12 +183,25 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         let [toNewRow, toNewCol] = toIndexes;
                         setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
 
-                        console.log([[fromRow, fromCol], [toNewRow, toNewCol]])
-
                     }
 
                     setBoard(brd);
                 }
+
+                if (Object.hasOwn(socketMessage, "status")) {
+
+                    if (socketMessage.status === "win") {
+                        isWin = true
+
+                    }
+
+                    if (socketMessage.status === "defeat") {
+                        isDefeat = true
+
+                    }
+
+                }
+
             }
 
             // might need to separate the logic in the future
@@ -193,30 +240,28 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         const tmpBoardCol = Array.from({ length: 8 }, () => Array(8).fill(0));
                         setBoardCol(tmpBoardCol);
 
-                        if (socketMessage.status === 'ok') {
-                            if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
-                                let from = socketMessage.data.from;
-                                let to = socketMessage.data.to;
+                        if (Object.hasOwn(socketMessage, "data") && socketMessage.data != null && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                            let from = socketMessage.data.from;
+                            let to = socketMessage.data.to;
 
-                                let fromIndexes = notationToIndex(from, isBlack);
-                                let toIndexes = notationToIndex(to, isBlack);
+                            let fromIndexes = notationToIndex(from, isBlack);
+                            let toIndexes = notationToIndex(to, isBlack);
 
-                                if (preMoves?.length > 0) {
-                                    for (const move of preMoves) {
-                                        const [mvFromRow, mvFromCol] = move.from;
-                                        const [mvToRow, mvToCol] = move.to;
-                                        brd[mvToRow][mvToCol] = brd[mvFromRow][mvFromCol];
-                                        brd[mvFromRow][mvFromCol] = null;
-                                        tmpBoardCol[mvToRow][mvToCol]++;
-                                    }
-                                    setBoardCol(tmpBoardCol);
+                            if (preMoves?.length > 0) {
+                                for (const move of preMoves) {
+                                    const [mvFromRow, mvFromCol] = move.from;
+                                    const [mvToRow, mvToCol] = move.to;
+                                    brd[mvToRow][mvToCol] = brd[mvFromRow][mvFromCol];
+                                    brd[mvFromRow][mvFromCol] = null;
+                                    tmpBoardCol[mvToRow][mvToCol]++;
                                 }
-
-                                let [fromRow, fromCol] = fromIndexes;
-                                let [toNewRow, toNewCol] = toIndexes;
-
-                                setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
+                                setBoardCol(tmpBoardCol);
                             }
+
+                            let [fromRow, fromCol] = fromIndexes;
+                            let [toNewRow, toNewCol] = toIndexes;
+
+                            setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
                         }
                     }
                     setBoard(brd);
@@ -224,7 +269,34 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     setCanKingSideCastle(canKingSideCastle)
                     setCanLongCastle(canLongCastle)
                 }
+
+                if (Object.hasOwn(socketMessage, "status")) {
+                    if (socketMessage.status === "draw") {
+                        isDraw = true
+                    }
+
+                    if (socketMessage.status === "win") {
+                        isWin = true
+                    }
+
+                    if (socketMessage.status === "defeat") {
+                        isDefeat = true
+                    }
+                }
             }
+
+            if (isDraw) {
+                setIsDraw(true)
+            }
+
+            if (isWin) {
+                setIsWin(true)
+            }
+
+            if (isDefeat) {
+                setIsDefeat(true)
+            }
+
         }
     }, [socketMessage, isBlack, setBoardCol]);
 
@@ -270,6 +342,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
 
     useEffect(() => {
+
+        if (isWin || isDraw || isDefeat) return;
+
         const interval = setInterval(() => {
             if (turn) {
                 setMyTime((prev) => Math.max(prev - 1000, 0));
@@ -279,7 +354,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [turn]);
+    }, [turn, isWin, isDraw, isDefeat]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -372,25 +447,73 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 for (let col = 0; col < cols; col++) {
                     let color = (row + col) % 2 === 0 ? lightColor : darkColor
                     let piece = board[row][col]
+
                     if (previousMove.length > 0) {
                         let [from, to] = previousMove
                         if ((row === from[0] && col === from[1]) || (row === to[0] && col === to[1])) {
                             color = (row + col) % 2 === 0 ? lightBoysenberry : darkBoysenberry
                         }
                     }
+
                     if (boardCol[row][col]) {
                         color = (row + col) % 2 === 0 ? lightBlue : darkBlue
                     }
+
                     if (highlightBoard[row][col]) {
                         color = (row + col) % 2 === 0 ? lightGreen : darkGreen
                     }
-                    if (isCheckMate) {
-                        let king = "bk"
-                        if (winner === 'black') {
-                            king = "wk"
+
+                    if (isDraw && (piece?.name === "bk" || piece?.name === "wk")) {
+                        color = (row + col) % 2 === 0 ? lightBlue : darkBlue
+
+                    }
+
+                    if (isWin) {
+                        if (isBlack) {
+                            if (piece?.name === "bk") {
+                                color = (row + col) % 2 === 0 ? lightGreen : darkGreen
+
+                            }
+
+                            if (piece?.name === "wk") {
+                                color = (row + col) % 2 === 0 ? lightRed : darkRed
+
+                            }
+                        } else {
+                            if (piece?.name === "wk") {
+                                color = (row + col) % 2 === 0 ? lightGreen : darkGreen
+
+                            }
+
+                            if (piece?.name === "bk") {
+                                color = (row + col) % 2 === 0 ? lightRed : darkRed
+
+                            }
                         }
-                        if (piece !== null && piece.name === king) {
-                            color = checkMateColor;
+                    }
+
+                    if (isDefeat) {
+
+                        if (isBlack) {
+                            if (piece?.name === "bk") {
+                                color = (row + col) % 2 === 0 ? lightRed : darkRed
+
+                            }
+
+                            if (piece?.name === "wk") {
+                                color = (row + col) % 2 === 0 ? lightGreen : darkGreen
+
+                            }
+                        } else {
+                            if (piece?.name === "wk") {
+                                color = (row + col) % 2 === 0 ? lightRed : darkRed
+
+                            }
+
+                            if (piece?.name === "bk") {
+                                color = (row + col) % 2 === 0 ? lightGreen : darkGreen
+
+                            }
                         }
                     }
 
@@ -505,7 +628,10 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             lines,
             boardCol,
             previousMove,
-            board
+            board,
+            isWin,
+            isDefeat,
+            isDraw
         ]
     );
 
