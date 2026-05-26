@@ -139,6 +139,21 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             let isWin = false
             let isDefeat = false
 
+
+            if (Object.hasOwn(socketMessage, "status")) {
+                if (socketMessage.status === "draw") {
+                    isDraw = true
+                }
+
+                if (socketMessage.status === "win") {
+                    isWin = true
+                }
+
+                if (socketMessage.status === "defeat") {
+                    isDefeat = true
+                }
+            }
+
             if (Object.hasOwn(socketMessage, 'status') && socketMessage.status === 'draw') {
 
                 if (Object.hasOwn(socketMessage, 'board')) {
@@ -148,7 +163,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         brd = rotateMatrix180(brd);
                     }
 
-                    if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                    if (Object.hasOwn(socketMessage, "data") && socketMessage.data != null && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
                         let from = socketMessage.data.from;
                         let to = socketMessage.data.to;
                         let fromIndexes = notationToIndex(from, isBlack);
@@ -162,7 +177,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     setBoard(brd);
                 }
 
-                isDraw = true
             }
 
             if (socketMessage.type === 'checkmate') {
@@ -174,7 +188,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         brd = rotateMatrix180(brd);
                     }
 
-                    if (Object.hasOwn(socketMessage, "data") && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                    if (Object.hasOwn(socketMessage, "data") && socketMessage.data != null && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
                         let from = socketMessage.data.from;
                         let to = socketMessage.data.to;
                         let fromIndexes = notationToIndex(from, isBlack);
@@ -186,20 +200,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     }
 
                     setBoard(brd);
-                }
-
-                if (Object.hasOwn(socketMessage, "status")) {
-
-                    if (socketMessage.status === "win") {
-                        isWin = true
-
-                    }
-
-                    if (socketMessage.status === "defeat") {
-                        isDefeat = true
-
-                    }
-
                 }
 
             }
@@ -270,19 +270,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     setCanLongCastle(canLongCastle)
                 }
 
-                if (Object.hasOwn(socketMessage, "status")) {
-                    if (socketMessage.status === "draw") {
-                        isDraw = true
-                    }
-
-                    if (socketMessage.status === "win") {
-                        isWin = true
-                    }
-
-                    if (socketMessage.status === "defeat") {
-                        isDefeat = true
-                    }
-                }
             }
 
             if (isDraw) {
