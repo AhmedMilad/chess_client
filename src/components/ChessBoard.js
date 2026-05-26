@@ -123,7 +123,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
 
     useEffect(() => {
-        if (socketMessage === null) return;
+        if (socketMessage === null || (Object.hasOwn(socketMessage, 'game_id') && socketMessage.game_id !== gameId)) return;
 
         if (Object.hasOwn(socketMessage, 'my_time')) {
             setMyTime(socketMessage.my_time)
