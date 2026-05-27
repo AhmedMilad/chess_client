@@ -138,6 +138,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         });
 
         setIsPawnPromotion(false)
+        setPromotionPiece(null)
 
     }, [promotionPiece, previousMove, isBlack, gameId, isPawnPromotion])
 
@@ -1088,29 +1089,13 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     currentPiece.isEnpassant = true
                 }
             }
-            let queen = currentPiece.name[0] + "q"
-            if (newRow === 7 && !currentPiece.isPlayable && currentPiece.name[1] === 'p') {
-                setBoard(prev => {
-                    const newBoard = structuredClone(prev);
-                    newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                    return newBoard;
-                });
 
-            } else if (newRow === 0 && currentPiece.isPlayable && currentPiece.name[1] === 'p') {
-                setBoard(prev => {
-                    const newBoard = structuredClone(prev);
-                    newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                    return newBoard;
-                });
+            setBoard(prev => {
+                const newBoard = structuredClone(prev);
+                newBoard[newRow][newCol] = currentPiece;
+                return newBoard;
+            });
 
-            } else {
-                setBoard(prev => {
-                    const newBoard = structuredClone(prev);
-                    newBoard[newRow][newCol] = currentPiece;
-                    return newBoard;
-                });
-
-            }
 
             if (currentPiece) {
                 let oldPos = coordinatesToNotation(row, col, isBlack)
@@ -1423,24 +1408,13 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         newBoard[newRow][newCol]++
                         return newBoard
                     })
-                    if (currentPiece.name[1] === 'p' && newRow === 0) {
-                        let queen = currentPiece.name[0] + "q"
 
-                        setBoard(prev => {
-                            const newBoard = structuredClone(prev);
-                            newBoard[newRow][newCol] = new Piece(queen, pieceImages[queen], 9);
-                            newBoard[newRow][newCol].isPlayable = true
-                            return newBoard;
-                        });
+                    setBoard(prev => {
+                        const newBoard = structuredClone(prev);
+                        newBoard[newRow][newCol] = currentPiece
+                        return newBoard;
+                    });
 
-                    } else {
-                        setBoard(prev => {
-                            const newBoard = structuredClone(prev);
-                            newBoard[newRow][newCol] = currentPiece
-                            return newBoard;
-                        });
-
-                    }
                 }
                 setMoves([]);
             }
