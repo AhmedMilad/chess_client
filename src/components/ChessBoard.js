@@ -103,7 +103,43 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [isDraw, setIsDraw] = useState(false)
     const [isWin, setIsWin] = useState(false)
     const [isDefeat, setIsDefeat] = useState(false)
+    const [isPawnPromotion, setIsPawnPromotion] = useState(false)
+    const promotionCanvas = useRef(null);
+    const [promotionPiece, setPromotionPiece] = useState(null)
 
+    useEffect(() => {
+
+        if (promotionPiece === null || !isPawnPromotion) return
+
+        let [from, to] = previousMove
+
+        if (from?.length !== 2) return
+        if (to?.length !== 2) return
+
+        let fromNotation = coordinatesToNotation(from[0], from[1], isBlack)
+        let toNotation = coordinatesToNotation(to[0], to[1], isBlack)
+
+
+        let color = "w"
+
+        if (isBlack) {
+            color = "b"
+        }
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "move",
+            "color": color,
+            "data": {
+                "from": fromNotation,
+                "to": toNotation,
+            },
+            "promote_to": promotionPiece,
+        });
+
+        setIsPawnPromotion(false)
+
+    }, [promotionPiece, previousMove, isBlack, gameId, isPawnPromotion])
 
     useEffect(() => {
         const ws = socketRef.current;
@@ -622,6 +658,45 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         ]
     );
 
+    const drawPromotionBoard = useCallback(
+        (ctx) => {
+            if (!ctx) return;
+
+            for (let col = 0; col < 4; col++) {
+                let color = col % 2 === 0 ? lightColor : darkColor;
+                ctx.fillStyle = color;
+                ctx.fillRect(col * cellSize, 0, cellSize, cellSize);
+            }
+
+            const pieces = ["q", "r", "b", "n"];
+            const prefix = isBlack ? "b" : "w";
+
+            for (let i = 0; i < 4; i++) {
+                const img = images[prefix + pieces[i]];
+
+                if (!img || !img.complete || img.width === 0) continue;
+
+                const aspect = img.width / img.height;
+                let imgWidth, imgHeight;
+
+                imgHeight = cellSize * imageScale;
+                imgWidth = imgHeight * aspect;
+
+                const offsetX = (cellSize - imgWidth) / 2;
+                const offsetY = (cellSize - imgHeight) / 2;
+
+                ctx.drawImage(
+                    img,
+                    (i * cellSize) + offsetX,
+                    offsetY,
+                    imgWidth,
+                    imgHeight
+                );
+            }
+        },
+        [cellSize, images, isBlack, lightColor, darkColor, imageScale, isPawnPromotion]
+    );
+
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
         if (isCheckMate) return
         const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
@@ -1037,21 +1112,30 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             }
 
-            setTurn(!turn)
             if (currentPiece) {
                 let oldPos = coordinatesToNotation(row, col, isBlack)
                 let newPos = coordinatesToNotation(newRow, newCol, isBlack)
 
-                sendMessage({
-                    "game_id": gameId,
-                    "type": "move",
-                    "color": currentPiece.name[0],
-                    "data": {
-                        "from": oldPos,
-                        "to": newPos,
-                    }
-                })
-                setMovesHistory(prev => [...prev, newPos]);
+                if (newRow === 0 && currentPiece.name[1] === 'p') {
+                    setPreviousMove([[row, col], [newRow, newCol]]);
+
+                    setIsPawnPromotion(true)
+
+                } else {
+                    sendMessage({
+                        "game_id": gameId,
+                        "type": "move",
+                        "color": currentPiece.name[0],
+                        "data": {
+                            "from": oldPos,
+                            "to": newPos,
+                        }
+                    })
+                    setTurn(!turn)
+
+                    setMovesHistory(prev => [...prev, newPos]);
+                }
+
             }
 
             setCurrentPiece(null)
@@ -1199,6 +1283,86 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         play
     ]);
 
+    useEffect(() => {
+        const canvas = promotionCanvas.current;
+        if (!canvas || Object.keys(images).length === 0) return;
+        const ctx = canvas.getContext("2d");
+        drawPromotionBoard(ctx);
+
+        const getMousePos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            };
+        };
+
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+        };
+
+        const handleMouseDown = (e) => {
+            const pos = getMousePos(e);
+            const col = Math.floor(pos.x / cellSize);
+            const row = Math.floor(pos.y / cellSize);
+
+            if (e.button === 0) {
+                if (row === 0) {
+                    switch (col) {
+                        case 0:
+                            let queen = "Q"
+                            if (isBlack) {
+                                queen = "q"
+                            }
+
+                            setPromotionPiece(queen)
+                            break;
+                        case 1:
+                            let rook = "R"
+                            if (isBlack) {
+                                rook = "r"
+                            }
+
+                            setPromotionPiece(rook)
+                            break;
+                        case 2:
+                            let bishop = "B"
+
+                            if (isBlack) {
+                                bishop = "b"
+                            }
+
+                            setPromotionPiece(bishop)
+                            break;
+                        case 3:
+
+                            let knight = "N"
+
+                            if (isBlack) {
+                                knight = "n"
+                            }
+                            setPromotionPiece(knight)
+
+                            break;
+                        default:
+                            console.log("invalid piece")
+                    }
+                }
+            }
+        };
+
+        canvas.addEventListener("mousedown", handleMouseDown);
+        canvas.addEventListener("contextmenu", handleContextMenu);
+
+        return () => {
+            canvas.removeEventListener("mousedown", handleMouseDown);
+            canvas.removeEventListener("contextmenu", handleContextMenu);
+        };
+    }, [
+        cellSize,
+        images,
+        drawPromotionBoard,
+    ]);
 
     function handleMove(newRow, newCol, piece) {
         if (piece.piece.isPlayable !== turn) {
@@ -1287,12 +1451,23 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     return (
         <div className="flex items-center justify-center bg-gray-900 mt-8">
-            <canvas
-                ref={canvasRef}
-                width={size}
-                height={size}
-                className="rounded-lg shadow-lg cursor-pointer"
-            />
+            <div>
+                {isPawnPromotion && (
+                    <canvas
+                        ref={promotionCanvas}
+                        width={cellSize * 4}
+                        height={cellSize}
+                        className="shadow-lg cursor-pointer mx-auto my-4"
+                    />
+                )}
+                <canvas
+                    ref={canvasRef}
+                    width={size}
+                    height={size}
+                    className="rounded-lg shadow-lg cursor-pointer"
+                />
+
+            </div>
             <div className="flex flex-col">
                 {(() => {
                     if (winner) {
