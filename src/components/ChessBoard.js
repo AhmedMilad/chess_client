@@ -94,7 +94,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         return `${m}:${s.toString().padStart(2, "0")}`;
     };
 
-    const [socketMessage, setSocketMessage] = useState(null);
+    const [socketMessage, setSocketMessage] = useState(message);
     const [canKingSideCastle, setCanKingSideCastle] = useState(false)
     const [canLongCastle, setCanLongCastle] = useState(false)
     const [myTime, setMyTime] = useState(null)
