@@ -106,6 +106,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const promotionCanvas = useRef(null);
     const [promotionPiece, setPromotionPiece] = useState(null)
     const [previousPreMove, setPreviousPreMove] = useState([])
+    const [playerInfo, setPlayerInfo] = useState(null)
+    const [opponentInfo, setOpponentInfo] = useState(null)
 
     useEffect(() => {
 
@@ -367,6 +369,23 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             setMovesHistory(prev => [...prev, socketMessage.move_notation]);
 
         }
+
+        if (Object.hasOwn(socketMessage, "my_info")) {
+            if (socketMessage.my_info?.username !== "" && socketMessage.my_info?.rating !== "") {
+                setPlayerInfo(socketMessage.my_info)
+            }
+
+        }
+
+        if (Object.hasOwn(socketMessage, "opponent_info")) {
+            if (socketMessage.opponent_info?.username !== "" && socketMessage.opponent_info?.rating !== "") {
+                setOpponentInfo(socketMessage.opponent_info)
+            }
+
+        }
+
+
+
     }, [socketMessage, isBlack]);
 
 
@@ -1520,8 +1539,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 <div className="p-4">
                     <div className="flex justify-between items-center text-white text-xl">
                         <div className="flex flex-col">
-                            <span>Ahmed Milad</span>
-                            <span className="text-sm text-gray-400">1000</span>
+                            <span>{opponentInfo?.username}</span>
+                            <span className="text-sm text-gray-400">{opponentInfo?.rating}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1561,8 +1580,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 <div className="p-4">
                     <div className="flex justify-between items-center text-white text-xl">
                         <div className="flex flex-col">
-                            <span>Ahmed Milad</span>
-                            <span className="text-sm text-gray-400">1000</span>
+                            <span>{playerInfo?.username}</span>
+                            <span className="text-sm text-gray-400">{playerInfo?.rating}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
