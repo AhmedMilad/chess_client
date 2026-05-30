@@ -358,7 +358,16 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             }
 
         }
-    }, [socketMessage, isBlack, setBoardCol]);
+
+        if (Object.hasOwn(socketMessage, "moves") && Array.isArray(socketMessage.moves) && socketMessage.moves.length > 0) {
+            setMovesHistory(socketMessage.moves);
+
+        } else if (Object.hasOwn(socketMessage, "move_notation") && typeof socketMessage.move_notation !== 'undefined' && socketMessage.move_notation !== null && socketMessage.move_notation !== "") {
+
+            setMovesHistory(prev => [...prev, socketMessage.move_notation]);
+
+        }
+    }, [socketMessage, isBlack]);
 
 
     useEffect(() => {
@@ -1160,8 +1169,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         }
                     })
                     setTurn(!turn)
-
-                    setMovesHistory(prev => [...prev, newPos]);
                 }
 
             }
@@ -1292,7 +1299,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         moves,
         turn,
         setTurn,
-        setMovesHistory,
         isBlack,
         isCheckMate,
         setIsCheckMate,
