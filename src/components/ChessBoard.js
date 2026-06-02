@@ -108,6 +108,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [previousPreMove, setPreviousPreMove] = useState([])
     const [playerInfo, setPlayerInfo] = useState(null)
     const [opponentInfo, setOpponentInfo] = useState(null)
+    const [myPointsDelta, setMyPointsDelta] = useState(0)
+    const [opponentPointsDelta, setOpponentPointsDelta] = useState(0)
+    const [isGameOver, setIsGameOver] = useState(false)
 
     useEffect(() => {
 
@@ -199,6 +202,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     useEffect(() => {
         if (socketMessage === null || (Object.hasOwn(socketMessage, 'game_id') && socketMessage.game_id !== gameId)) return;
+
+        if (Object.hasOwn(socketMessage, 'my_points_delta')) {
+            setMyPointsDelta(parseInt(socketMessage.my_points_delta))
+        }
+
+        if (Object.hasOwn(socketMessage, 'opponent_points_delta')) {
+            setOpponentPointsDelta(parseInt(socketMessage.opponent_points_delta))
+        }
 
         if (Object.hasOwn(socketMessage, 'my_time')) {
             setMyTime(socketMessage.my_time)
@@ -359,6 +370,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 setIsDefeat(true)
             }
 
+            if (isDraw || isDefeat || isWin) {
+                setIsGameOver(true)
+            }
         }
 
         if (Object.hasOwn(socketMessage, "moves") && Array.isArray(socketMessage.moves) && socketMessage.moves.length > 0) {
@@ -383,8 +397,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             }
 
         }
-
-
 
     }, [socketMessage, isBlack]);
 
@@ -1527,12 +1539,22 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             </div>
             <div className="flex flex-col">
                 {(() => {
-                    if (winner) {
-                        return (
-                            <div className="text-white p-4">
-                                {winner === "white" ? "White won!" : "Black won!"}
+                    if (isGameOver) {
+
+                        if (isDraw) {
+
+                            return (<div className="text-white p-4">
+                                Draw
                             </div>
-                        );
+                            )
+                        } else {
+                            return (
+                                <div className="text-white p-4">
+                                    {winner === "white" ? "White won!" : "Black won!"}
+                                </div>
+                            );
+                        }
+
                     }
 
                 })()}
@@ -1540,7 +1562,25 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     <div className="flex justify-between items-center text-white text-xl">
                         <div className="flex flex-col">
                             <span>{opponentInfo?.username}</span>
-                            <span className="text-sm text-gray-400">{opponentInfo?.rating}</span>
+                            <span className="text-sm text-gray-400">
+                                {opponentInfo?.rating}
+                                {isGameOver && (
+                                    <span
+                                        style={{
+                                            color:
+                                                opponentPointsDelta > 0
+                                                    ? "green"
+                                                    : opponentPointsDelta < 0
+                                                        ? "red"
+                                                        : undefined
+                                        }}
+                                    >
+                                        {opponentPointsDelta > 0
+                                            ? ` +${opponentPointsDelta}`
+                                            : ` ${opponentPointsDelta}`}
+                                    </span>
+                                )}
+                            </span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1581,7 +1621,25 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     <div className="flex justify-between items-center text-white text-xl">
                         <div className="flex flex-col">
                             <span>{playerInfo?.username}</span>
-                            <span className="text-sm text-gray-400">{playerInfo?.rating}</span>
+                            <span className="text-sm">
+                                {playerInfo?.rating}
+                                {isGameOver && (
+                                    <span
+                                        style={{
+                                            color:
+                                                myPointsDelta > 0
+                                                    ? "green"
+                                                    : myPointsDelta < 0
+                                                        ? "red"
+                                                        : undefined
+                                        }}
+                                    >
+                                        {myPointsDelta > 0
+                                            ? ` +${myPointsDelta}`
+                                            : ` ${myPointsDelta}`}
+                                    </span>
+                                )}
+                            </span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1593,6 +1651,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 </div>
             </div>
 
-        </div>
+        </div >
     );
 }
