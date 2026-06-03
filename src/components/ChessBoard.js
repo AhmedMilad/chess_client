@@ -1649,6 +1649,57 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         </div>
                     </div>
                 </div>
+
+                {(() => {
+
+                    if (isGameOver) {
+                        return (
+                            <div className="mx-auto flex space-x-4">
+                                <button
+                                    class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    style={{
+                                        backgroundColor: 'oklch(48.8% 0.243 264.376)'
+                                    }}
+                                >
+                                    Rematch
+                                </button>
+
+                                <button
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    style={{
+                                        backgroundColor: 'oklch(43.2% 0.095 166.913)'
+                                    }}
+                                >
+                                    New game
+                                </button>
+                            </div>
+                        )
+                    } else {
+                        return (
+                            <div className="mx-auto flex space-x-4">
+                                <button
+                                    class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    style={{
+                                        backgroundColor: 'oklch(44.6% 0.043 257.281)'
+                                    }}
+                                >
+                                    Offer Draw
+                                </button>
+
+                                <button
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    style={{
+                                        backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                    }}
+                                >
+                                    Resign
+                                </button>
+                            </div>
+                        )
+                    }
+
+                })()}
+
             </div>
 
         </div >
