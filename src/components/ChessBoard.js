@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback, Fragment } from "react";
+import { useEffect, useRef, useState, useCallback, Fragment, CSSProperties } from "react";
+import { ClipLoader } from "react-spinners";
 import { sendMessage, connectWebSocket } from "../utils/websocket";
 import { fenToBoard, Piece, rotateMatrix180 } from "../utils/game"
 import { useParams } from "react-router-dom";
@@ -111,6 +112,13 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [myPointsDelta, setMyPointsDelta] = useState(0)
     const [opponentPointsDelta, setOpponentPointsDelta] = useState(0)
     const [isGameOver, setIsGameOver] = useState(false)
+    const [cancelDrawOffer, setCancelDrawOffer] = useState(false)
+    const [confirmResign, setConfirmResign] = useState(false)
+    const [loadNewGame, setLoadNewGame] = useState(false)
+    const [offerRematch, setOfferRematch] = useState(false)
+    const [isDrawOffered, setIsDrawOffered] = useState(false)
+    const [loading, setLoading] = useState(true);
+
 
     useEffect(() => {
 
@@ -202,6 +210,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     useEffect(() => {
         if (socketMessage === null || (Object.hasOwn(socketMessage, 'game_id') && socketMessage.game_id !== gameId)) return;
+
+        if (Object.hasOwn(socketMessage, 'type') && socketMessage.type === "draw") {
+
+            setIsDrawOffered(true)
+            return
+        }
 
         if (Object.hasOwn(socketMessage, 'my_points_delta')) {
             setMyPointsDelta(parseInt(socketMessage.my_points_delta))
@@ -1518,6 +1532,95 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         }
     }
 
+    function offerDraw() {
+        // TODO send draw message
+
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "draw",
+        });
+
+        setCancelDrawOffer(true)
+    }
+
+    function resign() {
+        // TODO send resign message
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "resign",
+        });
+    }
+
+    function cancelDraw() {
+        // TODO send cancel draw offer message
+
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "cancel_draw",
+        });
+
+        setCancelDrawOffer(false)
+    }
+
+    function handleOfferRematch() {
+        // TODO send rematch message
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "offer_rematch",
+        });
+
+        setOfferRematch(true)
+    }
+
+    function cancelRematchOffer() {
+        // TODO send cancel rematch message
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "cancel_rematch",
+        });
+
+        setOfferRematch(false)
+    }
+
+
+    function newGame() {
+        // TODO send new game message
+
+
+        // send game type id
+        sendMessage({
+            "game_id": gameId,
+            "type": "new_game",
+        });
+
+        setLoading(true)
+        setLoadNewGame(true)
+    }
+
+
+    function cancelNewGame() {
+        // TODO send cancel new game message
+        sendMessage({
+            "game_id": gameId,
+            "type": "cancel_new_game",
+        });
+        setLoading(false)
+        setLoadNewGame(false)
+    }
+
+    function handleResign() {
+        setConfirmResign(true)
+    }
+
+    function rollbackResign() {
+        setConfirmResign(false)
+    }
+
     return (
         <div className="flex items-center justify-center bg-gray-900 mt-8">
             <div>
@@ -1653,47 +1756,232 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 {(() => {
 
                     if (isGameOver) {
+
                         return (
                             <div className="mx-auto flex space-x-4">
-                                <button
-                                    class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                    style={{
-                                        backgroundColor: 'oklch(48.8% 0.243 264.376)'
-                                    }}
-                                >
-                                    Rematch
-                                </button>
+                                {(() => {
+                                    if (!offerRematch && !loadNewGame) {
+                                        return (
+                                            <div>
+                                                <button
+                                                    className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                    style={{
+                                                        backgroundColor: 'oklch(48.8% 0.243 264.376)'
+                                                    }}
+                                                    onClick={handleOfferRematch}
+                                                >
+                                                    Rematch
+                                                </button>
+                                            </div>
+                                        )
+                                    } else {
+                                        if (offerRematch) {
+                                            return (
+                                                <button
+                                                    className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                    style={{
+                                                        backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                    }}
+                                                    onClick={cancelRematchOffer}
+                                                >
+                                                    Sent Rematch
+                                                </button>)
 
-                                <button
-                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                    style={{
-                                        backgroundColor: 'oklch(43.2% 0.095 166.913)'
-                                    }}
-                                >
-                                    New game
-                                </button>
+                                        }
+                                    }
+
+                                })()}
+
+                                {(() => {
+                                    if (!loadNewGame && !offerRematch) {
+                                        return (
+                                            <div>
+                                                <button
+                                                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                    style={{
+                                                        backgroundColor: 'oklch(43.2% 0.095 166.913)'
+                                                    }}
+                                                    onClick={newGame}
+
+                                                >
+                                                    New Game
+                                                </button>
+                                            </div>
+                                        )
+                                    } else {
+                                        if (loadNewGame) {
+
+                                            return (
+                                                <button
+                                                    onClick={cancelNewGame}
+                                                    className="flex items-center justify-center gap-2 px-4 py-2 text-white rounded disabled:opacity-50"
+                                                    style={{
+                                                        backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                    }}
+                                                >
+                                                    {loading && (
+                                                        <ClipLoader
+                                                            color="#ffffff"
+                                                            size={18}
+                                                            aria-label="Loading"
+                                                        />
+                                                    )}
+
+                                                    Loading...
+                                                </button>
+
+                                            )
+                                        }
+                                    }
+
+
+                                })()}
+
                             </div>
                         )
                     } else {
                         return (
                             <div className="mx-auto flex space-x-4">
-                                <button
-                                    class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                    style={{
-                                        backgroundColor: 'oklch(44.6% 0.043 257.281)'
-                                    }}
-                                >
-                                    Offer Draw
-                                </button>
 
-                                <button
-                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                    style={{
-                                        backgroundColor: 'oklch(58.6% 0.253 17.585)'
-                                    }}
-                                >
-                                    Resign
-                                </button>
+                                {(() => {
+
+                                    if (!confirmResign && !isDrawOffered) {
+                                        return (
+
+                                            <button
+                                                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                style={{
+                                                    backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                }}
+                                                onClick={handleResign}
+                                            >
+                                                Resign
+                                            </button>
+
+
+                                        )
+                                    }
+
+                                })()}
+
+                                {(() => {
+
+                                    if (!cancelDrawOffer && !confirmResign && !isDrawOffered) {
+                                        return (
+
+                                            <div className="mx-auto flex space-x-4">
+                                                <button
+                                                    className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                    style={{
+                                                        backgroundColor: 'oklch(44.6% 0.043 257.281)'
+                                                    }}
+                                                    onClick={offerDraw}
+                                                >
+                                                    Offer Draw
+                                                </button>
+
+
+                                            </div>
+
+
+                                        )
+                                    }
+
+                                })()}
+
+                                {(() => {
+                                    if (isDrawOffered) {
+
+                                        return (
+                                            <div>
+                                                <p className="text-white m-4">
+                                                    Opponent offered draw
+                                                </p>
+
+
+                                                <div className="space-x-2 mx-auto">
+                                                    <button
+                                                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                        style={{
+                                                            backgroundColor: 'oklch(43.2% 0.095 166.913)'
+                                                        }}
+                                                        onClick={resign}
+                                                    >
+                                                        Accept
+                                                    </button>
+
+                                                    <button
+                                                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                        style={{
+                                                            backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                        }}
+                                                        onClick={rollbackResign}
+                                                    >
+                                                        Decline
+                                                    </button>
+                                                </div>
+
+
+                                            </div>
+                                        )
+
+                                    } else {
+
+                                        if (cancelDrawOffer) {
+
+                                            return (
+                                                <button
+                                                    className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                    style={{
+                                                        backgroundColor: 'oklch(55.3% 0.195 38.402)'
+                                                    }}
+                                                    onClick={cancelDraw}
+                                                >
+                                                    Cancel Draw Offer
+                                                </button>
+                                            )
+                                        }
+
+                                        if (confirmResign) {
+
+                                            return (
+                                                <div>
+                                                    <p className="text-white m-4">
+                                                        Are you sure you want to resign?
+                                                    </p>
+
+
+                                                    <div className="space-x-2 mx-auto">
+                                                        <button
+                                                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            style={{
+                                                                backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                            }}
+                                                            onClick={resign}
+                                                        >
+                                                            Yes
+                                                        </button>
+
+                                                        <button
+                                                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            style={{
+                                                                backgroundColor: 'oklch(27.8% 0.033 256.848)'
+                                                            }}
+                                                            onClick={rollbackResign}
+                                                        >
+                                                            No
+                                                        </button>
+                                                    </div>
+
+
+                                                </div>
+                                            )
+
+                                        }
+                                    }
+
+                                })()}
+
                             </div>
                         )
                     }
