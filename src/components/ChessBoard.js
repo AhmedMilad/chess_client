@@ -211,10 +211,21 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     useEffect(() => {
         if (socketMessage === null || (Object.hasOwn(socketMessage, 'game_id') && socketMessage.game_id !== gameId)) return;
 
-        if (Object.hasOwn(socketMessage, 'type') && socketMessage.type === "draw") {
+        if (Object.hasOwn(socketMessage, 'type')) {
 
-            setIsDrawOffered(true)
-            return
+            if (socketMessage.type === "draw_offered") {
+                setIsDrawOffered(true)
+                return
+
+            }
+
+            if (socketMessage.type === "cancel_draw" || socketMessage.type === "decline_draw") {
+                setIsDrawOffered(false)
+                setCancelDrawOffer(false)
+                return
+
+            }
+
         }
 
         if (Object.hasOwn(socketMessage, 'my_points_delta')) {
@@ -1562,7 +1573,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             "type": "cancel_draw",
         });
 
-        setCancelDrawOffer(false)
     }
 
     function handleOfferRematch() {
@@ -1598,6 +1608,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             "type": "new_game",
         });
 
+        // TODO set those states after acknowledgement from the server
         setLoading(true)
         setLoadNewGame(true)
     }
@@ -1617,8 +1628,26 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         setConfirmResign(true)
     }
 
+    function rollbackDraw() {
+
+        sendMessage({
+            "game_id": gameId,
+            "type": "decline_draw",
+        });
+    }
+
+
     function rollbackResign() {
         setConfirmResign(false)
+
+    }
+
+
+    function acceptDraw() {
+        sendMessage({
+            "game_id": gameId,
+            "type": "accept_draw",
+        });
     }
 
     return (
@@ -1905,7 +1934,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                                         style={{
                                                             backgroundColor: 'oklch(43.2% 0.095 166.913)'
                                                         }}
-                                                        onClick={resign}
+                                                        onClick={acceptDraw}
                                                     >
                                                         Accept
                                                     </button>
@@ -1915,7 +1944,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                                         style={{
                                                             backgroundColor: 'oklch(58.6% 0.253 17.585)'
                                                         }}
-                                                        onClick={rollbackResign}
+                                                        onClick={rollbackDraw}
                                                     >
                                                         Decline
                                                     </button>
