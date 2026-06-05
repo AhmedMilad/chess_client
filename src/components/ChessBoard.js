@@ -116,7 +116,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [confirmResign, setConfirmResign] = useState(false)
     const [loadNewGame, setLoadNewGame] = useState(false)
     const [offerRematch, setOfferRematch] = useState(false)
-    const [isDrawOffered, setIsDrawOffered] = useState(false)
+    const [isDrawAvailable, setIsDrawAvailable] = useState(false)
     const [loading, setLoading] = useState(true);
 
 
@@ -214,17 +214,27 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         if (Object.hasOwn(socketMessage, 'type')) {
 
             if (socketMessage.type === "draw_offered") {
-                setIsDrawOffered(true)
+                setIsDrawAvailable(true)
                 return
 
             }
 
             if (socketMessage.type === "cancel_draw" || socketMessage.type === "decline_draw") {
-                setIsDrawOffered(false)
+                setIsDrawAvailable(false)
                 setCancelDrawOffer(false)
                 return
 
             }
+
+        }
+
+        if (Object.hasOwn(socketMessage, "is_draw_available")) {
+            setIsDrawAvailable(socketMessage.is_draw_available)
+
+        }
+
+        if (Object.hasOwn(socketMessage, "is_draw_offered")) {
+            setCancelDrawOffer(socketMessage.is_draw_offered)
 
         }
 
@@ -1874,7 +1884,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                                 {(() => {
 
-                                    if (!confirmResign && !isDrawOffered) {
+                                    if (!confirmResign && !isDrawAvailable) {
                                         return (
 
                                             <button
@@ -1895,7 +1905,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                                 {(() => {
 
-                                    if (!cancelDrawOffer && !confirmResign && !isDrawOffered) {
+                                    if (!cancelDrawOffer && !confirmResign && !isDrawAvailable) {
                                         return (
 
                                             <div className="mx-auto flex space-x-4">
@@ -1919,7 +1929,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                 })()}
 
                                 {(() => {
-                                    if (isDrawOffered) {
+                                    if (isDrawAvailable) {
 
                                         return (
                                             <div>
