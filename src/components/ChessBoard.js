@@ -308,14 +308,32 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             }
 
-            if (socketMessage.type === "rematch_offered") {
-                setIsRematchAvailable(true)
+
+            if (socketMessage.type === "cancel_rematch") {
+                if (Object.hasOwn(socketMessage, "is_rematch_available")) {
+                    setIsRematchAvailable(socketMessage.is_rematch_available)
+
+                }
+
+                if (Object.hasOwn(socketMessage, "is_rematch_offered")) {
+                    setIsRematchOffered(socketMessage.is_rematch_offered)
+
+                }
+
                 return
 
             }
 
-            if (socketMessage.type === "cancel_rematch") {
-                setIsRematchAvailable(false)
+            if (socketMessage.type === "rematch_available" && Object.hasOwn(socketMessage, "is_rematch_available")) {
+
+                setIsRematchAvailable(socketMessage.is_rematch_available)
+                return
+
+            }
+
+
+            if (socketMessage.type === "rematch_offered" && Object.hasOwn(socketMessage, "is_rematch_offered")) {
+                setIsRematchOffered(socketMessage.is_rematch_offered)
                 return
 
             }
@@ -1714,7 +1732,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             "type": "offer_rematch",
         });
 
-        setIsRematchOffered(true)
     }
 
     function cancelRematchOffer() {
@@ -1724,7 +1741,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             "type": "cancel_rematch",
         });
 
-        setIsRematchOffered(false)
     }
 
 
