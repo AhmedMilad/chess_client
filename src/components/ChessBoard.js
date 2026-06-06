@@ -289,8 +289,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         if (Object.hasOwn(socketMessage, 'type')) {
 
-            if (socketMessage.type === "draw_offered") {
+            if (socketMessage.type === "draw_available") {
                 setIsDrawAvailable(true)
+                return
+
+            }
+
+            if (socketMessage.type === "draw_offered") {
+                setCancelDrawOffer(true)
                 return
 
             }
@@ -1677,20 +1683,15 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }
 
     function offerDraw() {
-        // TODO send draw message
-
 
         sendMessage({
             "game_id": gameId,
             "type": "draw",
         });
 
-        setCancelDrawOffer(true)
     }
 
     function resign() {
-        // TODO send resign message
-
         sendMessage({
             "game_id": gameId,
             "type": "resign",
@@ -1698,8 +1699,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }
 
     function cancelDraw() {
-        // TODO send cancel draw offer message
-
 
         sendMessage({
             "game_id": gameId,
@@ -1709,7 +1708,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }
 
     function OfferRematch() {
-        // TODO send rematch message
 
         sendMessage({
             "game_id": gameId,
@@ -1720,7 +1718,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }
 
     function cancelRematchOffer() {
-        // TODO send cancel rematch message
 
         sendMessage({
             "game_id": gameId,
