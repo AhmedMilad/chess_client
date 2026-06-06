@@ -3,6 +3,7 @@ import { ClipLoader } from "react-spinners";
 import { sendMessage, connectWebSocket } from "../utils/websocket";
 import { fenToBoard, Piece, rotateMatrix180 } from "../utils/game"
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import {
     pieceImages,
@@ -31,24 +32,22 @@ import {
 
 export default function ChessBoard({ size = 750, message, gameBoard }) {
 
-    const gameId = message.game_id
+
+    const [gameId, setGameID] = useState(message.game_id)
     const [preMoves, setPreMoves] = useState([]);
     const socketRef = useRef(null);
+    const navigate = useNavigate();
 
-    let isBlack = false
+    const [isBlack, setIsBlack] = useState(false)
 
-    if (Object.hasOwn(message, "color") && message.color === "black") {
-        isBlack = true
-    }
-
-    const [board, setBoard] = useState(() => structuredClone(gameBoard));
+    const [board, setBoard] = useState([]);
 
     const canvasRef = useRef(null);
     const [images, setImages] = useState({});
     const [draggingPiece, setDraggingPiece] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [moves, setMoves] = useState([]);
-    const [turn, setTurn] = useState(!isBlack)
+    const [turn, setTurn] = useState(false)
     const [isCheckMate, setIsCheckMate] = useState(false)
     const [isRightDragging, setIsRightDragging] = useState(false);
     const [startPos, setStartPos] = useState(null);
@@ -115,7 +114,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [cancelDrawOffer, setCancelDrawOffer] = useState(false)
     const [confirmResign, setConfirmResign] = useState(false)
     const [loadNewGame, setLoadNewGame] = useState(false)
-    const [offerRematch, setOfferRematch] = useState(false)
+    const [isRematchOffered, setIsRematchOffered] = useState(false)
+    const [isRematchAvailable, setIsRematchAvailable] = useState(false)
     const [isDrawAvailable, setIsDrawAvailable] = useState(false)
     const [loading, setLoading] = useState(true);
 
@@ -209,7 +209,81 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
 
     useEffect(() => {
-        if (socketMessage === null || (Object.hasOwn(socketMessage, 'game_id') && socketMessage.game_id !== gameId)) return;
+
+        if (socketMessage !== null && (Object.hasOwn(socketMessage, 'type')) && socketMessage.type === "start_game") {
+
+            navigate(`/game/${socketMessage.game_id}`, { state: { message: socketMessage } });
+
+
+            setIsBlack(socketMessage?.color === "black")
+            setTurn(socketMessage?.color !== "black")
+
+
+            setIsDraw(false)
+            setIsWin(false)
+            setIsDefeat(false)
+
+            setMovesHistory([])
+
+            setGameID(socketMessage.game_id)
+
+            if (Object.hasOwn(socketMessage, 'board')) {
+
+                let brd = fenToBoard(socketMessage.board, (socketMessage?.color === "black"));
+
+                if (Object.hasOwn(socketMessage, "data") && socketMessage.data != null && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
+                    let from = socketMessage.data.from;
+                    let to = socketMessage.data.to;
+                    let fromIndexes = notationToIndex(from, isBlack);
+                    let toIndexes = notationToIndex(to, isBlack);
+                    let [fromRow, fromCol] = fromIndexes;
+                    let [toNewRow, toNewCol] = toIndexes;
+                    setPreviousMove([[fromRow, fromCol], [toNewRow, toNewCol]]);
+
+                }
+
+                setBoard(brd);
+
+
+                if (Object.hasOwn(socketMessage, 'my_time')) {
+                    setMyTime(socketMessage.my_time)
+                }
+
+                if (Object.hasOwn(socketMessage, 'opponent_time')) {
+                    setOpponentTime(socketMessage.opponent_time)
+                }
+
+            }
+
+            setIsRematchAvailable(false)
+            setIsRematchOffered(false)
+
+            setIsDrawAvailable(false)
+            setCancelDrawOffer(false)
+            setIsGameOver(false)
+            setPreviousMove([])
+            setPreMoves([])
+
+            setEnpassantSquare("")
+            setCanLongCastle(true)
+            setCanKingSideCastle(true)
+            setConfirmResign(false)
+
+            if (Object.hasOwn(socketMessage, 'turn')) {
+                const isMyTurn = socketMessage.color === "black" ? socketMessage.turn === 2 : socketMessage.turn === 1;
+                setTurn(isMyTurn);
+            }
+
+            return
+        }
+
+        if (socketMessage === null || ((Object.hasOwn(socketMessage, 'game_id') && (Object.hasOwn(socketMessage, 'type') && socketMessage !== "start_game") && gameId !== socketMessage.game_id))) return;
+
+        setGameID(socketMessage.game_id)
+
+        if (Object.hasOwn(socketMessage, "color") && socketMessage.color === "black") {
+            setIsBlack(true)
+        }
 
         if (Object.hasOwn(socketMessage, 'type')) {
 
@@ -226,6 +300,18 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             }
 
+            if (socketMessage.type === "rematch_offered") {
+                setIsRematchAvailable(true)
+                return
+
+            }
+
+            if (socketMessage.type === "cancel_rematch") {
+                setIsRematchAvailable(false)
+                return
+
+            }
+
         }
 
         if (Object.hasOwn(socketMessage, "is_draw_available")) {
@@ -237,6 +323,17 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             setCancelDrawOffer(socketMessage.is_draw_offered)
 
         }
+
+        if (Object.hasOwn(socketMessage, "is_rematch_available")) {
+            setIsRematchAvailable(socketMessage.is_rematch_available)
+
+        }
+
+        if (Object.hasOwn(socketMessage, "is_rematch_offered")) {
+            setIsRematchOffered(socketMessage.is_rematch_offered)
+
+        }
+
 
         if (Object.hasOwn(socketMessage, 'my_points_delta')) {
             setMyPointsDelta(parseInt(socketMessage.my_points_delta))
@@ -279,10 +376,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                 if (Object.hasOwn(socketMessage, 'board')) {
                     let brd = fenToBoard(socketMessage.board, isBlack);
-
-                    if (isBlack) {
-                        brd = rotateMatrix180(brd);
-                    }
 
                     if (Object.hasOwn(socketMessage, "data") && socketMessage.data != null && Object.hasOwn(socketMessage.data, "from") && Object.hasOwn(socketMessage.data, "to")) {
                         let from = socketMessage.data.from;
@@ -350,12 +443,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                 }
 
                 if (Object.hasOwn(socketMessage, 'board')) {
-                    let brd = fenToBoard(socketMessage.board, isBlack);
-
-                    if (isBlack) {
-                        brd = rotateMatrix180(brd);
-                    }
-
+                    let brd = fenToBoard(socketMessage.board, (socketMessage?.color === "black"));
 
                     if (Object.hasOwn(socketMessage, 'status')) {
                         const tmpBoardCol = Array.from({ length: 8 }, () => Array(8).fill(0));
@@ -435,6 +523,19 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     }, [socketMessage, isBlack]);
 
+    useEffect(() => {
+
+
+        if (socketMessage !== null && Object.hasOwn(socketMessage, "board") && socketMessage.board !== "" && isBlack) {
+            let brd = fenToBoard(socketMessage.board, isBlack);
+            brd = rotateMatrix180(brd);
+            setBoard(brd);
+        }
+
+    }, [
+        isBlack,
+        socketMessage
+    ])
 
     useEffect(() => {
         if (!turn || !preMoves || preMoves.length === 0 || !board) return;
@@ -1585,7 +1686,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     }
 
-    function handleOfferRematch() {
+    function OfferRematch() {
         // TODO send rematch message
 
         sendMessage({
@@ -1593,7 +1694,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             "type": "offer_rematch",
         });
 
-        setOfferRematch(true)
+        setIsRematchOffered(true)
     }
 
     function cancelRematchOffer() {
@@ -1604,7 +1705,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             "type": "cancel_rematch",
         });
 
-        setOfferRematch(false)
+        setIsRematchOffered(false)
     }
 
 
@@ -1657,6 +1758,13 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         sendMessage({
             "game_id": gameId,
             "type": "accept_draw",
+        });
+    }
+
+    function acceptRematch() {
+        sendMessage({
+            "game_id": gameId,
+            "type": "accept_rematch",
         });
     }
 
@@ -1797,85 +1905,124 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     if (isGameOver) {
 
                         return (
-                            <div className="mx-auto flex space-x-4">
-                                {(() => {
-                                    if (!offerRematch && !loadNewGame) {
-                                        return (
-                                            <div>
-                                                <button
-                                                    className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                    style={{
-                                                        backgroundColor: 'oklch(48.8% 0.243 264.376)'
-                                                    }}
-                                                    onClick={handleOfferRematch}
-                                                >
-                                                    Rematch
-                                                </button>
-                                            </div>
-                                        )
-                                    } else {
-                                        if (offerRematch) {
-                                            return (
-                                                <button
-                                                    className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                    style={{
-                                                        backgroundColor: 'oklch(58.6% 0.253 17.585)'
-                                                    }}
-                                                    onClick={cancelRematchOffer}
-                                                >
-                                                    Sent Rematch
-                                                </button>)
-
-                                        }
-                                    }
-
-                                })()}
+                            <div className="flex flex-col">
 
                                 {(() => {
-                                    if (!loadNewGame && !offerRematch) {
+                                    if (isRematchAvailable) {
                                         return (
-                                            <div>
-                                                <button
-                                                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                    style={{
-                                                        backgroundColor: 'oklch(43.2% 0.095 166.913)'
-                                                    }}
-                                                    onClick={newGame}
-
-                                                >
-                                                    New Game
-                                                </button>
+                                            <div className="mb-4">
+                                                <p className="text-white">
+                                                    Your opponent is offering a rematch
+                                                </p>
                                             </div>
+
                                         )
-                                    } else {
-                                        if (loadNewGame) {
-
-                                            return (
-                                                <button
-                                                    onClick={cancelNewGame}
-                                                    className="flex items-center justify-center gap-2 px-4 py-2 text-white rounded disabled:opacity-50"
-                                                    style={{
-                                                        backgroundColor: 'oklch(58.6% 0.253 17.585)'
-                                                    }}
-                                                >
-                                                    {loading && (
-                                                        <ClipLoader
-                                                            color="#ffffff"
-                                                            size={18}
-                                                            aria-label="Loading"
-                                                        />
-                                                    )}
-
-                                                    Loading...
-                                                </button>
-
-                                            )
-                                        }
                                     }
-
-
                                 })()}
 
+                                <div className="mx-auto flex">
+
+                                    <div className="mx-auto flex space-x-4">
+                                        {(() => {
+                                            if (!isRematchAvailable) {
+                                                if (!isRematchOffered && !loadNewGame) {
+                                                    return (
+                                                        <div>
+                                                            <button
+                                                                className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                                style={{
+                                                                    backgroundColor: 'oklch(48.8% 0.243 264.376)'
+                                                                }}
+                                                                onClick={OfferRematch}
+                                                            >
+                                                                Rematch
+                                                            </button>
+                                                        </div>
+                                                    )
+                                                } else {
+                                                    if (isRematchOffered) {
+                                                        return (
+                                                            <button
+                                                                className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                                style={{
+                                                                    backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                                }}
+                                                                onClick={cancelRematchOffer}
+                                                            >
+                                                                Sent Rematch
+                                                            </button>)
+
+                                                    }
+                                                }
+                                            } else {
+
+                                                return (
+                                                    <div>
+                                                        <button
+                                                            className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            style={{
+                                                                backgroundColor: 'oklch(64.6% 0.222 41.116)'
+                                                            }}
+                                                            onClick={acceptRematch}
+                                                        >
+                                                            Accept Rematch
+                                                        </button>
+                                                    </div>
+
+                                                )
+
+                                            }
+
+
+                                        })()}
+
+                                        {(() => {
+                                            if (!loadNewGame && !isRematchOffered) {
+                                                return (
+                                                    <div>
+                                                        <button
+                                                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            style={{
+                                                                backgroundColor: 'oklch(43.2% 0.095 166.913)'
+                                                            }}
+                                                            onClick={newGame}
+
+                                                        >
+                                                            New Game
+                                                        </button>
+                                                    </div>
+                                                )
+                                            } else {
+                                                if (loadNewGame) {
+
+                                                    return (
+                                                        <button
+                                                            onClick={cancelNewGame}
+                                                            className="flex items-center justify-center gap-2 px-4 py-2 text-white rounded disabled:opacity-50"
+                                                            style={{
+                                                                backgroundColor: 'oklch(58.6% 0.253 17.585)'
+                                                            }}
+                                                        >
+                                                            {loading && (
+                                                                <ClipLoader
+                                                                    color="#ffffff"
+                                                                    size={18}
+                                                                    aria-label="Loading"
+                                                                />
+                                                            )}
+
+                                                            Loading...
+                                                        </button>
+
+                                                    )
+                                                }
+                                            }
+
+
+                                        })()}
+
+                                    </div>
+                                </div>
                             </div>
                         )
                     } else {
