@@ -222,6 +222,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             setIsDraw(false)
             setIsWin(false)
             setIsDefeat(false)
+            setLoading(false)
+            setLoadNewGame(false)
 
             setMovesHistory([])
 
@@ -312,10 +314,30 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             }
 
+            if (socketMessage.type === "pending_new_game") {
+                setLoadNewGame(true)
+                setLoading(true)
+
+                return
+            }
+
+            if (socketMessage.type === "cancel_new_game") {
+                setLoadNewGame(false)
+                setLoading(false)
+
+                return
+            }
+
         }
 
         if (Object.hasOwn(socketMessage, "is_draw_available")) {
             setIsDrawAvailable(socketMessage.is_draw_available)
+
+        }
+
+        if (Object.hasOwn(socketMessage, "is_new_game_pending")) {
+            setLoadNewGame(socketMessage.is_new_game_pending)
+            setLoading(socketMessage.is_new_game_pending)
 
         }
 
@@ -1710,29 +1732,19 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
 
     function newGame() {
-        // TODO send new game message
 
-
-        // send game type id
         sendMessage({
             "game_id": gameId,
             "type": "new_game",
         });
-
-        // TODO set those states after acknowledgement from the server
-        setLoading(true)
-        setLoadNewGame(true)
     }
 
 
     function cancelNewGame() {
-        // TODO send cancel new game message
         sendMessage({
             "game_id": gameId,
             "type": "cancel_new_game",
         });
-        setLoading(false)
-        setLoadNewGame(false)
     }
 
     function handleResign() {
