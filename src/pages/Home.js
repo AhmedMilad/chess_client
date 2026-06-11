@@ -7,7 +7,7 @@ async function getGameTypes(token) {
     try {
         const stored = localStorage.getItem("gameTypes");
         if (!stored && token) {
-            const response = await axios.get("http://127.0.0.1:8080/api/games/", {
+            const response = await axios.get("http://192.168.88.114:8080/api/games/", {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (response.status === 200) {
@@ -28,7 +28,8 @@ async function getUserData(token) {
     try {
         const stored = localStorage.getItem("userData");
         if (!stored && token) {
-            const response = await axios.get("http://127.0.0.1:8080/api/users/info", {
+            const baseURL = process.env.REACT_APP_BACKEND_URL
+            const response = await axios.get(baseURL + "/api/users/info", {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (response.status === 200) {

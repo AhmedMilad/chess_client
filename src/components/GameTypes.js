@@ -9,8 +9,9 @@ export default function GameTypes({ games }) {
   const handleClick = (game) => {
     const token = localStorage.getItem("token");
 
+    const baseURL = process.env.REACT_APP_BACKEND_URL
     connectWebSocket(
-      `ws://localhost:8080/api/games/${game.id}/play?token=${token}`,
+      baseURL + `/api/games/${game.id}/play?token=${token}`,
       (msg) => {
         try {
           const data = JSON.parse(msg);

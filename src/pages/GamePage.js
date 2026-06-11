@@ -17,8 +17,9 @@ export default function GamePage() {
 
     const token = localStorage.getItem("token");
 
+    const baseURL = process.env.REACT_APP_BACKEND_URL
     const ws = connectWebSocket(
-      `ws://localhost:8080/api/games/${id}/reconnect?token=${token}`,
+      baseURL + `/api/games/${id}/reconnect?token=${token}`,
       (msg) => {
         try {
           const data = JSON.parse(msg);

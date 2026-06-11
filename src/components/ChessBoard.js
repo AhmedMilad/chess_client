@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, Fragment, CSSProperties } from "react";
+import { useEffect, useRef, useState, useCallback, Fragment } from "react";
 import { ClipLoader } from "react-spinners";
 import { sendMessage, connectWebSocket } from "../utils/websocket";
 import { fenToBoard, Piece, rotateMatrix180 } from "../utils/game"
@@ -664,8 +664,10 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             return;
         }
 
+        const baseURL = process.env.REACT_APP_BACKEND_URL
+
         socketRef.current = connectWebSocket(
-            `ws://localhost:8080/api/games/${id}/reconnect?token=${token}`,
+            baseURL + `/api/games/${id}/reconnect?token=${token}`,
             (msg) => {
                 try {
                     const data = JSON.parse(msg);

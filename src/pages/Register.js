@@ -33,7 +33,8 @@ export default function SignUpForm() {
     };
 
     try {
-      const response = await axios.post("http://127.0.0.1:8080/api/register", payload);
+      const baseURL = process.env.REACT_APP_BACKEND_URL
+      const response = await axios.post(baseURL + "/api/register", payload);
 
       if (response.status === 200) {
         const token = response.data?.data;
