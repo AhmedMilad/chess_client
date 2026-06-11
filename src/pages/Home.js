@@ -7,7 +7,8 @@ async function getGameTypes(token) {
     try {
         const stored = localStorage.getItem("gameTypes");
         if (!stored && token) {
-            const response = await axios.get("http://192.168.88.114:8080/api/games/", {
+            const baseURL = process.env.REACT_APP_BACKEND_URL
+            const response = await axios.get(baseURL + "/api/games/", {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (response.status === 200) {
