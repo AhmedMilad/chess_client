@@ -212,7 +212,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         if (socketMessage !== null && (Object.hasOwn(socketMessage, 'type')) && socketMessage.type === "start_game") {
 
-            navigate(`/game/${socketMessage.game_id}`, { state: { message: socketMessage } });
+            navigate(`/games/${socketMessage.game_id}`, { state: { message: socketMessage } });
 
 
             setIsBlack(socketMessage?.color === "black")
