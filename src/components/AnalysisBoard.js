@@ -11,7 +11,8 @@ import {
     getHorizontalMoves,
     getMainDiagonal,
     getAntiDiagonal,
-    fenToAnalysisBoard
+    fenToAnalysisBoard,
+    rotateMatrix180
 } from "../utils/game"
 
 export default function AnalysisBoard() {
@@ -43,6 +44,15 @@ export default function AnalysisBoard() {
     const [canKingSideCastle, setCanKingSideCastle] = useState(false)
     const [canLongCastle, setCanLongCastle] = useState(false)
 
+    const [isWhiteKingMoved, setIsWhiteKingMoved] = useState(false)
+    const [isBlackKingMoved, setIsBlackKingMoved] = useState(false)
+    const [isWhiteKingSideRookMoved, setIsWhiteKingSideRookMoved] = useState(false)
+    const [isWhiteQueenSideRookMoved, setIsWhiteQueenKingSideRookMoved] = useState(false)
+    const [isBlackKingSideRookMoved, setIsBlackKingSideRookMoved] = useState(false)
+    const [isBlackQueenSideRookMoved, setIsBlackQueenKingSideRookMoved] = useState(false)
+
+    const [isOriginalPerspective, setIsOriginalPerspective] = useState(true)
+
     useEffect(() => {
 
         const loadedImages = {};
@@ -62,6 +72,9 @@ export default function AnalysisBoard() {
         });
 
         let brd = fenToAnalysisBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+
+        // brd = rotateMatrix180(brd)
+
         setBoard(brd)
 
     }, []);
@@ -275,7 +288,14 @@ export default function AnalysisBoard() {
         }
         switch (piece.name) {
             case "wp":
-                newMoves = getWPawnMoves(row, col, board, enpassantSquare);
+
+                if (isOriginalPerspective) {
+                    newMoves = getWPawnMoves(row, col, board, enpassantSquare);
+
+                } else {
+                    newMoves = getBPawnMoves(row, col, board, enpassantSquare);
+                }
+
                 if (whiteThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
                         whiteThreatMoves.some(move =>
@@ -292,7 +312,14 @@ export default function AnalysisBoard() {
                 }
                 break;
             case "bp":
-                newMoves = getBPawnMoves(row, col, board, enpassantSquare);
+
+                if (isOriginalPerspective) {
+
+                    newMoves = getBPawnMoves(row, col, board, enpassantSquare);
+                } else {
+                    newMoves = getWPawnMoves(row, col, board, enpassantSquare);
+                }
+
                 if (blackThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
                         blackThreatMoves.some(move =>
@@ -538,8 +565,73 @@ export default function AnalysisBoard() {
                 return newBoard;
             });
 
+            const curPiece = piece?.piece
+
+            if (curPiece?.name[1] === "k") {
+                if (turn === "white") {
+                    setIsWhiteKingMoved(true)
+                } else {
+                    setIsBlackKingMoved(true)
+                }
+            }
+
+            if (curPiece?.name[1] === "r") {
+                if (turn === "white") { // targetted piece is white
+
+                    if (isOriginalPerspective) {
+
+                        if (piece?.col === 0) {
+                            setIsWhiteQueenKingSideRookMoved(true)
+                        }
+
+                        if (piece?.col === 7) {
+                            setIsWhiteKingSideRookMoved(true)
+                        }
+
+                    } else {
+                        if (piece?.col === 0) {
+                            setIsWhiteKingSideRookMoved(true)
+
+                        }
+
+                        if (piece?.col === 7) {
+                            setIsWhiteQueenKingSideRookMoved(true)
+
+                        }
+                    }
+
+
+                } else {
+                    // targetted piece is black
+
+                    if (isOriginalPerspective) {
+
+                        if (piece?.col === 0) {
+                            setIsBlackQueenKingSideRookMoved(true)
+                        }
+
+                        if (piece?.col === 7) {
+                            setIsBlackKingSideRookMoved(true)
+                        }
+
+                    } else {
+                        if (piece?.col === 0) {
+                            setIsBlackKingSideRookMoved(true)
+
+                        }
+
+                        if (piece?.col === 7) {
+                            setIsBlackQueenKingSideRookMoved(true)
+
+                        }
+                    }
+
+                }
+            }
+
             setTurn((turn === "white") ? "black" : "white")
             setMoves([])
+
 
         }
     }
