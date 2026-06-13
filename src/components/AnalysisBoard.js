@@ -28,6 +28,7 @@ export default function AnalysisBoard() {
     const [images, setImages] = useState({});
 
     const [startPos, setStartPos] = useState(null);
+    const [turn, setTurn] = useState("white");
     const imageScale = 0.75;
     const [draggingPiece, setDraggingPiece] = useState(null);
     const [isRightDragging, setIsRightDragging] = useState(false);
@@ -487,7 +488,13 @@ export default function AnalysisBoard() {
                 setCurrentPiece({ piece, row, col });
                 setMousePos(pos)
 
-                setMoves(getPieceMoves(row, col, piece, board));
+                if ((turn === "white" && piece?.name[0] === 'w') || (turn === "black" && piece?.name[0] === 'b')) {
+                    setMoves(getPieceMoves(row, col, piece, board));
+
+                }
+
+            } else {
+                setMoves([])
 
             }
         }
@@ -518,7 +525,6 @@ export default function AnalysisBoard() {
         handleMove(newRow, newCol, draggingPiece)
 
         setDraggingPiece(null)
-        setMoves([])
 
     };
 
@@ -531,6 +537,9 @@ export default function AnalysisBoard() {
                 newBoard[newRow][newCol] = piece?.piece;
                 return newBoard;
             });
+
+            setTurn((turn === "white") ? "black" : "white")
+            setMoves([])
 
         }
     }
