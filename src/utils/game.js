@@ -175,41 +175,64 @@ export function getWPawnMoves(row, col, board, enpassantSquare) {
 }
 
 export function getBPawnMoves(row, col, board, enpassantSquare) {
-    let [r, c] = squareToIndex(enpassantSquare)
+    let [r, c] = squareToIndex(enpassantSquare);
 
     let newMoves = [];
-    let pawn = board[row][col]
+    let pawn = board[row][col];
 
-    if (pawn != null && pawn.name[0] === 'b') {
-        c = 7 - c
+    if (pawn != null && pawn.name[0] === 'w') {
+        c = 7 - c;
     } else {
-        r = 7 - r
+        r = 7 - r;
     }
 
     if (row < 7 && board[row + 1][col] === null) {
         newMoves.push([row + 1, col]);
-        if (row + 2 <= 7 && pawn != null && row === 6 && board[row + 2][col] === null) newMoves.push([row + 2, col]);
+
+        if (
+            pawn != null &&
+            row === 1 &&
+            row + 2 <= 7 &&
+            board[row + 2][col] === null
+        ) {
+            newMoves.push([row + 2, col]);
+        }
     }
+
     if (col > 0) {
         if (enpassantSquare != null && enpassantSquare !== "") {
             if (r === row && c === (col - 1)) {
                 newMoves.push([row + 1, col - 1]);
             }
         }
-        if (row < 7 && pawn !== null && board[row + 1][col - 1] !== null && board[row + 1][col - 1].name[0] !== pawn.name[0]) {
+
+        if (
+            row < 7 &&
+            board[row + 1][col - 1] !== null &&
+            pawn !== null &&
+            board[row + 1][col - 1].name[0] !== pawn.name[0]
+        ) {
             newMoves.push([row + 1, col - 1]);
         }
     }
+
     if (col < 7) {
         if (enpassantSquare != null && enpassantSquare !== "") {
             if (r === row && c === (col + 1)) {
                 newMoves.push([row + 1, col + 1]);
             }
         }
-        if (row < 7 && board[row + 1][col + 1] !== null && pawn !== null && board[row + 1][col + 1].name[0] !== pawn.name[0]) {
+
+        if (
+            row < 7 &&
+            board[row + 1][col + 1] !== null &&
+            pawn !== null &&
+            board[row + 1][col + 1].name[0] !== pawn.name[0]
+        ) {
             newMoves.push([row + 1, col + 1]);
         }
     }
+
     return newMoves;
 }
 
@@ -431,7 +454,7 @@ export const getKingMoves = (row, col, board, target, canKingSideCastle, canLong
     );
 
     let friendCol = (target === 'w') ? 'b' : 'w'
-    
+
     if (exists) {
         while (newCol > 0) {
             newCol--
@@ -1477,6 +1500,56 @@ export function fenToBoard(fen, isBlack) {
                 } else if (!isBlack && color === 'w') {
                     board[row][col].isPlayable = true;
                 }
+
+                col++;
+            }
+        }
+    }
+    return board;
+}
+
+export function fenToAnalysisBoard(fen) {
+    const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+
+    const rows = fen.split(" ")[0].split("/");
+    const fenToPiece = {
+        r: "r",
+        n: "n",
+        b: "b",
+        q: "q",
+        k: "k",
+        p: "p",
+    };
+    const pieceValues = {
+        r: 5,
+        n: 3,
+        b: 3,
+        q: 9,
+        k: 100,
+        p: 1,
+    };
+
+
+    for (let row = 0; row < 8; row++) {
+        let col = 0;
+
+        for (const char of rows[row]) {
+            if (!isNaN(char)) {
+                col += Number(char);
+            } else {
+                const isWhite = char === char.toUpperCase();
+                const color = isWhite ? "w" : "b";
+                const type = fenToPiece[char.toLowerCase()];
+
+                const code = color + type;
+
+                board[row][col] = new Piece(
+                    code,
+                    pieceImages[code],
+                    pieceValues[type]
+                );
+
+                board[row][col].isPlayable = true;
 
                 col++;
             }

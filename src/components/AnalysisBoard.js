@@ -11,7 +11,7 @@ import {
     getHorizontalMoves,
     getMainDiagonal,
     getAntiDiagonal,
-    fenToBoard
+    fenToAnalysisBoard
 } from "../utils/game"
 
 export default function AnalysisBoard() {
@@ -60,7 +60,7 @@ export default function AnalysisBoard() {
             };
         });
 
-        let brd = fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", false);
+        let brd = fenToAnalysisBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
         setBoard(brd)
 
     }, []);
@@ -274,11 +274,7 @@ export default function AnalysisBoard() {
         }
         switch (piece.name) {
             case "wp":
-                if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col, board, enpassantSquare);
-                } else {
-                    newMoves = getBPawnMoves(row, col, board, enpassantSquare);
-                }
+                newMoves = getWPawnMoves(row, col, board, enpassantSquare);
                 if (whiteThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
                         whiteThreatMoves.some(move =>
@@ -295,11 +291,7 @@ export default function AnalysisBoard() {
                 }
                 break;
             case "bp":
-                if (piece.isPlayable) {
-                    newMoves = getWPawnMoves(row, col, board, enpassantSquare);
-                } else {
-                    newMoves = getBPawnMoves(row, col, board, enpassantSquare);
-                }
+                newMoves = getBPawnMoves(row, col, board, enpassantSquare);
                 if (blackThreatMoves.length !== 0) {
                     newMoves = newMoves.filter(element =>
                         blackThreatMoves.some(move =>
