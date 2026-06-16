@@ -68,11 +68,14 @@ export default function AnalysisBoard() {
 
         let brd = fenToAnalysisBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
 
-        // brd = rotateMatrix180(brd)
+        if (!isOriginalPerspective) {
+            brd = rotateMatrix180(brd)
+
+        }
 
         setBoard(brd)
 
-    }, []);
+    }, [isOriginalPerspective]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -559,30 +562,82 @@ export default function AnalysisBoard() {
 
     };
 
+    function swapBoardPieces(oldRow, oldCol, newRow, newCol, board) {
+        let tmp = board[oldRow][oldCol]
+        board[oldRow][oldCol] = board[newRow][newCol]
+        board[newRow][newCol] = tmp
+
+        return board
+
+    }
+
     function handleMove(newRow, newCol, piece) {
 
-        const isCapture = (board[newRow][newCol] != null)
-
+        // valid move
         if (moves.some(([r, c]) => r === newRow && c === newCol)) {
+
+            const isCapture = (board[newRow][newCol] != null)
+            const curPiece = piece?.piece
+
             setBoard(prev => {
-                const newBoard = structuredClone(prev);
+                let newBoard = structuredClone(prev);
 
                 newBoard[piece.row][piece.col] = null;
                 newBoard[newRow][newCol] = piece?.piece;
+
+
+                if (curPiece?.name[1] === "k") {
+                    // castle move
+                    if (Math.abs(newCol - piece?.col) === 2) {
+                        let brd = newBoard
+
+                        if (newCol > piece?.col) {
+
+                            newBoard = swapBoardPieces(newRow, 7, newRow, newCol - 1, brd)
+                        } else {
+
+                            newBoard = swapBoardPieces(newRow, 0, newRow, newCol + 1, brd)
+                        }
+
+                    }
+
+                }
+
+                if (curPiece.name[1] === "p") {
+                    // enpassant capture
+                    if (newCol !== piece.col && !isCapture) {
+
+                        if (isOriginalPerspective) {
+
+                            if (turn === "white") {
+
+                                newBoard[newRow + 1][newCol] = null;
+
+
+                            } else {
+
+                                newBoard[newRow - 1][newCol] = null;
+
+                            }
+
+                        } else {
+
+                            if (turn === "white") {
+
+                                newBoard[newRow - 1][newCol] = null;
+
+                            } else {
+
+                                newBoard[newRow + 1][newCol] = null;
+
+                            }
+                        }
+
+                    }
+                }
+
                 return newBoard;
             });
-
-            const curPiece = piece?.piece
-
-            if (curPiece?.name[1] === "k") {
-                if (turn === "white") {
-                    setCanWhiteKingSideCastle(false)
-                    setCanWhiteLongCastle(false)
-                } else {
-                    setCanBlackKingSideCastle(false)
-                    setCanBlackLongCastle(false)
-                }
-            }
 
             if (curPiece?.name[1] === "r") {
                 if (turn === "white") { // targetted piece is white
@@ -665,57 +720,6 @@ export default function AnalysisBoard() {
                     setEnpassantSquare(null)
                 }
 
-                // enpassant capture
-                if (newCol !== piece.col && !isCapture) {
-                    
-                    if (isOriginalPerspective) {
-
-                        if (turn === "white") {
-
-                            console.log("test.mg")
-
-                            setBoard(prev => {
-                                const newBoard = structuredClone(prev);
-                                newBoard[newRow + 1][newCol] = null;
-                                return newBoard;
-                            });
-
-
-                        } else {
-
-                            setBoard(prev => {
-                                const newBoard = structuredClone(prev);
-                                newBoard[newRow - 1][newCol] = null;
-                                return newBoard;
-                            });
-
-
-                        }
-
-                    } else {
-
-                        if (turn === "white") {
-
-                            setBoard(prev => {
-                                const newBoard = structuredClone(prev);
-                                newBoard[newRow - 1][newCol] = null;
-                                return newBoard;
-                            });
-
-
-                        } else {
-
-                            setBoard(prev => {
-                                const newBoard = structuredClone(prev);
-                                newBoard[newRow + 1][newCol] = null;
-                                return newBoard;
-                            });
-
-                        }
-                    }
-
-                }
-
             } else {
                 setEnpassantSquare(null)
 
@@ -724,10 +728,8 @@ export default function AnalysisBoard() {
             setTurn((turn === "white") ? "black" : "white")
             setMoves([])
 
-
         }
     }
-
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
