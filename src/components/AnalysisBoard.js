@@ -560,6 +560,9 @@ export default function AnalysisBoard() {
     };
 
     function handleMove(newRow, newCol, piece) {
+
+        const isCapture = (board[newRow][newCol] != null)
+
         if (moves.some(([r, c]) => r === newRow && c === newCol)) {
             setBoard(prev => {
                 const newBoard = structuredClone(prev);
@@ -660,6 +663,57 @@ export default function AnalysisBoard() {
 
                 } else {
                     setEnpassantSquare(null)
+                }
+
+                // enpassant capture
+                if (newCol !== piece.col && !isCapture) {
+                    
+                    if (isOriginalPerspective) {
+
+                        if (turn === "white") {
+
+                            console.log("test.mg")
+
+                            setBoard(prev => {
+                                const newBoard = structuredClone(prev);
+                                newBoard[newRow + 1][newCol] = null;
+                                return newBoard;
+                            });
+
+
+                        } else {
+
+                            setBoard(prev => {
+                                const newBoard = structuredClone(prev);
+                                newBoard[newRow - 1][newCol] = null;
+                                return newBoard;
+                            });
+
+
+                        }
+
+                    } else {
+
+                        if (turn === "white") {
+
+                            setBoard(prev => {
+                                const newBoard = structuredClone(prev);
+                                newBoard[newRow - 1][newCol] = null;
+                                return newBoard;
+                            });
+
+
+                        } else {
+
+                            setBoard(prev => {
+                                const newBoard = structuredClone(prev);
+                                newBoard[newRow + 1][newCol] = null;
+                                return newBoard;
+                            });
+
+                        }
+                    }
+
                 }
 
             } else {
