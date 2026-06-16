@@ -13,8 +13,18 @@ import {
     getAntiDiagonal,
     fenToAnalysisBoard,
     coordinatesToNotation,
+    getFenFromBoard,
     rotateMatrix180
 } from "../utils/game"
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer,
+    ReferenceLine
+} from "recharts";
 
 export default function AnalysisBoard() {
 
@@ -731,6 +741,41 @@ export default function AnalysisBoard() {
         }
     }
 
+
+    useEffect(() => {
+
+        if (turn && board?.length > 0) {
+            let boardFen = getFenFromBoard(board, turn[0])
+            // send the fen notation to the engine
+
+        }
+    }, [
+        board,
+        turn
+    ])
+
+    // mock moves
+    const evaluationHistory = [
+        { moveNumber: 0, moveStr: "Start", displayScore: 0 },
+        { moveNumber: 1, moveStr: "e4", displayScore: 0.4 },
+        { moveNumber: 2, moveStr: "e5", displayScore: 0.2 },
+        { moveNumber: 3, moveStr: "Nf3", displayScore: 0.5 },
+        { moveNumber: 4, moveStr: "Nc6", displayScore: 0.3 },
+        { moveNumber: 5, moveStr: "Bb5", displayScore: 0.6 },
+        { moveNumber: 6, moveStr: "a6", displayScore: -0.6 },
+        { moveNumber: 7, moveStr: "Ba4", displayScore: -2.4 },
+        { moveNumber: 8, moveStr: "Nf6", displayScore: 1.5 },
+        { moveNumber: 9, moveStr: "O-O", displayScore: 2.1 },
+    ];
+
+    const scores = evaluationHistory?.map(d => d.displayScore) || [0];
+    const maxVal = Math.max(...scores, 0);
+    const minVal = Math.min(...scores, 0);
+
+    function onMoveClick(e) {
+        console.log(e)
+    }
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
             <canvas
@@ -740,6 +785,67 @@ export default function AnalysisBoard() {
                 className="rounded-lg shadow-lg cursor-pointer"
             />
 
+            <div style={{ width: '40%', height: '200px', backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '8px', margin: '8px' }}>
+                <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: 'sans-serif' }}>Game Evaluation</h3>
+
+                <style>{`
+                .no-outline-chart :focus, 
+                .no-outline-chart g:focus, 
+                .no-outline-chart path:focus,
+                .no-outline-chart .recharts-wrapper :focus {
+                    outline: none !important;
+                    box-shadow: none !important;
+                }
+            `}</style>
+
+                <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
+                    <AreaChart
+                        data={evaluationHistory}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        style={{ outline: 'none' }}
+                        onClick={(nextState) => {
+                            onMoveClick(nextState?.activeLabel);
+                        }}
+                    >
+                        <defs>
+                            <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#ffffff" stopOpacity={1} />
+                                <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#000000" stopOpacity={1} />
+                            </linearGradient>
+                        </defs>
+
+                        <XAxis
+                            dataKey="moveStr"
+                            stroke="#777"
+                            tick={{ fill: '#bbb', fontSize: 12 }}
+                        />
+                        <YAxis
+                            domain={[-5, 5]}
+                            stroke="#777"
+                            tick={{ fill: '#bbb', fontSize: 12 }}
+                            tickFormatter={(value) => (value > 0 ? `+${value}` : value)}
+                        />
+                        <Tooltip
+                            contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
+                            labelStyle={{ color: '#fff' }}
+                            itemStyle={{ color: '#8884d8' }}
+                            formatter={(value, name, props) => [`Score: ${props.payload.displayScore}`, 'Evaluation']}
+                        />
+
+                        <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
+
+                        <Area
+                            dataKey="displayScore"
+                            stroke="#777"
+                            fill="url(#lichessSplit)"
+                            strokeWidth={2}
+                            baseValue={0}
+                            activeDot={{ r: 6, style: { outline: 'none' } }}
+                            isAnimationActive={false}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     );
 }
