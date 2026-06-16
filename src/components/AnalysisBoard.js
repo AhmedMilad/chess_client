@@ -756,16 +756,16 @@ export default function AnalysisBoard() {
 
     // mock moves
     const evaluationHistory = [
-        { moveNumber: 0, moveStr: "Start", displayScore: 0 },
-        { moveNumber: 1, moveStr: "e4", displayScore: 0.4 },
-        { moveNumber: 2, moveStr: "e5", displayScore: 0.2 },
-        { moveNumber: 3, moveStr: "Nf3", displayScore: 0.5 },
-        { moveNumber: 4, moveStr: "Nc6", displayScore: 0.3 },
-        { moveNumber: 5, moveStr: "Bb5", displayScore: 0.6 },
-        { moveNumber: 6, moveStr: "a6", displayScore: -0.6 },
-        { moveNumber: 7, moveStr: "Ba4", displayScore: -2.4 },
-        { moveNumber: 8, moveStr: "Nf6", displayScore: 1.5 },
-        { moveNumber: 9, moveStr: "O-O", displayScore: 2.1 },
+        { moveStr: "Start", displayScore: 0.0 },
+        { moveStr: "e4", displayScore: 0.3 },
+        { moveStr: "e5", displayScore: 0.1 },
+        { moveStr: "Nf3", displayScore: 0.4 },
+        { moveStr: "Nc6", displayScore: -0.2 },
+        { moveStr: "Bc4", displayScore: 0.5 },
+        { moveStr: "Nf6", displayScore: -1.5 }, // Black is better
+        { moveStr: "Ng5", displayScore: 1.2 },  // White takes advantage
+        { moveStr: "d5", displayScore: 0.8 },
+        { moveStr: "exd5", displayScore: 2.1 }, // White is winning significantly
     ];
 
     const scores = evaluationHistory?.map(d => d.displayScore) || [0];
@@ -776,75 +776,155 @@ export default function AnalysisBoard() {
         console.log(e)
     }
 
+    const getBarHeight = (score) => {
+        const minScore = -5;
+        const maxScore = 5;
+        const percentage = ((score - minScore) / (maxScore - minScore)) * 100;
+        return Math.max(0, Math.min(100, percentage)); // Clamp between 0% and 100%
+    };
+
+    const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
+
+    const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0].displayScore);
+
+    const whiteHeight = getBarHeight(boardEvaluation);
+
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-            <canvas
-                ref={canvasRef}
-                width={size}
-                height={size}
-                className="rounded-lg shadow-lg cursor-pointer"
-            />
+        <div className="flex items-center justify-center min-h-screen bg-gray-900 p-6">
+            <div className="flex flex-row w-full max-w-6xl gap-6 items-stretch">
 
-            <div style={{ width: '40%', height: '200px', backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '8px', margin: '8px' }}>
-                <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: 'sans-serif' }}>Game Evaluation</h3>
+                <div className="flex flex-col flex-1 gap-4">
 
-                <style>{`
-                .no-outline-chart :focus, 
-                .no-outline-chart g:focus, 
-                .no-outline-chart path:focus,
-                .no-outline-chart .recharts-wrapper :focus {
-                    outline: none !important;
-                    box-shadow: none !important;
-                }
-            `}</style>
+                    <div className="flex flex-row items-center justify-center gap-4 w-full">
 
-                <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
-                    <AreaChart
-                        data={evaluationHistory}
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                        style={{ outline: 'none' }}
-                        onClick={(nextState) => {
-                            onMoveClick(nextState?.activeLabel);
-                        }}
-                    >
-                        <defs>
-                            <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#ffffff" stopOpacity={1} />
-                                <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#000000" stopOpacity={1} />
-                            </linearGradient>
-                        </defs>
+                        <div
+                            className="relative w-6 rounded flex flex-col overflow-hidden bg-black border border-neutral-700 shadow-inner"
+                            style={{ height: `${size}px` }}
+                        >
+                            <div
+                                className="absolute bottom-0 w-full bg-white transition-all duration-200 ease-in-out"
+                                style={{ height: `${whiteHeight}%` }}
+                            />
 
-                        <XAxis
-                            dataKey="moveStr"
-                            stroke="#777"
-                            tick={{ fill: '#bbb', fontSize: 12 }}
+                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-500 opacity-50 pointer-events-none" />
+
+                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
+                                {boardEvaluation > 0 ? `+${boardEvaluation.toFixed(1)}` : boardEvaluation.toFixed(1)}
+                            </div>
+                        </div>
+
+                        <canvas
+                            ref={canvasRef}
+                            width={size}
+                            height={size}
+                            className="rounded-lg shadow-lg cursor-pointer bg-neutral-800"
                         />
-                        <YAxis
-                            domain={[-5, 5]}
-                            stroke="#777"
-                            tick={{ fill: '#bbb', fontSize: 12 }}
-                            tickFormatter={(value) => (value > 0 ? `+${value}` : value)}
-                        />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
-                            labelStyle={{ color: '#fff' }}
-                            itemStyle={{ color: '#8884d8' }}
-                            formatter={(value, name, props) => [`Score: ${props.payload.displayScore}`, 'Evaluation']}
-                        />
+                    </div>
 
-                        <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
+                    <div style={{ width: '100%', height: '200px', backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '8px' }}>
+                        <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: 'sans-serif', fontSize: '14px' }}>
+                            Game Evaluation
+                        </h3>
 
-                        <Area
-                            dataKey="displayScore"
-                            stroke="#777"
-                            fill="url(#lichessSplit)"
-                            strokeWidth={2}
-                            baseValue={0}
-                            activeDot={{ r: 6, style: { outline: 'none' } }}
-                            isAnimationActive={false}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
+                        <style>{`
+                            .no-outline-chart :focus, 
+                            .no-outline-chart g:focus, 
+                            .no-outline-chart path:focus,
+                            .no-outline-chart .recharts-wrapper :focus {
+                                outline: none !important;
+                                box-shadow: none !important;
+                            }
+                        `}</style>
+
+                        <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
+                            <AreaChart
+                                data={evaluationHistory}
+                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                style={{ outline: 'none' }}
+                                onClick={(nextState) => {
+                                    onMoveClick(nextState?.activeLabel);
+                                }}
+                            >
+                                <defs>
+                                    <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#ffffff" stopOpacity={1} />
+                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#000000" stopOpacity={1} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="moveStr" stroke="#777" tick={{ fill: '#bbb', fontSize: 12 }} />
+                                <YAxis
+                                    domain={[-5, 5]}
+                                    stroke="#777"
+                                    tick={{ fill: '#bbb', fontSize: 12 }}
+                                    tickFormatter={(value) => (value > 0 ? `+${value}` : value)}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
+                                    labelStyle={{ color: '#fff' }}
+                                    itemStyle={{ color: '#8884d8' }}
+                                    formatter={(value, name, props) => [`Score: ${props.payload.displayScore}`, 'Evaluation']}
+                                />
+                                <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
+                                <Area
+                                    dataKey="displayScore"
+                                    stroke="#777"
+                                    fill="url(#lichessSplit)"
+                                    strokeWidth={2}
+                                    baseValue={0}
+                                    activeDot={{ r: 6, style: { outline: 'none' } }}
+                                    isAnimationActive={false}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="w-80 bg-[#1e1e1e] rounded-lg p-4 flex flex-col shadow-xl border border-neutral-800">
+                    <h3 className="text-white font-sans font-semibold mb-3 border-b border-neutral-800 pb-2 text-sm uppercase tracking-wider text-neutral-400">
+                        Move Log & Centipawns
+                    </h3>
+
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-1 max-h-[600px] custom-scrollbar">
+                        {evaluationHistory.map((move, index) => {
+                            let cpChange = 0;
+                            if (index > 0) {
+                                const currentCp = Math.round(move.displayScore * 100);
+                                const prevCp = Math.round(evaluationHistory[index - 1].displayScore * 100);
+                                cpChange = currentCp - prevCp;
+                            }
+
+                            const isPositive = cpChange > 0;
+                            const isZero = cpChange === 0;
+
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => onMoveClick(move.moveStr)}
+                                    className={`flex items-center justify-between p-2 rounded transition-colors cursor-pointer group ${index === currentMoveIndex ? 'bg-neutral-700/60' : 'bg-neutral-800/40 hover:bg-neutral-800'
+                                        }`}
+                                >
+                                    <span className="text-neutral-300 font-mono text-sm group-hover:text-white">
+                                        {index === 0 ? "Start" : `${Math.ceil(index / 2)}.${index % 2 !== 0 ? '' : '...'} ${move.moveStr}`}
+                                    </span>
+
+                                    {index > 0 ? (
+                                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isZero
+                                            ? 'text-neutral-500 bg-neutral-800'
+                                            : isPositive
+                                                ? 'text-green-400 bg-green-950/40'
+                                                : 'text-red-400 bg-red-950/40'
+                                            }`}>
+                                            {isZero ? '±0' : `${isPositive ? '+' : ''}${cpChange}`} cp
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs text-neutral-600 font-mono">—</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
             </div>
         </div>
     );
