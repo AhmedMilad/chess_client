@@ -12,6 +12,7 @@ import {
     getMainDiagonal,
     getAntiDiagonal,
     fenToAnalysisBoard,
+    coordinatesToNotation,
     rotateMatrix180
 } from "../utils/game"
 
@@ -25,7 +26,6 @@ export default function AnalysisBoard() {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const canvasRef = useRef(null);
     const [board, setBoard] = useState([]);
-    const [isBlack, setIsBlack] = useState(false)
     const [images, setImages] = useState({});
 
     const [startPos, setStartPos] = useState(null);
@@ -34,22 +34,17 @@ export default function AnalysisBoard() {
     const [draggingPiece, setDraggingPiece] = useState(null);
     const [isRightDragging, setIsRightDragging] = useState(false);
 
-    const [currentPiece, setCurrentPiece] = useState(null);
     const [moves, setMoves] = useState([]);
     const [enpassantSquare, setEnpassantSquare] = useState(null);
     const [lines, setLines] = useState([]);
 
     const lightColor = "#f0d9b5";
     const darkColor = "#b58863";
-    const [canKingSideCastle, setCanKingSideCastle] = useState(false)
-    const [canLongCastle, setCanLongCastle] = useState(false)
+    const [canWhiteKingSideCastle, setCanWhiteKingSideCastle] = useState(true)
+    const [canWhiteLongCastle, setCanWhiteLongCastle] = useState(true)
 
-    const [isWhiteKingMoved, setIsWhiteKingMoved] = useState(false)
-    const [isBlackKingMoved, setIsBlackKingMoved] = useState(false)
-    const [isWhiteKingSideRookMoved, setIsWhiteKingSideRookMoved] = useState(false)
-    const [isWhiteQueenSideRookMoved, setIsWhiteQueenKingSideRookMoved] = useState(false)
-    const [isBlackKingSideRookMoved, setIsBlackKingSideRookMoved] = useState(false)
-    const [isBlackQueenSideRookMoved, setIsBlackQueenKingSideRookMoved] = useState(false)
+    const [canBlackKingSideCastle, setCanBlackKingSideCastle] = useState(true)
+    const [canBlackLongCastle, setCanBlackLongCastle] = useState(true)
 
     const [isOriginalPerspective, setIsOriginalPerspective] = useState(true)
 
@@ -136,6 +131,7 @@ export default function AnalysisBoard() {
         ctx.fill();
     }
 
+    // draw board
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || Object.keys(images).length === 0) return;
@@ -156,7 +152,7 @@ export default function AnalysisBoard() {
         ctx.font = `${cellSize / 5}px Arial`;
         ctx.textBaseline = "top";
 
-        if (!isBlack) {
+        if (isOriginalPerspective) {
             for (let i = 0; i < cols; i++) {
                 ctx.fillText(String.fromCharCode(97 + i), i * cellSize + 4, size - cellSize / 5 - 2);
             }
@@ -370,10 +366,19 @@ export default function AnalysisBoard() {
                 }
                 break;
             case "bk":
-                newMoves = getKingMoves(row, col, board, "w", canKingSideCastle, canLongCastle);
+                if (isOriginalPerspective) {
+                    newMoves = getKingMoves(row, col, board, "w", canBlackLongCastle, canBlackKingSideCastle);
+                } else {
+                    newMoves = getKingMoves(row, col, board, "w", canBlackKingSideCastle, canBlackLongCastle);
+                }
                 break;
             case "wk":
-                newMoves = getKingMoves(row, col, board, "b", canKingSideCastle, canLongCastle);
+                if (isOriginalPerspective) {
+                    newMoves = getKingMoves(row, col, board, "b", canWhiteKingSideCastle, canWhiteLongCastle);
+                } else {
+                    newMoves = getKingMoves(row, col, board, "b", canWhiteLongCastle, canWhiteKingSideCastle);
+
+                }
                 break;
             case "br":
                 newMoves = getVerticalMoves(row, col, board, "w")
@@ -512,7 +517,6 @@ export default function AnalysisBoard() {
             if (piece && piece.isPlayable) {
 
                 setDraggingPiece({ piece, row, col });
-                setCurrentPiece({ piece, row, col });
                 setMousePos(pos)
 
                 if ((turn === "white" && piece?.name[0] === 'w') || (turn === "black" && piece?.name[0] === 'b')) {
@@ -569,9 +573,11 @@ export default function AnalysisBoard() {
 
             if (curPiece?.name[1] === "k") {
                 if (turn === "white") {
-                    setIsWhiteKingMoved(true)
+                    setCanWhiteKingSideCastle(false)
+                    setCanWhiteLongCastle(false)
                 } else {
-                    setIsBlackKingMoved(true)
+                    setCanBlackKingSideCastle(false)
+                    setCanBlackLongCastle(false)
                 }
             }
 
@@ -581,21 +587,21 @@ export default function AnalysisBoard() {
                     if (isOriginalPerspective) {
 
                         if (piece?.col === 0) {
-                            setIsWhiteQueenKingSideRookMoved(true)
+                            setCanWhiteLongCastle(false)
                         }
 
                         if (piece?.col === 7) {
-                            setIsWhiteKingSideRookMoved(true)
+                            setCanWhiteKingSideCastle(false)
                         }
 
                     } else {
                         if (piece?.col === 0) {
-                            setIsWhiteKingSideRookMoved(true)
+                            setCanWhiteKingSideCastle(false)
 
                         }
 
                         if (piece?.col === 7) {
-                            setIsWhiteQueenKingSideRookMoved(true)
+                            setCanWhiteLongCastle(false)
 
                         }
                     }
@@ -607,26 +613,58 @@ export default function AnalysisBoard() {
                     if (isOriginalPerspective) {
 
                         if (piece?.col === 0) {
-                            setIsBlackQueenKingSideRookMoved(true)
+                            setCanBlackLongCastle(false)
                         }
 
                         if (piece?.col === 7) {
-                            setIsBlackKingSideRookMoved(true)
+                            setCanBlackKingSideCastle(false)
                         }
 
                     } else {
                         if (piece?.col === 0) {
-                            setIsBlackKingSideRookMoved(true)
+                            setCanBlackKingSideCastle(false)
 
                         }
 
                         if (piece?.col === 7) {
-                            setIsBlackQueenKingSideRookMoved(true)
+                            setCanBlackLongCastle(false)
 
                         }
                     }
 
                 }
+            }
+
+            if (curPiece.name[1] === "p") {
+
+                if (Math.abs(newRow - piece.row) === 2) {
+
+                    if (isOriginalPerspective) {
+
+                        if (turn === "white") {
+                            // might need a validation here
+                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                        } else {
+                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                        }
+
+                    } else {
+
+                        if (turn === "white") {
+                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                        } else {
+                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                        }
+
+                    }
+
+                } else {
+                    setEnpassantSquare(null)
+                }
+
+            } else {
+                setEnpassantSquare(null)
+
             }
 
             setTurn((turn === "white") ? "black" : "white")
