@@ -784,10 +784,15 @@ export default function AnalysisBoard() {
     };
 
     const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
-
     const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0].displayScore);
+    const [whiteHeight, setWhiteHeight] = useState(getBarHeight(boardEvaluation));
 
-    const whiteHeight = getBarHeight(boardEvaluation);
+    useEffect(() => {
+        setWhiteHeight(getBarHeight(boardEvaluation))
+    }, [
+        boardEvaluation
+    ])
+
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-900 p-6">
