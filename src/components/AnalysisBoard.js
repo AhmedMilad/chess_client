@@ -895,11 +895,36 @@ export default function AnalysisBoard() {
             const turnCol = turn[0]
             const boardFen = getFenFromBoard(board, turnCol, isOriginalPerspective)
 
+            let enSqr = "-"
+
+            if (enpassantSquare !== null) {
+                enSqr = enpassantSquare
+            }
+
+            let castleStatus = ""
+
+            if (canWhiteKingSideCastle) {
+                castleStatus += "K"
+            }
+
+            if (canWhiteLongCastle) {
+                castleStatus += "Q"
+            }
+
+            if (canBlackKingSideCastle) {
+                castleStatus += "k"
+            }
+
+            if (canBlackLongCastle) {
+                castleStatus += "q"
+            }
+
             // send the fen notation to the engine
 
             if (isEngineReady) {
-                worker.postMessage(`position fen ${boardFen} ${turnCol} KQkq - 0 1`);
-                worker.postMessage("go depth 15x");
+                console.log(`position fen ${boardFen} ${turnCol} ${castleStatus} ${enSqr} 0 1`)
+                worker.postMessage(`position fen ${boardFen} ${turnCol} ${castleStatus} ${enSqr} 0 1`);
+                worker.postMessage("go depth 15");
             }
 
         }
@@ -908,7 +933,12 @@ export default function AnalysisBoard() {
         turn,
         worker,
         isOriginalPerspective,
-        isEngineReady
+        isEngineReady,
+        enpassantSquare,
+        canBlackKingSideCastle,
+        canBlackLongCastle,
+        canWhiteKingSideCastle,
+        canWhiteLongCastle,
     ])
 
     useEffect(() => {
