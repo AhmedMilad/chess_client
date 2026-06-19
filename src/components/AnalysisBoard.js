@@ -84,15 +84,20 @@ export default function AnalysisBoard() {
 
                 mateLines = mateLines[1].split(" ")
 
+                const steps = parseInt(mateLines[0])
+
                 if (mateLines.length > 0) {
-                    setStepsToMate(parseInt(mateLines[0]))
+                    setStepsToMate(steps)
                 }
 
-                if (turn === "white") {
-                    setBoardEvaluation(10)
-                } else {
-                    setBoardEvaluation(-10)
+                if (steps > 0) {
 
+                    if (turn === "white") {
+                        setBoardEvaluation(10)
+                    } else {
+                        setBoardEvaluation(-10)
+
+                    }
                 }
 
                 setIsMateFound(true)
@@ -111,6 +116,8 @@ export default function AnalysisBoard() {
                         setBoardEvaluation((turn === 'white') ? evaluation : evaluation * -1)
 
                     }
+                    setIsMateFound(false)
+
                 }
             }
 
@@ -922,7 +929,6 @@ export default function AnalysisBoard() {
             // send the fen notation to the engine
 
             if (isEngineReady) {
-                console.log(`position fen ${boardFen} ${turnCol} ${castleStatus} ${enSqr} 0 1`)
                 worker.postMessage(`position fen ${boardFen} ${turnCol} ${castleStatus} ${enSqr} 0 1`);
                 worker.postMessage("go depth 15");
             }
