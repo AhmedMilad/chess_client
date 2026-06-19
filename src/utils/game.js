@@ -1398,7 +1398,12 @@ export function getKnightCheck(row, col, board) {
     return checks
 }
 
-export function getFenFromBoard(board, turn = "w") {
+export function getFenFromBoard(board, turn = "w", isOriginalPerspective) {
+
+    if (!isOriginalPerspective) {
+        board = board.toReversed().map(row => row.toReversed())
+    }
+
     let fenRows = [];
 
     for (let row = 0; row < 8; row++) {

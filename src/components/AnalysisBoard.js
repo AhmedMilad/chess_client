@@ -14,7 +14,8 @@ import {
     fenToAnalysisBoard,
     coordinatesToNotation,
     getFenFromBoard,
-    rotateMatrix180
+    rotateMatrix180,
+    notationToIndex
 } from "../utils/game"
 import {
     AreaChart,
@@ -57,6 +58,104 @@ export default function AnalysisBoard() {
     const [canBlackLongCastle, setCanBlackLongCastle] = useState(true)
 
     const [isOriginalPerspective, setIsOriginalPerspective] = useState(true)
+    const [isMateFound, setIsMateFound] = useState(false)
+    const [stepsToMate, setStepsToMate] = useState(0)
+
+    const [isEngineReady, setIsEngineReady] = useState(false);
+    const [worker, setWorker] = useState(null)
+
+    useEffect(() => {
+        setWorker(new Worker("/stockfish.js"))
+    }, [])
+
+
+    useEffect(() => {
+
+        if (worker === null) {
+            return
+        }
+
+        worker.onmessage = (e) => {
+            const line = e.data;
+
+            let mateLines = line.split(" mate ");
+
+            if (mateLines.length > 1) {
+
+                mateLines = mateLines[1].split(" ")
+
+                if (mateLines.length > 0) {
+                    setStepsToMate(parseInt(mateLines[0]))
+                }
+
+                if (turn === "white") {
+                    setBoardEvaluation(10)
+                } else {
+                    setBoardEvaluation(-10)
+
+                }
+
+                setIsMateFound(true)
+
+            } else {
+
+                let cpLines = line.split(" cp ");
+
+                if (cpLines.length > 1) {
+                    let targettedCpLine = cpLines[1]
+                    targettedCpLine = targettedCpLine.split(" ");
+
+                    if (targettedCpLine.length > 0) {
+
+                        let evaluation = parseFloat(targettedCpLine[0]) / 100
+                        setBoardEvaluation((turn === 'white') ? evaluation : evaluation * -1)
+
+                    }
+                }
+            }
+
+
+            let lines = line.split(" pv ");
+
+            if (lines.length > 0) {
+                let moveLines = lines[1]
+
+                if (moveLines) {
+                    moveLines = moveLines.split(" ");
+                    if (moveLines.length > 0) {
+
+                        const from = moveLines[0].slice(0, 2);
+                        const to = moveLines[0].slice(-2);
+
+                        let fromIndex = notationToIndex(from, !isOriginalPerspective)
+                        let toIndex = notationToIndex(to, !isOriginalPerspective)
+
+                        let cellSize = 93.75 //TODO fix this
+
+                        setLines([
+                            {
+                                start: { x: fromIndex[1] * cellSize + cellSize / 2, y: fromIndex[0] * cellSize + cellSize / 2 },
+                                end: { x: toIndex[1] * cellSize + cellSize / 2, y: toIndex[0] * cellSize + cellSize / 2 }
+                            },
+                        ])
+                    }
+
+                }
+
+            }
+
+            if (line === "readyok") {
+                setIsEngineReady(true)
+            }
+        };
+
+        worker.postMessage("uci");
+        worker.postMessage("isready");
+    }, [
+        worker,
+        turn
+    ])
+
 
     useEffect(() => {
 
@@ -87,6 +186,45 @@ export default function AnalysisBoard() {
 
     }, [isOriginalPerspective]);
 
+    // mock moves
+    const evaluationHistory = [
+        { moveStr: "Start", displayScore: 0.0 },
+        { moveStr: "e4", displayScore: 0.3 },
+        { moveStr: "e5", displayScore: 0.1 },
+        { moveStr: "Nf3", displayScore: 0.4 },
+        { moveStr: "Nc6", displayScore: -0.2 },
+        { moveStr: "Bc4", displayScore: 0.5 },
+        { moveStr: "Nf6", displayScore: -1.5 }, // Black is better
+        { moveStr: "Ng5", displayScore: 1.2 },  // White takes advantage
+        { moveStr: "d5", displayScore: 0.8 },
+        { moveStr: "exd5", displayScore: 2.1 }, // White is winning significantly
+    ];
+
+    const scores = evaluationHistory?.map(d => d.displayScore) || [0];
+    const maxVal = Math.max(...scores, 0);
+    const minVal = Math.min(...scores, 0);
+
+    function onMoveClick(e) {
+        console.log(e)
+    }
+
+    const getBarHeight = (score) => {
+        let minScore = -10;
+        let maxScore = 10;
+
+        if (!isOriginalPerspective) {
+            minScore = 10
+            maxScore = -10
+        }
+
+        const percentage = ((score - minScore) / (maxScore - minScore)) * 100;
+        return Math.max(0, Math.min(100, percentage));
+    };
+
+    const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
+    const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0].displayScore);
+    const [whiteHeight, setWhiteHeight] = useState(getBarHeight(boardEvaluation));
+
     useEffect(() => {
         const canvas = canvasRef.current;
 
@@ -104,12 +242,14 @@ export default function AnalysisBoard() {
     }, [images, draggingPiece, moves]);
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
+        if (start === undefined || end === undefined) return;
+
         const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
         const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
         const ex = Math.floor(end.x / cellSize) * cellSize + cellSize / 2;
         const ey = Math.floor(end.y / cellSize) * cellSize + cellSize / 2;
 
-        if (sx === ex && sy === ey) return
+        if (sx === ex && sy === ey) return;
 
         const dx = ex - sx;
         const dy = ey - sy;
@@ -120,6 +260,9 @@ export default function AnalysisBoard() {
 
         const lineEndX = ex - headLength * Math.cos(angle);
         const lineEndY = ey - headLength * Math.sin(angle);
+
+        ctx.save();
+        ctx.globalAlpha = 0.75;
 
         ctx.beginPath();
         ctx.moveTo(sx, sy);
@@ -142,6 +285,8 @@ export default function AnalysisBoard() {
         ctx.closePath();
         ctx.fillStyle = color;
         ctx.fill();
+
+        ctx.restore();
     }
 
     // draw board
@@ -238,7 +383,7 @@ export default function AnalysisBoard() {
                 }
             }
         }
-        lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "blue", cellSize / 4, cellSize));
+        lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", cellSize / 4, cellSize));
 
         if (isRightDragging && startPos && mousePos) {
             drawArrow(ctx, startPos, mousePos, "blue", cellSize / 4, cellSize);
@@ -269,7 +414,8 @@ export default function AnalysisBoard() {
         images,
         mousePos,
         moves,
-        draggingPiece
+        draggingPiece,
+        lines
     ])
 
     const getMousePos = (e) => {
@@ -526,7 +672,6 @@ export default function AnalysisBoard() {
             setIsRightDragging(true);
             return;
         } else if (e.button === 0) {
-            setLines([]);
             if (piece && piece.isPlayable) {
 
                 setDraggingPiece({ piece, row, col });
@@ -737,6 +882,7 @@ export default function AnalysisBoard() {
 
             setTurn((turn === "white") ? "black" : "white")
             setMoves([])
+            setLines([]);
 
         }
     }
@@ -744,48 +890,26 @@ export default function AnalysisBoard() {
 
     useEffect(() => {
 
-        if (turn && board?.length > 0) {
-            let boardFen = getFenFromBoard(board, turn[0])
+        if (worker !== null && isEngineReady && turn && board?.length > 0) {
+
+            const turnCol = turn[0]
+            const boardFen = getFenFromBoard(board, turnCol, isOriginalPerspective)
+
             // send the fen notation to the engine
+
+            if (isEngineReady) {
+                worker.postMessage(`position fen ${boardFen} ${turnCol} KQkq - 0 1`);
+                worker.postMessage("go depth 15x");
+            }
 
         }
     }, [
         board,
-        turn
+        turn,
+        worker,
+        isOriginalPerspective,
+        isEngineReady
     ])
-
-    // mock moves
-    const evaluationHistory = [
-        { moveStr: "Start", displayScore: 0.0 },
-        { moveStr: "e4", displayScore: 0.3 },
-        { moveStr: "e5", displayScore: 0.1 },
-        { moveStr: "Nf3", displayScore: 0.4 },
-        { moveStr: "Nc6", displayScore: -0.2 },
-        { moveStr: "Bc4", displayScore: 0.5 },
-        { moveStr: "Nf6", displayScore: -1.5 }, // Black is better
-        { moveStr: "Ng5", displayScore: 1.2 },  // White takes advantage
-        { moveStr: "d5", displayScore: 0.8 },
-        { moveStr: "exd5", displayScore: 2.1 }, // White is winning significantly
-    ];
-
-    const scores = evaluationHistory?.map(d => d.displayScore) || [0];
-    const maxVal = Math.max(...scores, 0);
-    const minVal = Math.min(...scores, 0);
-
-    function onMoveClick(e) {
-        console.log(e)
-    }
-
-    const getBarHeight = (score) => {
-        const minScore = -5;
-        const maxScore = 5;
-        const percentage = ((score - minScore) / (maxScore - minScore)) * 100;
-        return Math.max(0, Math.min(100, percentage)); // Clamp between 0% and 100%
-    };
-
-    const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
-    const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0].displayScore);
-    const [whiteHeight, setWhiteHeight] = useState(getBarHeight(boardEvaluation));
 
     useEffect(() => {
         setWhiteHeight(getBarHeight(boardEvaluation))
@@ -802,21 +926,66 @@ export default function AnalysisBoard() {
 
                     <div className="flex flex-row items-center justify-center gap-4 w-full">
 
-                        <div
-                            className="relative w-6 rounded flex flex-col overflow-hidden bg-black border border-neutral-700 shadow-inner"
-                            style={{ height: `${size}px` }}
-                        >
-                            <div
-                                className="absolute bottom-0 w-full bg-white transition-all duration-200 ease-in-out"
-                                style={{ height: `${whiteHeight}%` }}
-                            />
+                        {(
+                            () => {
 
-                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-500 opacity-50 pointer-events-none" />
+                                if (isOriginalPerspective) {
+                                    return (
+                                        <div
+                                            className="relative w-6 rounded flex flex-col overflow-hidden bg-black border border-neutral-700 shadow-inner"
+                                            style={{ height: `${size}px` }}
+                                        >
+                                            <div
+                                                className="absolute bottom-0 w-full bg-white transition-all duration-200 ease-in-out"
+                                                style={{ height: `${whiteHeight}%` }}
+                                            />
 
-                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
-                                {boardEvaluation > 0 ? `+${boardEvaluation.toFixed(1)}` : boardEvaluation.toFixed(1)}
-                            </div>
-                        </div>
+                                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-500 opacity-50 pointer-events-none" />
+
+                                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
+
+                                                {(() => {
+                                                    if (isMateFound) {
+                                                        return `m${stepsToMate}`
+                                                    } else {
+                                                        return boardEvaluation > 0 ? `+${boardEvaluation.toFixed(1)}` : boardEvaluation.toFixed(1)
+                                                    }
+                                                })()}
+
+                                            </div>
+                                        </div>
+                                    )
+
+                                } else {
+                                    return (
+                                        <div
+                                            className="relative w-6 rounded flex flex-col overflow-hidden bg-white border border-neutral-700 shadow-inner"
+                                            style={{ height: `${size}px` }}
+                                        >
+                                            <div
+                                                className="absolute bottom-0 w-full bg-black transition-all duration-200 ease-in-out"
+                                                style={{ height: `${whiteHeight}%` }}
+                                            />
+
+                                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-500 opacity-50 pointer-events-none" />
+
+                                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
+
+                                                {(() => {
+                                                    if (isMateFound) {
+                                                        return `m${stepsToMate}`
+                                                    } else {
+                                                        return boardEvaluation > 0 ? `+${boardEvaluation.toFixed(1)}` : boardEvaluation.toFixed(1)
+                                                    }
+                                                })()}
+                                            </div>
+                                        </div>
+                                    )
+                                }
+
+                            }
+                        )()}
+
 
                         <canvas
                             ref={canvasRef}
