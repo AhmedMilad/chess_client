@@ -2173,13 +2173,13 @@ function getPawnMoveNotation(fromX, fromY, toX, toY, enpassantSquare, promoteTo,
 
     if (fromX !== toX) {
         if (toX + 1 <= 7) {
-            if (board[toX + 1][dir + toY] === piece) {
+            if (board[toX + 1][dir + toY]?.name[1] === piece) {
                 cnt++;
             }
         }
 
         if (toX - 1 >= 0) {
-            if (board[toX - 1][dir + toY] === piece) {
+            if (board[toX - 1][dir + toY]?.name[1] === piece) {
                 cnt++;
             }
         }
