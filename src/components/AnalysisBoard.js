@@ -1193,6 +1193,11 @@ export default function AnalysisBoard() {
         boardEvaluation
     ])
 
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [movesHistory]);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-900 p-6">
