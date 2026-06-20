@@ -1594,3 +1594,625 @@ export function coordinatesToNotation(row, col, isBlack = false) {
 
     return `${fileNotation}${rankNotation}`;
 }
+
+export function getMoveNotation(fromRow, fromCol, toRow, toCol, isKingSideCastle, isLongCastle, isOriginalPerspective, enpassantSquare, promoteTo, turn, board) {
+
+    let piece = board[fromRow][fromCol]
+    let notation = ""
+
+    if (!piece) {
+
+        return ""
+    }
+
+    let name = piece.name[1]
+
+    switch (name) {
+        case "n":
+
+            notation = getKnightMoveNotation(fromRow, fromCol, toRow, toCol, isOriginalPerspective, board)
+            break;
+        case "k":
+            notation = getKingMoveNotation(fromRow, fromCol, toRow, toCol, isKingSideCastle, isLongCastle, isOriginalPerspective, board)
+
+            break;
+        case "b":
+            notation = getBishopMoveNotation(fromRow, fromCol, toRow, toCol, isOriginalPerspective, board)
+
+            break;
+        case "r":
+            notation = getRookMoveNotation(fromRow, fromCol, toRow, toCol, isOriginalPerspective, board)
+
+            break;
+
+        case "q":
+            notation = getQueenMoveNotation(fromRow, fromCol, toRow, toCol, isOriginalPerspective, board)
+
+            break;
+
+        case "p":
+
+            notation = getPawnMoveNotation(fromRow, fromCol, toRow, toCol, enpassantSquare, promoteTo, isOriginalPerspective, turn, board)
+
+            break;
+
+        default:
+            return notation
+    }
+
+
+    return notation
+}
+
+function getKnightMoveNotation(fromX, fromY, toX, toY, isOriginalPerspective, board) {
+    const knight = board[fromX][fromY]?.name[1];
+
+    if (knight.toLowerCase() !== "n") {
+        return ""
+    }
+
+    let notation = "N";
+
+    let originNote = coordinatesToNotation(fromX, fromY, !isOriginalPerspective);
+    let destNote = coordinatesToNotation(toX, toY, !isOriginalPerspective);
+
+    if (board[toX][toY] !== null) {
+        destNote = "x" + destNote;
+    }
+
+    const ranks = {};
+    const files = {};
+
+    const allMoves = [
+        [2, 1],
+        [2, -1],
+        [-2, 1],
+        [-2, -1],
+        [1, 2],
+        [1, -2],
+        [-1, 2],
+        [-1, -2],
+    ];
+
+    let found = 0;
+
+    for (const move of allMoves) {
+        const dx = move[0] + toX;
+        const dy = move[1] + toY;
+
+        if (Math.max(dx, dy) > 7 || Math.min(dx, dy) < 0) {
+            continue;
+        }
+
+        if (board[dx][dy]?.name[1] === knight) {
+            files[dx] = (files[dx] || 0) + 1;
+            ranks[dy] = (ranks[dy] || 0) + 1;
+            found++;
+        }
+    }
+
+    if (found > 1 || (ranks[fromY] || 0) > 1) {
+        notation += originNote[0];
+    }
+
+    if ((files[fromX] || 0) > 1) {
+        notation += originNote[1];
+    }
+
+    return notation + destNote;
+}
+
+function getKingMoveNotation(fromX, fromY, toX, toY, isKingSideCastle, isLongCastle, isOriginalPerspective, board) {
+    const king = board[fromX][fromY]?.name[1];
+
+    if (king.toLowerCase() !== "k") {
+        return ""
+    }
+
+    if (isKingSideCastle) {
+        return "O-O";
+    }
+
+    if (isLongCastle) {
+        return "O-O-O";
+    }
+
+    let notation = "K";
+
+    // is capture
+    if (board[toX][toY] !== null) {
+        notation += "x";
+    }
+
+    notation += coordinatesToNotation(toX, toY, !isOriginalPerspective);
+
+    return notation;
+}
+
+function getBishopMoveNotation(fromX, fromY, toX, toY, isOriginalPerspective, board) {
+    const bishop = board[fromX][fromY]?.name[1];
+
+    if (bishop.toLowerCase() !== "b") {
+        return ""
+    }
+
+    let notation = "B";
+    let originNote = coordinatesToNotation(fromX, fromY, !isOriginalPerspective);
+    let destNote = coordinatesToNotation(toX, toY, !isOriginalPerspective);
+
+    let found = 0
+
+    if (board[toX][toY] !== null) {
+        destNote = "x" + destNote;
+    }
+
+    const ranks = {};
+    const files = {};
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX + i;
+        const dy = toY + i;
+
+        if (dx > 7 || dy > 7) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === bishop) {
+                files[dx] = (files[dx] || 0) + 1;
+                ranks[dy] = (ranks[dy] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX - i;
+        const dy = toY - i;
+
+        if (dx < 0 || dy < 0) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === bishop) {
+                files[dx] = (files[dx] || 0) + 1;
+                ranks[dy] = (ranks[dy] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX + i;
+        const dy = toY - i;
+
+        if (dx > 7 || dy < 0) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === bishop) {
+                files[dx] = (files[dx] || 0) + 1;
+                ranks[dy] = (ranks[dy] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX - i;
+        const dy = toY + i;
+
+        if (dx < 0 || dy > 7) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === bishop) {
+                files[dx] = (files[dx] || 0) + 1;
+                ranks[dy] = (ranks[dy] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    if (found > 1 || (files[fromX] || 0) > 1) {
+        notation += originNote[0];
+    }
+
+    if ((ranks[fromY] || 0) > 1) {
+        notation += originNote[1];
+    }
+
+    return notation + destNote;
+}
+
+function getRookMoveNotation(fromX, fromY, toX, toY, isOriginalPerspective, board) {
+    const rook = board[fromX][fromY]?.name[1];
+
+    if (typeof rook === "string" && rook.toLowerCase() !== "r") {
+        return ""
+    }
+
+    let notation = "R";
+    let originNote = coordinatesToNotation(fromX, fromY, !isOriginalPerspective);
+    let destNote = coordinatesToNotation(toX, toY, !isOriginalPerspective);
+
+    if (board[toX][toY] !== null) {
+        destNote = "x" + destNote;
+    }
+
+    const ranks = {};
+    const files = {};
+
+    let found = 0
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX + i;
+
+        if (dx > 7) {
+            break;
+        }
+
+        const piece = board[dx][toY]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === rook) {
+                ranks[fromY] = (ranks[fromY] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX - i;
+
+        if (dx < 0) {
+            break;
+        }
+
+        const piece = board[dx][toY]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === rook) {
+                ranks[fromY] = (ranks[fromY] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dy = toY + i;
+
+        if (dy > 7) {
+            break;
+        }
+
+        const piece = board[toX][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === rook) {
+                files[fromX] = (files[fromX] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dy = toY - i;
+
+        if (dy < 0) {
+            break;
+        }
+
+        const piece = board[toX][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === rook) {
+                files[fromX] = (files[fromX] || 0) + 1;
+                found++
+            }
+
+            break;
+        }
+    }
+
+    if (found > 1 || (files[fromX] || 0) > 1) {
+        notation += originNote[0];
+    }
+
+    if ((ranks[fromY] || 0) > 1) {
+        notation += originNote[1];
+    }
+
+    return notation + destNote;
+}
+
+function getQueenMoveNotation(fromX, fromY, toX, toY, isOriginalPerspective, board) {
+    const queen = board[fromX][fromY]?.name[1];
+
+    if (typeof queen === "string" && queen.toLowerCase() !== "q") {
+        return ""
+    }
+
+    let notation = "Q";
+
+    let pos = [];
+    let originNote = coordinatesToNotation(fromX, fromY, !isOriginalPerspective);
+
+    let destNote = coordinatesToNotation(toX, toY, !isOriginalPerspective);
+
+    if (board[toX][toY] !== null) {
+        destNote = "x" + destNote;
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX + i;
+
+        if (dx > 7) {
+            break;
+        }
+
+        const piece = board[dx][toY]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([dx, toY]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX - i;
+
+        if (dx < 0) {
+            break;
+        }
+
+        const piece = board[dx][toY]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([dx, toY]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dy = toY + i;
+
+        if (dy > 7) {
+            break;
+        }
+
+        const piece = board[toX][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([toX, dy]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dy = toY - i;
+
+        if (dy < 0) {
+            break;
+        }
+
+        const piece = board[toX][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([toX, dy]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX + i;
+        const dy = toY + i;
+
+        if (dx > 7 || dy > 7) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([dx, dy]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX - i;
+        const dy = toY - i;
+
+        if (dx < 0 || dy < 0) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([dx, dy]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX + i;
+        const dy = toY - i;
+
+        if (dx > 7 || dy < 0) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([dx, dy]);
+            }
+
+            break;
+        }
+    }
+
+    for (let i = 1; i < 8; i++) {
+        const dx = toX - i;
+        const dy = toY + i;
+
+        if (dx < 0 || dy > 7) {
+            break;
+        }
+
+        const piece = board[dx][dy]?.name[1];
+
+        if (piece !== null && piece !== undefined) {
+            if (piece === queen) {
+                pos.push([dx, dy]);
+            }
+
+            break;
+        }
+    }
+
+    let isSameFile = false;
+    let isSameRank = false;
+    let isOnDiagonal = false;
+
+    for (const p of pos) {
+        if (p[0] === fromX && p[1] === fromY) {
+            continue;
+        }
+
+        if (p[0] === fromX) {
+            isSameRank = true;
+        }
+
+        if (p[1] === fromY) {
+            isSameFile = true;
+        }
+
+        if (p[0] !== fromX && p[1] !== fromY) {
+
+            isOnDiagonal = true;
+        }
+    }
+
+    if (isSameRank || isOnDiagonal) {
+
+        notation += originNote[0];
+    }
+
+    if (isSameFile) {
+        notation += originNote[1];
+    }
+
+    return notation + destNote;
+}
+
+function getPawnMoveNotation(fromX, fromY, toX, toY, enpassantSquare, promoteTo, isOriginalPerspective, turn, board) {
+
+    const piece = board[fromX][fromY]?.name[1];
+
+    if (piece.toLowerCase() !== "p") {
+        return ""
+    }
+
+    let notation = "";
+
+    let dir = -1;
+
+    if ((isOriginalPerspective && turn === "white") || (!isOriginalPerspective && turn === "black")) {
+
+        dir = 1;
+    }
+
+    let cnt = 0;
+
+    if (fromX !== toX) {
+        if (toX + 1 <= 7) {
+            if (board[toX + 1][dir + toY] === piece) {
+                cnt++;
+            }
+        }
+
+        if (toX - 1 >= 0) {
+            if (board[toX - 1][dir + toY] === piece) {
+                cnt++;
+            }
+        }
+    }
+
+    // if found two pawns hitting the same target square
+    if (cnt === 2) {
+        let originNote = coordinatesToNotation(fromX, fromY, !isOriginalPerspective);
+
+        notation += originNote[0];
+    }
+
+    if (board[toX][toY] !== null) {
+        notation += "x";
+    }
+
+    if (typeof enpassantSquare === 'string' && enpassantSquare.trim() !== "") {
+        let coordinates = notationToIndex(enpassantSquare, !isOriginalPerspective);
+
+        if (toY === coordinates[1] && toX === coordinates[0] + dir * -1) {
+            notation += "x";
+        }
+    }
+
+    let destNote = coordinatesToNotation(toX, toY, !isOriginalPerspective);
+
+    notation += destNote;
+
+    console.log(promoteTo)
+    
+    if (promoteTo.trim() !== "") {
+        notation += "=" + promoteTo.toUpperCase();
+    }
+    
+    return notation;
+}

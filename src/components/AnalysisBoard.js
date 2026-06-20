@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import {
     pieceImages,
     getKingThreatMoves,
@@ -15,7 +15,9 @@ import {
     coordinatesToNotation,
     getFenFromBoard,
     rotateMatrix180,
-    notationToIndex
+    notationToIndex,
+    getMoveNotation,
+    Piece
 } from "../utils/game"
 import {
     AreaChart,
@@ -37,6 +39,7 @@ export default function AnalysisBoard() {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const canvasRef = useRef(null);
     const [board, setBoard] = useState([]);
+    const [oldBoard, setOldBoard] = useState([]);
     const [images, setImages] = useState({});
 
     const [startPos, setStartPos] = useState(null);
@@ -64,10 +67,145 @@ export default function AnalysisBoard() {
     const [isEngineReady, setIsEngineReady] = useState(false);
     const [worker, setWorker] = useState(null)
 
+    const scrollRef = useRef(null);
+    const [isDraw, setIsDraw] = useState(false)
+    const [winner, setWinner] = useState()
+    const [opponentInfo, setOpponentInfo] = useState(null)
+    const [opponentPointsDelta, setOpponentPointsDelta] = useState(0)
+    const [movesHistory, setMovesHistory] = useState([]);
+    const [playerInfo, setPlayerInfo] = useState(null)
+    const [myPointsDelta, setMyPointsDelta] = useState(0)
+    const [promotionPiece, setPromotionPiece] = useState(null)
+
+    const promotionCanvas = useRef(null);
+
+    const [isPawnPromotion, setIsPawnPromotion] = useState(false)
+    const [previousMove, setPreviousMove] = useState([])
+
     useEffect(() => {
         setWorker(new Worker("/stockfish.js"))
     }, [])
 
+    function drawPromotionBoard() {
+        const canvas = promotionCanvas.current;
+        if (!canvas || Object.keys(images).length === 0) return;
+        const ctx = canvas.getContext("2d");
+
+        for (let col = 0; col < 4; col++) {
+            let color = col % 2 === 0 ? lightColor : darkColor;
+            ctx.fillStyle = color;
+            ctx.fillRect(col * cellSize, 0, cellSize, cellSize);
+        }
+
+        const pieces = ["q", "r", "b", "n"];
+
+        const prefix = (turn === "white") ? "b" : "w";
+
+        for (let i = 0; i < 4; i++) {
+            const img = images[prefix + pieces[i]];
+
+            if (!img || !img.complete || img.width === 0) continue;
+
+            const aspect = img.width / img.height;
+            let imgWidth, imgHeight;
+
+            imgHeight = cellSize * imageScale;
+            imgWidth = imgHeight * aspect;
+
+            const offsetX = (cellSize - imgWidth) / 2;
+            const offsetY = (cellSize - imgHeight) / 2;
+
+            ctx.drawImage(
+                img,
+                (i * cellSize) + offsetX,
+                offsetY,
+                imgWidth,
+                imgHeight
+            );
+        }
+    }
+
+
+    useEffect(() => {
+        const canvas = promotionCanvas.current;
+        if (!canvas || Object.keys(images).length === 0) return;
+        const ctx = canvas.getContext("2d");
+        drawPromotionBoard(ctx);
+
+        const getMousePos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            };
+        };
+
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+        };
+
+        const handleMouseDown = (e) => {
+            const pos = getMousePos(e);
+            const col = Math.floor(pos.x / cellSize);
+            const row = Math.floor(pos.y / cellSize);
+
+            if (e.button === 0) {
+                if (row === 0) {
+                    switch (col) {
+                        case 0:
+                            let queen = "Q"
+                            if (!isOriginalPerspective) {
+                                queen = "q"
+                            }
+
+                            setPromotionPiece(queen)
+                            break;
+                        case 1:
+                            let rook = "R"
+                            if (!isOriginalPerspective) {
+                                rook = "r"
+                            }
+
+                            setPromotionPiece(rook)
+                            break;
+                        case 2:
+                            let bishop = "B"
+
+                            if (!isOriginalPerspective) {
+                                bishop = "b"
+                            }
+
+                            setPromotionPiece(bishop)
+                            break;
+                        case 3:
+
+                            let knight = "N"
+
+                            if (!isOriginalPerspective) {
+                                knight = "n"
+                            }
+                            setPromotionPiece(knight)
+
+                            break;
+                        default:
+                            console.log("invalid piece")
+                    }
+                }
+            }
+        };
+
+        canvas.addEventListener("mousedown", handleMouseDown);
+        canvas.addEventListener("contextmenu", handleContextMenu);
+
+        return () => {
+            canvas.removeEventListener("mousedown", handleMouseDown);
+            canvas.removeEventListener("contextmenu", handleContextMenu);
+        };
+    }, [
+        cellSize,
+        images,
+        drawPromotionBoard,
+    ]);
 
     useEffect(() => {
 
@@ -103,24 +241,26 @@ export default function AnalysisBoard() {
                 setIsMateFound(true)
 
             } else {
+                // this is because it will temporarily lose advantage while choosing pawn promotion
+                if (!isPawnPromotion) {
 
-                let cpLines = line.split(" cp ");
+                    let cpLines = line.split(" cp ");
 
-                if (cpLines.length > 1) {
-                    let targettedCpLine = cpLines[1]
-                    targettedCpLine = targettedCpLine.split(" ");
+                    if (cpLines.length > 1) {
+                        let targettedCpLine = cpLines[1]
+                        targettedCpLine = targettedCpLine.split(" ");
 
-                    if (targettedCpLine.length > 0) {
+                        if (targettedCpLine.length > 0) {
 
-                        let evaluation = parseFloat(targettedCpLine[0]) / 100
-                        setBoardEvaluation((turn === 'white') ? evaluation : evaluation * -1)
+                            let evaluation = parseFloat(targettedCpLine[0]) / 100
+                            setBoardEvaluation((turn === 'white') ? evaluation : evaluation * -1)
+
+                        }
+                        setIsMateFound(false)
 
                     }
-                    setIsMateFound(false)
-
                 }
             }
-
 
             let lines = line.split(" pv ");
 
@@ -130,6 +270,9 @@ export default function AnalysisBoard() {
                 if (moveLines) {
                     moveLines = moveLines.split(" ");
                     if (moveLines.length > 0) {
+
+                        //eliminate extra characters for now like promotion character
+                        moveLines[0] = moveLines[0].slice(0, 4)
 
                         const from = moveLines[0].slice(0, 2);
                         const to = moveLines[0].slice(-2);
@@ -160,7 +303,8 @@ export default function AnalysisBoard() {
         worker.postMessage("isready");
     }, [
         worker,
-        turn
+        turn,
+        isPawnPromotion
     ])
 
 
@@ -246,7 +390,7 @@ export default function AnalysisBoard() {
             canvas.removeEventListener("mousemove", handleMouseMove);
             canvas.removeEventListener("mouseup", handleMouseUp);
         };
-    }, [images, draggingPiece, moves]);
+    }, [images, draggingPiece, moves, board]);
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
         if (start === undefined || end === undefined) return;
@@ -740,13 +884,20 @@ export default function AnalysisBoard() {
 
             const isCapture = (board[newRow][newCol] != null)
             const curPiece = piece?.piece
+            const trn = turn
+
+            let brd = board
+            setOldBoard(brd)
+
+            let isKingSideCastle = false
+            let isLongCastle = false
+            let addMoveToHistory = true
 
             setBoard(prev => {
                 let newBoard = structuredClone(prev);
 
                 newBoard[piece.row][piece.col] = null;
                 newBoard[newRow][newCol] = piece?.piece;
-
 
                 if (curPiece?.name[1] === "k") {
                     // castle move
@@ -756,9 +907,23 @@ export default function AnalysisBoard() {
                         if (newCol > piece?.col) {
 
                             newBoard = swapBoardPieces(newRow, 7, newRow, newCol - 1, brd)
+
+                            if (isOriginalPerspective) {
+                                isKingSideCastle = true
+                            } else {
+                                isLongCastle = true
+                            }
+
                         } else {
 
                             newBoard = swapBoardPieces(newRow, 0, newRow, newCol + 1, brd)
+
+                            if (isOriginalPerspective) {
+                                isLongCastle = true
+                            } else {
+                                isKingSideCastle = true
+                            }
+
                         }
 
                     }
@@ -882,17 +1047,76 @@ export default function AnalysisBoard() {
                     setEnpassantSquare(null)
                 }
 
+                if (isOriginalPerspective) {
+                    if ((turn === "white" && newRow === 0) || (turn === "black" && newRow === 7)) {
+                        setIsPawnPromotion(true)
+                        addMoveToHistory = false
+                    }
+                } else {
+                    if ((turn === "white" && newRow === 7) || (turn === "black" && newRow === 0)) {
+                        setIsPawnPromotion(true)
+                        addMoveToHistory = false
+                    }
+                }
+
             } else {
                 setEnpassantSquare(null)
 
             }
 
+            setPreviousMove([[piece?.row, piece?.col], [newRow, newCol]])
             setTurn((turn === "white") ? "black" : "white")
             setMoves([])
             setLines([]);
 
+            if (addMoveToHistory) {
+
+                setMovesHistory((prev) => {
+
+                    return [...prev, getMoveNotation(piece?.row, piece?.col, newRow, newCol, isKingSideCastle, isLongCastle, isOriginalPerspective, enpassantSquare, "", trn, brd)]
+                })
+            }
         }
     }
+
+    useEffect(() => {
+        if (promotionPiece === null) {
+            return;
+        }
+
+        const fromRow = previousMove[0][0];
+        const fromCol = previousMove[0][1];
+
+        const toRow = previousMove[1][0];
+        const toCol = previousMove[1][1];
+
+        let pn = (turn === "white") ? "b" : "w"
+
+        pn += promotionPiece.toLowerCase()
+
+        let piece = new Piece(pn, pieceImages[pn], 0);
+
+        piece.isPlayable = true
+
+        setBoard(prev => {
+            const newBoard = structuredClone(prev);
+            newBoard[toRow][toCol] = piece;
+            return newBoard;
+        });
+
+        setPromotionPiece(null);
+        setIsPawnPromotion(false);
+
+        setMovesHistory((prev) => {
+
+            return [...prev, getMoveNotation(fromRow, fromCol, toRow, toCol, false, false, isOriginalPerspective, null, promotionPiece.toLowerCase(), turn, oldBoard)]
+        })
+
+    }, [
+        previousMove,
+        oldBoard,
+        promotionPiece
+    ]);
 
 
     useEffect(() => {
@@ -959,6 +1183,14 @@ export default function AnalysisBoard() {
             <div className="flex flex-row w-full max-w-6xl gap-6 items-stretch">
 
                 <div className="flex flex-col flex-1 gap-4">
+                    {isPawnPromotion && (
+                        <canvas
+                            ref={promotionCanvas}
+                            width={cellSize * 4}
+                            height={cellSize}
+                            className="shadow-lg cursor-pointer mx-auto my-4"
+                        />
+                    )}
 
                     <div className="flex flex-row items-center justify-center gap-4 w-full">
 
@@ -1089,50 +1321,108 @@ export default function AnalysisBoard() {
                     </div>
                 </div>
 
-                <div className="w-80 bg-[#1e1e1e] rounded-lg p-4 flex flex-col shadow-xl border border-neutral-800">
-                    <h3 className="text-white font-sans font-semibold mb-3 border-b border-neutral-800 pb-2 text-sm uppercase tracking-wider text-neutral-400">
-                        Move Log & Centipawns
-                    </h3>
+                <div className="flex flex-col">
+                    {(() => {
 
-                    <div className="flex-1 overflow-y-auto pr-1 space-y-1 max-h-[600px] custom-scrollbar">
-                        {evaluationHistory.map((move, index) => {
-                            let cpChange = 0;
-                            if (index > 0) {
-                                const currentCp = Math.round(move.displayScore * 100);
-                                const prevCp = Math.round(evaluationHistory[index - 1].displayScore * 100);
-                                cpChange = currentCp - prevCp;
-                            }
+                        if (isDraw) {
 
-                            const isPositive = cpChange > 0;
-                            const isZero = cpChange === 0;
-
+                            return (<div className="text-white p-4">
+                                Draw
+                            </div>
+                            )
+                        } else {
                             return (
-                                <div
-                                    key={index}
-                                    onClick={() => onMoveClick(move.moveStr)}
-                                    className={`flex items-center justify-between p-2 rounded transition-colors cursor-pointer group ${index === currentMoveIndex ? 'bg-neutral-700/60' : 'bg-neutral-800/40 hover:bg-neutral-800'
-                                        }`}
-                                >
-                                    <span className="text-neutral-300 font-mono text-sm group-hover:text-white">
-                                        {index === 0 ? "Start" : `${Math.ceil(index / 2)}.${index % 2 !== 0 ? '' : '...'} ${move.moveStr}`}
-                                    </span>
-
-                                    {index > 0 ? (
-                                        <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isZero
-                                            ? 'text-neutral-500 bg-neutral-800'
-                                            : isPositive
-                                                ? 'text-green-400 bg-green-950/40'
-                                                : 'text-red-400 bg-red-950/40'
-                                            }`}>
-                                            {isZero ? '±0' : `${isPositive ? '+' : ''}${cpChange}`} cp
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-neutral-600 font-mono">—</span>
-                                    )}
+                                <div className="text-white p-4">
+                                    {winner === "white" ? "White won!" : "Black won!"}
                                 </div>
                             );
-                        })}
+                        }
+
+
+                    })()}
+                    <div className="p-4">
+                        <div className="flex justify-between items-center text-white text-xl">
+                            <div className="flex flex-col">
+                                <span>{opponentInfo?.username}</span>
+                                <span className="text-sm text-gray-400">
+                                    {opponentInfo?.rating}
+                                    {(
+                                        <span
+                                            style={{
+                                                color:
+                                                    opponentPointsDelta > 0
+                                                        ? "green"
+                                                        : opponentPointsDelta < 0
+                                                            ? "red"
+                                                            : undefined
+                                            }}
+                                        >
+                                            {opponentPointsDelta > 0
+                                                ? ` +${opponentPointsDelta}`
+                                                : ` ${opponentPointsDelta}`}
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+
+
+                        </div>
                     </div>
+
+                    <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
+                        <div className="bg-gray-700 text-white p-2 text-center font-semibold">
+                            Moves
+                        </div>
+
+                        <div ref={scrollRef} className="h-72 overflow-y-auto">
+                            <div className="grid grid-cols-2 text-white">
+                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
+                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
+
+                                {movesHistory.map((move, index) => {
+                                    if (index % 2 === 0) {
+                                        return (
+                                            <Fragment key={index}>
+                                                <div className="border border-gray-600 text-center py-1">{move}</div>
+                                                <div className="border border-gray-600 text-center py-1">
+                                                    {movesHistory[index + 1] || ""}
+                                                </div>
+                                            </Fragment>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-4">
+                        <div className="flex justify-between items-center text-white text-xl">
+                            <div className="flex flex-col">
+                                <span>{playerInfo?.username}</span>
+                                <span className="text-sm">
+                                    {playerInfo?.rating}
+                                    {(
+                                        <span
+                                            style={{
+                                                color:
+                                                    myPointsDelta > 0
+                                                        ? "green"
+                                                        : myPointsDelta < 0
+                                                            ? "red"
+                                                            : undefined
+                                            }}
+                                        >
+                                            {myPointsDelta > 0
+                                                ? ` +${myPointsDelta}`
+                                                : ` ${myPointsDelta}`}
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+
+                        </div>
+                    </div>
+
                 </div>
 
             </div>
