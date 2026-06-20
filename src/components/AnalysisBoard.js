@@ -76,6 +76,7 @@ export default function AnalysisBoard() {
     const [playerInfo, setPlayerInfo] = useState(null)
     const [myPointsDelta, setMyPointsDelta] = useState(0)
     const [promotionPiece, setPromotionPiece] = useState(null)
+    const [isGameAnalysis, setIsGameAnalysis] = useState(false);
 
     const promotionCanvas = useRef(null);
 
@@ -83,8 +84,19 @@ export default function AnalysisBoard() {
     const [previousMove, setPreviousMove] = useState([])
 
     useEffect(() => {
-        setWorker(new Worker("/stockfish.js"))
-    }, [])
+        if (isGameAnalysis) {
+            setWorker(new Worker("/stockfish.js"))
+        } else {
+            if (worker) {
+                worker.terminate()
+            }
+            setBoardEvaluation(0)
+            setLines([])
+            setWorker(null)
+        }
+    }, [
+        isGameAnalysis
+    ])
 
     function drawPromotionBoard() {
         const canvas = promotionCanvas.current;
@@ -823,7 +835,7 @@ export default function AnalysisBoard() {
             setIsRightDragging(true);
             return;
         } else if (e.button === 0) {
-            if (piece && piece.isPlayable) {
+            if (!isPawnPromotion && piece && piece.isPlayable) {
 
                 setDraggingPiece({ piece, row, col });
                 setMousePos(pos)
@@ -1171,6 +1183,10 @@ export default function AnalysisBoard() {
         canWhiteLongCastle,
     ])
 
+    function toggleEngineAnalysis() {
+        setIsGameAnalysis(!isGameAnalysis)
+    }
+
     useEffect(() => {
         setWhiteHeight(getBarHeight(boardEvaluation))
     }, [
@@ -1340,7 +1356,28 @@ export default function AnalysisBoard() {
 
 
                     })()}
+
                     <div className="p-4">
+                        {(() => {
+
+                            return (
+                                <button
+                                    onClick={toggleEngineAnalysis}
+                                    style={{
+                                        padding: '10px 20px',
+                                        backgroundColor: !isGameAnalysis ? '#4CAF50' : '#f44336',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {!isGameAnalysis ? 'Turn on engine' : 'Turn off engine'}
+                                </button>
+                            );
+
+                        })()}
+
                         <div className="flex justify-between items-center text-white text-xl">
                             <div className="flex flex-col">
                                 <span>{opponentInfo?.username}</span>
