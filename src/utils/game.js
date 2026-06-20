@@ -2208,8 +2208,6 @@ function getPawnMoveNotation(fromX, fromY, toX, toY, enpassantSquare, promoteTo,
 
     notation += destNote;
 
-    console.log(promoteTo)
-    
     if (promoteTo.trim() !== "") {
         notation += "=" + promoteTo.toUpperCase();
     }
