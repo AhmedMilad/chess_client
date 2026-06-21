@@ -905,6 +905,7 @@ export default function AnalysisBoard() {
             let isLongCastle = false
             let addMoveToHistory = true
 
+            let posBoard = ""
             setBoard(prev => {
                 let newBoard = structuredClone(prev);
 
@@ -974,6 +975,8 @@ export default function AnalysisBoard() {
 
                     }
                 }
+
+                posBoard = newBoard
 
                 return newBoard;
             });
@@ -1085,7 +1088,7 @@ export default function AnalysisBoard() {
 
                 setMovesHistory((prev) => {
 
-                    return [...prev, getMoveNotation(piece?.row, piece?.col, newRow, newCol, isKingSideCastle, isLongCastle, isOriginalPerspective, enpassantSquare, "", trn, brd)]
+                    return [...prev, [getMoveNotation(piece?.row, piece?.col, newRow, newCol, isKingSideCastle, isLongCastle, isOriginalPerspective, enpassantSquare, "", trn, brd), getPositionFen(isOriginalPerspective, enpassantSquare, (trn === "white") ? "b" : "w", posBoard)]]
                 })
             }
         }
@@ -1110,9 +1113,12 @@ export default function AnalysisBoard() {
 
         piece.isPlayable = true
 
+        let brd = ""
+
         setBoard(prev => {
             const newBoard = structuredClone(prev);
             newBoard[toRow][toCol] = piece;
+            brd = newBoard
             return newBoard;
         });
 
@@ -1121,7 +1127,7 @@ export default function AnalysisBoard() {
 
         setMovesHistory((prev) => {
 
-            return [...prev, getMoveNotation(fromRow, fromCol, toRow, toCol, false, false, isOriginalPerspective, null, promotionPiece.toLowerCase(), turn, oldBoard)]
+            return [...prev, [getMoveNotation(fromRow, fromCol, toRow, toCol, false, false, isOriginalPerspective, null, promotionPiece.toLowerCase(), turn, oldBoard), getPositionFen(isOriginalPerspective, null, (pn[0] === "w") ? "b" : "w", brd)]]
         })
 
     }, [
@@ -1182,6 +1188,50 @@ export default function AnalysisBoard() {
         canWhiteKingSideCastle,
         canWhiteLongCastle,
     ])
+
+    function getPositionFen(isOriginalPerspective, enpassantSquare, turn, board) {
+        let boardFen = getFenFromBoard(board, turn, isOriginalPerspective)
+
+        let enSqr = "-"
+
+        if (enpassantSquare !== null) {
+            enSqr = enpassantSquare
+        }
+
+        let castleStatus = ""
+
+        if (canWhiteKingSideCastle) {
+            castleStatus += "K"
+        }
+
+        if (canWhiteLongCastle) {
+            castleStatus += "Q"
+        }
+
+        if (canBlackKingSideCastle) {
+            castleStatus += "k"
+        }
+
+        if (canBlackLongCastle) {
+            castleStatus += "q"
+        }
+
+        boardFen = boardFen.split(" ")
+        return `${boardFen[0]} ${turn} ${castleStatus} ${enSqr} 0 1`
+    }
+
+    function updateBoard(fen) {
+        fen = fen.split(" ")
+
+        let brd = fenToAnalysisBoard(fen[0]);
+
+        if (!isOriginalPerspective) {
+            brd = rotateMatrix180(brd)
+
+        }
+
+        setBoard(brd)
+    }
 
     function toggleEngineAnalysis() {
         setIsGameAnalysis(!isGameAnalysis)
@@ -1290,14 +1340,14 @@ export default function AnalysisBoard() {
                         </h3>
 
                         <style>{`
-                            .no-outline-chart :focus, 
-                            .no-outline-chart g:focus, 
-                            .no-outline-chart path:focus,
-                            .no-outline-chart .recharts-wrapper :focus {
-                                outline: none !important;
-                                box-shadow: none !important;
-                            }
-                        `}</style>
+            .no - outline - chart : focus, 
+                            .no - outline - chart g: focus, 
+                            .no - outline - chart path: focus,
+                            .no - outline - chart.recharts - wrapper :focus {
+            outline: none!important;
+            box - shadow: none!important;
+        }
+        `}</style>
 
                         <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
                             <AreaChart
@@ -1310,8 +1360,8 @@ export default function AnalysisBoard() {
                             >
                                 <defs>
                                     <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#ffffff" stopOpacity={1} />
-                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}%`} stopColor="#000000" stopOpacity={1} />
+                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#ffffff" stopOpacity={1} />
+                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#000000" stopOpacity={1} />
                                     </linearGradient>
                                 </defs>
                                 <XAxis dataKey="moveStr" stroke="#777" tick={{ fill: '#bbb', fontSize: 12 }} />
@@ -1319,13 +1369,13 @@ export default function AnalysisBoard() {
                                     domain={[-5, 5]}
                                     stroke="#777"
                                     tick={{ fill: '#bbb', fontSize: 12 }}
-                                    tickFormatter={(value) => (value > 0 ? `+${value}` : value)}
+                                    tickFormatter={(value) => (value > 0 ? `+ ${value} ` : value)}
                                 />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
                                     labelStyle={{ color: '#fff' }}
                                     itemStyle={{ color: '#8884d8' }}
-                                    formatter={(value, name, props) => [`Score: ${props.payload.displayScore}`, 'Evaluation']}
+                                    formatter={(value, name, props) => [`Score: ${props.payload.displayScore} `, 'Evaluation']}
                                 />
                                 <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
                                 <Area
@@ -1400,8 +1450,8 @@ export default function AnalysisBoard() {
                                             }}
                                         >
                                             {opponentPointsDelta > 0
-                                                ? ` +${opponentPointsDelta}`
-                                                : ` ${opponentPointsDelta}`}
+                                                ? ` + ${opponentPointsDelta} `
+                                                : ` ${opponentPointsDelta} `}
                                         </span>
                                     )}
                                 </span>
@@ -1415,23 +1465,38 @@ export default function AnalysisBoard() {
                         <div className="bg-gray-700 text-white p-2 text-center font-semibold">
                             Moves
                         </div>
-
                         <div ref={scrollRef} className="h-72 overflow-y-auto">
                             <div className="grid grid-cols-2 text-white">
-                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
-                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
+                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">
+                                    White
+                                </div>
+                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">
+                                    Black
+                                </div>
 
                                 {movesHistory.map((move, index) => {
                                     if (index % 2 === 0) {
+                                        const blackMove = movesHistory[index + 1];
+
                                         return (
                                             <Fragment key={index}>
-                                                <div className="border border-gray-600 text-center py-1">{move}</div>
-                                                <div className="border border-gray-600 text-center py-1">
-                                                    {movesHistory[index + 1] || ""}
+                                                <div
+                                                    className="border border-gray-600 text-center py-1 cursor-pointer hover:bg-gray-700"
+                                                    onClick={() => updateBoard(move[1])}
+                                                >
+                                                    {move[0]}
+                                                </div>
+
+                                                <div
+                                                    className="border border-gray-600 text-center py-1 cursor-pointer hover:bg-gray-700"
+                                                    onClick={() => blackMove && updateBoard(blackMove[1])}
+                                                >
+                                                    {blackMove?.[0] || ""}
                                                 </div>
                                             </Fragment>
                                         );
                                     }
+
                                     return null;
                                 })}
                             </div>
@@ -1455,8 +1520,8 @@ export default function AnalysisBoard() {
                                             }}
                                         >
                                             {myPointsDelta > 0
-                                                ? ` +${myPointsDelta}`
-                                                : ` ${myPointsDelta}`}
+                                                ? ` + ${myPointsDelta} `
+                                                : ` ${myPointsDelta} `}
                                         </span>
                                     )}
                                 </span>
