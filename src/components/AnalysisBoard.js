@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from "react";
+import { ClipLoader } from "react-spinners";
 import {
     pieceImages,
     getKingThreatMoves,
@@ -82,6 +83,7 @@ export default function AnalysisBoard() {
 
     const [isPawnPromotion, setIsPawnPromotion] = useState(false)
     const [previousMove, setPreviousMove] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
 
     const lightBoysenberry = "#873260";
     const darkBoysenberry = "#6C284D";
@@ -1416,55 +1418,78 @@ export default function AnalysisBoard() {
                         </h3>
 
                         <style>{`
-            .no - outline - chart : focus, 
-                            .no - outline - chart g: focus, 
-                            .no - outline - chart path: focus,
-                            .no - outline - chart.recharts - wrapper :focus {
-            outline: none!important;
-            box - shadow: none!important;
-        }
-        `}</style>
+    .no - outline - chart : focus, 
+                    .no - outline - chart g: focus, 
+                    .no - outline - chart path: focus,
+                    .no - outline - chart.recharts - wrapper :focus {
+    outline: none!important;
+    box - shadow: none!important;
+}
+`}</style>
 
-                        <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
-                            <AreaChart
-                                data={evaluationHistory}
-                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                                style={{ outline: 'none' }}
-                                onClick={(nextState) => {
-                                    onMoveClick(nextState?.activeLabel);
-                                }}
-                            >
-                                <defs>
-                                    <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#ffffff" stopOpacity={1} />
-                                        <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#000000" stopOpacity={1} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="moveStr" stroke="#777" tick={{ fill: '#bbb', fontSize: 12 }} />
-                                <YAxis
-                                    domain={[-5, 5]}
-                                    stroke="#777"
-                                    tick={{ fill: '#bbb', fontSize: 12 }}
-                                    tickFormatter={(value) => (value > 0 ? `+ ${value} ` : value)}
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
-                                    labelStyle={{ color: '#fff' }}
-                                    itemStyle={{ color: '#8884d8' }}
-                                    formatter={(value, name, props) => [`Score: ${props.payload.displayScore} `, 'Evaluation']}
-                                />
-                                <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
-                                <Area
-                                    dataKey="displayScore"
-                                    stroke="#777"
-                                    fill="url(#lichessSplit)"
-                                    strokeWidth={2}
-                                    baseValue={0}
-                                    activeDot={{ r: 6, style: { outline: 'none' } }}
-                                    isAnimationActive={false}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+
+                        {(() => {
+
+                            if (isLoading) {
+
+                                return (
+                                    <div className="p-8 m-auto">
+                                        <ClipLoader
+                                            color="#ffffff"
+                                            size={40}
+                                            aria-label="Loading"
+                                        />
+                                    </div>
+                                )
+                            } else {
+                                return (
+
+                                    <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
+                                        <AreaChart
+                                            data={evaluationHistory}
+                                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                            style={{ outline: 'none' }}
+                                            onClick={(nextState) => {
+                                                onMoveClick(nextState?.activeLabel);
+                                            }}
+                                        >
+                                            <defs>
+                                                <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#ffffff" stopOpacity={1} />
+                                                    <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#000000" stopOpacity={1} />
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="moveStr" stroke="#777" tick={{ fill: '#bbb', fontSize: 12 }} />
+                                            <YAxis
+                                                domain={[-5, 5]}
+                                                stroke="#777"
+                                                tick={{ fill: '#bbb', fontSize: 12 }}
+                                                tickFormatter={(value) => (value > 0 ? `+ ${value} ` : value)}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
+                                                labelStyle={{ color: '#fff' }}
+                                                itemStyle={{ color: '#8884d8' }}
+                                                formatter={(value, name, props) => [`Score: ${props.payload.displayScore} `, 'Evaluation']}
+                                            />
+                                            <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
+                                            <Area
+                                                dataKey="displayScore"
+                                                stroke="#777"
+                                                fill="url(#lichessSplit)"
+                                                strokeWidth={2}
+                                                baseValue={0}
+                                                activeDot={{ r: 6, style: { outline: 'none' } }}
+                                                isAnimationActive={false}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                )
+                            }
+
+                        })()}
+
+
                     </div>
                 </div>
 
@@ -1537,34 +1562,112 @@ export default function AnalysisBoard() {
                         </div>
                     </div>
 
-                    <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
+                    <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden flex flex-col">
+
+                        {(() => {
+
+                            if (isLoading) {
+                                return (
+
+                                    <div className="bg-gray-800/90 p-4 border-b border-gray-600 flex flex-col gap-2 font-sans select-none">
+                                        <div className="mx-auto">
+                                            <ClipLoader
+                                                color="#ffffff"
+                                                size={18}
+                                                aria-label="Loading"
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            } else {
+
+                                return (
+
+                                    <div className="bg-gray-800/90 p-4 border-b border-gray-600 flex flex-col gap-2 font-sans select-none">
+                                        <div className="flex justify-between items-center text-gray-400 text-[11px] uppercase tracking-wider font-bold px-1 mb-1">
+                                            <span>White</span>
+                                            <span>Analysis</span>
+                                            <span>Black</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'best').length}</span>
+                                            <span className="text-emerald-400 font-semibold text-center bg-emerald-500/10 px-3 py-0.5 rounded-full text-xs border border-emerald-500/20 shadow-sm w-28">Best Move</span>
+                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'best').length}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'excellent').length}</span>
+                                            <span className="text-blue-400 font-semibold text-center bg-blue-500/10 px-3 py-0.5 rounded-full text-xs border border-blue-500/20 shadow-sm w-28">Excellent</span>
+                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'excellent').length}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'good').length}</span>
+                                            <span className="text-gray-300 font-semibold text-center bg-gray-500/10 px-3 py-0.5 rounded-full text-xs border border-gray-500/20 shadow-sm w-28">Good</span>
+                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'good').length}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'inaccuracy').length}</span>
+                                            <span className="text-yellow-500 font-semibold text-center bg-yellow-500/10 px-3 py-0.5 rounded-full text-xs border border-yellow-500/20 shadow-sm w-28">Inaccuracy</span>
+                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'inaccuracy').length}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'mistake').length}</span>
+                                            <span className="text-orange-500 font-semibold text-center bg-orange-500/10 px-3 py-0.5 rounded-full text-xs border border-orange-500/20 shadow-sm w-28">Mistake</span>
+                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'mistake').length}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'blunder').length}</span>
+                                            <span className="text-red-500 font-semibold text-center bg-red-500/10 px-3 py-0.5 rounded-full text-xs border border-red-500/20 shadow-sm w-28">Blunder</span>
+                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'blunder').length}</span>
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                        })()}
+
                         <div className="bg-gray-700 text-white p-2 text-center font-semibold">
                             Moves
                         </div>
                         <div ref={scrollRef} className="h-72 overflow-y-auto">
                             <div className="grid grid-cols-2 text-white">
-                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">
+                                {/* <div className="bg-gray-700 border-b border-gray-600 text-center font-bold py-1 text-sm">
                                     White
                                 </div>
-                                <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">
+                                <div className="bg-gray-700 border-b border-gray-600 text-center font-bold py-1 text-sm">
                                     Black
-                                </div>
+                                </div> */}
 
                                 {movesHistory.map((move, index) => {
                                     if (index % 2 === 0) {
                                         const blackMove = movesHistory[index + 1];
 
+                                        const getBadgeColor = (type) => {
+                                            if (type === 'best') return 'text-emerald-400 font-medium'
+                                            if (type === 'excellent') return 'text-blue-400'
+                                            if (type === 'good') return 'text-gray-300'
+                                            if (type === 'inaccuracy') return 'text-yellow-500'
+                                            if (type === 'mistake') return 'text-orange-500'
+                                            if (type === 'blunder') return 'text-red-500 font-bold underline decoration-red-500 decoration-2'
+                                            return ''
+                                        }
+
                                         return (
                                             <Fragment key={index}>
                                                 <div
-                                                    className="border border-gray-600 text-center py-1 cursor-pointer hover:bg-gray-700"
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(move[3])}`}
                                                     onClick={() => updateBoard(move[1], move[2])}
                                                 >
                                                     {move[0]}
                                                 </div>
 
                                                 <div
-                                                    className="border border-gray-600 text-center py-1 cursor-pointer hover:bg-gray-700"
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(blackMove?.[3])}`}
                                                     onClick={() => blackMove && updateBoard(blackMove[1], blackMove[2])}
                                                 >
                                                     {blackMove?.[0] || ""}
