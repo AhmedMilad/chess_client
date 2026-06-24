@@ -917,7 +917,7 @@ export default function AnalysisBoard() {
             const curPiece = piece?.piece
             const trn = turn
 
-            let enPass = null
+            let enPass = enpassantSquare
             let brd = board
             setOldBoard(brd)
 
