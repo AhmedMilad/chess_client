@@ -83,20 +83,31 @@ export default function AnalysisBoard() {
     const [isPawnPromotion, setIsPawnPromotion] = useState(false)
     const [previousMove, setPreviousMove] = useState([])
 
+    const lightBoysenberry = "#873260";
+    const darkBoysenberry = "#6C284D";
+
     useEffect(() => {
+        let activeWorker = null;
+
         if (isGameAnalysis) {
-            setWorker(new Worker("/stockfish.js"))
+            activeWorker = new Worker("/stockfish.js");
+            setWorker(activeWorker);
         } else {
-            if (worker) {
-                worker.terminate()
-            }
-            setBoardEvaluation(0)
-            setLines([])
-            setWorker(null)
+            setBoardEvaluation(0);
+            setLines([]);
+            setWorker(null);
         }
-    }, [
-        isGameAnalysis
-    ])
+
+        return () => {
+            if (activeWorker) {
+                activeWorker.terminate();
+            }
+
+            if (worker) {
+                worker.terminate();
+            }
+        };
+    }, [isGameAnalysis]);
 
     function drawPromotionBoard() {
         const canvas = promotionCanvas.current;
@@ -463,6 +474,14 @@ export default function AnalysisBoard() {
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 let color = (row + col) % 2 === 0 ? lightColor : darkColor
+
+                if (previousMove.length > 0) {
+                    let [from, to] = previousMove
+                    if ((row === from[0] && col === from[1]) || (row === to[0] && col === to[1])) {
+                        color = (row + col) % 2 === 0 ? lightBoysenberry : darkBoysenberry
+                    }
+                }
+
 
                 ctx.fillStyle = color;
                 ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
@@ -898,6 +917,7 @@ export default function AnalysisBoard() {
             const curPiece = piece?.piece
             const trn = turn
 
+            let enPass = null
             let brd = board
             setOldBoard(brd)
 
@@ -1041,19 +1061,20 @@ export default function AnalysisBoard() {
 
                     if (isOriginalPerspective) {
 
+                        enPass = coordinatesToNotation(newRow, newCol, !isOriginalPerspective)
                         if (turn === "white") {
                             // might need a validation here
-                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                            setEnpassantSquare(enPass)
                         } else {
-                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                            setEnpassantSquare(enPass)
                         }
 
                     } else {
 
                         if (turn === "white") {
-                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                            setEnpassantSquare(enPass)
                         } else {
-                            setEnpassantSquare(coordinatesToNotation(newRow, newCol, !isOriginalPerspective))
+                            setEnpassantSquare(enPass)
                         }
 
                     }
@@ -1088,7 +1109,7 @@ export default function AnalysisBoard() {
 
                 setMovesHistory((prev) => {
 
-                    return [...prev, [getMoveNotation(piece?.row, piece?.col, newRow, newCol, isKingSideCastle, isLongCastle, isOriginalPerspective, enpassantSquare, "", trn, brd), getPositionFen(isOriginalPerspective, enpassantSquare, (trn === "white") ? "b" : "w", posBoard)]]
+                    return [...prev, [getMoveNotation(piece?.row, piece?.col, newRow, newCol, isKingSideCastle, isLongCastle, isOriginalPerspective, enPass, "", trn, brd), getPositionFen(isOriginalPerspective, enPass, (trn === "white") ? "b" : "w", posBoard), [[piece?.row, piece?.col], [newRow, newCol]]]]
                 })
             }
         }
@@ -1127,7 +1148,7 @@ export default function AnalysisBoard() {
 
         setMovesHistory((prev) => {
 
-            return [...prev, [getMoveNotation(fromRow, fromCol, toRow, toCol, false, false, isOriginalPerspective, null, promotionPiece.toLowerCase(), turn, oldBoard), getPositionFen(isOriginalPerspective, null, (pn[0] === "w") ? "b" : "w", brd)]]
+            return [...prev, [getMoveNotation(fromRow, fromCol, toRow, toCol, false, false, isOriginalPerspective, null, promotionPiece.toLowerCase(), turn, oldBoard), getPositionFen(isOriginalPerspective, null, (pn[0] === "w") ? "b" : "w", brd), [[fromRow, fromCol], [toRow, toCol]]]]
         })
 
     }, [
@@ -1220,7 +1241,12 @@ export default function AnalysisBoard() {
         return `${boardFen[0]} ${turn} ${castleStatus} ${enSqr} 0 1`
     }
 
-    function updateBoard(fen) {
+    function updateBoard(fen, prevMoveData) {
+
+        if (typeof fen !== "string") {
+            return
+        }
+
         fen = fen.split(" ")
 
         let brd = fenToAnalysisBoard(fen[0]);
@@ -1230,6 +1256,56 @@ export default function AnalysisBoard() {
 
         }
 
+        if (fen.length > 0) {
+            let turn = fen[1]
+            if (turn === 'w') {
+                setTurn("white")
+            } else {
+                setTurn("black")
+            }
+
+        }
+
+        if (fen.length > 1) {
+            const str = fen[2];
+
+            for (const char of str) {
+                if (char === "K") {
+                    setCanWhiteKingSideCastle(true)
+                }
+
+                if (char === "Q") {
+                    setCanWhiteLongCastle(true)
+                }
+
+                if (char === "k") {
+                    setCanBlackKingSideCastle(true)
+                }
+
+                if (char === "q") {
+                    setCanBlackLongCastle(true)
+                }
+            }
+        }
+
+        if (fen.length > 2) {
+            const enPass = fen[3]
+
+            if (enPass !== "-") {
+                setEnpassantSquare(enPass)
+            }
+        }
+
+        if (Array.isArray(prevMoveData) && prevMoveData.length > 1) {
+            const from = prevMoveData[0]
+            const to = prevMoveData[1]
+
+            setPreviousMove([[from[0], from[1]], [to[0], to[1]]]);
+
+        }
+
+
+        setMoves([])
         setBoard(brd)
     }
 
@@ -1482,14 +1558,14 @@ export default function AnalysisBoard() {
                                             <Fragment key={index}>
                                                 <div
                                                     className="border border-gray-600 text-center py-1 cursor-pointer hover:bg-gray-700"
-                                                    onClick={() => updateBoard(move[1])}
+                                                    onClick={() => updateBoard(move[1], move[2])}
                                                 >
                                                     {move[0]}
                                                 </div>
 
                                                 <div
                                                     className="border border-gray-600 text-center py-1 cursor-pointer hover:bg-gray-700"
-                                                    onClick={() => blackMove && updateBoard(blackMove[1])}
+                                                    onClick={() => blackMove && updateBoard(blackMove[1], blackMove[2])}
                                                 >
                                                     {blackMove?.[0] || ""}
                                                 </div>
