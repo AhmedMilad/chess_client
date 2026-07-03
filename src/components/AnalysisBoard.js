@@ -18,7 +18,8 @@ import {
     rotateMatrix180,
     notationToIndex,
     getMoveNotation,
-    Piece
+    Piece,
+    fenToBoard
 } from "../utils/game"
 import {
     AreaChart,
@@ -423,10 +424,30 @@ export default function AnalysisBoard() {
 
                 const analysisData = response?.data?.game_analysis || [];
 
+                let movesHistory = []
+                let prevBoardFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+
+                response?.data?.game_analysis?.forEach((game, index) => {
+
+                    let fromIndex = notationToIndex(game.from, !isOriginalPerspective)
+                    let toIndex = notationToIndex(game.to, !isOriginalPerspective)
+
+                    let boardFen = game?.board?.split(" ")[0]
+                    let prevBoard = fenToBoard(prevBoardFen, !isOriginalPerspective)
+                    let curBoard = fenToBoard(boardFen, !isOriginalPerspective)
+                    prevBoardFen = boardFen
+
+                    movesHistory.push([getMoveNotation(fromIndex[0], fromIndex[1], toIndex[0], toIndex[1], false, false, isOriginalPerspective, "", "", ((index % 2 === 0) ? "black" : "white"), prevBoard), getPositionFen(isOriginalPerspective, "", ((index % 2 === 0) ? "b" : "w"), curBoard), [[fromIndex[0], fromIndex[1]], [toIndex[0], toIndex[1]]], game?.score])
+
+                });
+
+                setMovesHistory(movesHistory)
+
                 setEvaluationHistory([
                     { move: "", score: 0.3, board: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", from: "", to: "" },
                     ...analysisData
                 ]);
+
                 setIsLoading(false)
                 setBoardEvaluation(0.3)
             }
@@ -1277,7 +1298,7 @@ export default function AnalysisBoard() {
         return `${boardFen[0]} ${turn} ${castleStatus} ${enSqr} 0 1`
     }
 
-    function updateBoard(fen, prevMoveData) {
+    function updateBoard(fen, prevMoveData, score) {
 
         if (typeof fen !== "string") {
             return
@@ -1340,6 +1361,9 @@ export default function AnalysisBoard() {
 
         }
 
+        if (score) {
+            setBoardEvaluation(score)
+        }
 
         setMoves([])
         setBoard(brd)
@@ -1697,12 +1721,6 @@ export default function AnalysisBoard() {
                         </div>
                         <div ref={scrollRef} className="h-72 overflow-y-auto">
                             <div className="grid grid-cols-2 text-white">
-                                {/* <div className="bg-gray-700 border-b border-gray-600 text-center font-bold py-1 text-sm">
-                                    White
-                                </div>
-                                <div className="bg-gray-700 border-b border-gray-600 text-center font-bold py-1 text-sm">
-                                    Black
-                                </div> */}
 
                                 {movesHistory.map((move, index) => {
                                     if (index % 2 === 0) {
@@ -1721,15 +1739,15 @@ export default function AnalysisBoard() {
                                         return (
                                             <Fragment key={index}>
                                                 <div
-                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(move[3])}`}
-                                                    onClick={() => updateBoard(move[1], move[2])}
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(move[4])}`}
+                                                    onClick={() => updateBoard(move[1], move[2], move[3])}
                                                 >
                                                     {move[0]}
                                                 </div>
 
                                                 <div
-                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(blackMove?.[3])}`}
-                                                    onClick={() => blackMove && updateBoard(blackMove[1], blackMove[2])}
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(blackMove?.[4])}`}
+                                                    onClick={() => blackMove && updateBoard(blackMove[1], blackMove[2], blackMove[3])}
                                                 >
                                                     {blackMove?.[0] || ""}
                                                 </div>
