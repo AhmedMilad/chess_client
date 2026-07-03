@@ -29,9 +29,13 @@ import {
     ResponsiveContainer,
     ReferenceLine
 } from "recharts";
+import axios from "axios";
+import { useParams } from "react-router-dom";
+import { useNavigate, } from "react-router-dom";
 
 export default function AnalysisBoard() {
 
+    const { id } = useParams();
     const rows = 8;
     const cols = 8;
     const size = 750;
@@ -362,26 +366,26 @@ export default function AnalysisBoard() {
 
     }, [isOriginalPerspective]);
 
-    // mock moves
-    const evaluationHistory = [
-        { moveStr: "Start", displayScore: 0.0 },
-        { moveStr: "e4", displayScore: 0.3 },
-        { moveStr: "e5", displayScore: 0.1 },
-        { moveStr: "Nf3", displayScore: 0.4 },
-        { moveStr: "Nc6", displayScore: -0.2 },
-        { moveStr: "Bc4", displayScore: 0.5 },
-        { moveStr: "Nf6", displayScore: -1.5 }, // Black is better
-        { moveStr: "Ng5", displayScore: 1.2 },  // White takes advantage
-        { moveStr: "d5", displayScore: 0.8 },
-        { moveStr: "exd5", displayScore: 2.1 }, // White is winning significantly
-    ];
+    const [evaluationHistory, setEvaluationHistory] = useState([])
 
-    const scores = evaluationHistory?.map(d => d.displayScore) || [0];
-    const maxVal = Math.max(...scores, 0);
-    const minVal = Math.min(...scores, 0);
+    const values = evaluationHistory.map(d => d.score);
+    const dataMax = Math.max(...values, 0);
+    const dataMin = Math.min(...values, 0);
+    const zeroOffset = dataMax / (dataMax - dataMin);
 
     function onMoveClick(e) {
-        console.log(e)
+
+        let board = e?.board
+        let from = e?.from
+        let to = e?.to
+        let score = e?.score
+
+        let fromIndex = notationToIndex(from, !isOriginalPerspective)
+        let toIndex = notationToIndex(to, !isOriginalPerspective)
+
+        updateBoard(board, [fromIndex, toIndex])
+        setBoardEvaluation(score)
+
     }
 
     const getBarHeight = (score) => {
@@ -397,9 +401,41 @@ export default function AnalysisBoard() {
         return Math.max(0, Math.min(100, percentage));
     };
 
-    const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
-    const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0].displayScore);
+    const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0]?.score);
     const [whiteHeight, setWhiteHeight] = useState(getBarHeight(boardEvaluation));
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            navigate("/login");
+            return;
+        }
+
+        const fetchAnalysis = async () => {
+            const baseURL = process.env.REACT_APP_BACKEND_URL || "";
+
+            const response = await axios.get(`${baseURL}/api/games/${id}/analyze`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.status === 200) {
+
+                const analysisData = response?.data?.game_analysis || [];
+
+                setEvaluationHistory([
+                    { move: "", score: 0.3, board: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", from: "", to: "" },
+                    ...analysisData
+                ]);
+                setIsLoading(false)
+                setBoardEvaluation(0.3)
+            }
+
+        };
+
+        fetchAnalysis();
+
+    }, [id, navigate]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1191,8 +1227,6 @@ export default function AnalysisBoard() {
                 castleStatus += "q"
             }
 
-            // send the fen notation to the engine
-
             if (isEngineReady) {
                 worker.postMessage(`position fen ${boardFen} ${turnCol} ${castleStatus} ${enSqr} 0 1`);
                 worker.postMessage("go depth 15");
@@ -1365,7 +1399,7 @@ export default function AnalysisBoard() {
                                                     if (isMateFound) {
                                                         return `m${stepsToMate}`
                                                     } else {
-                                                        return boardEvaluation > 0 ? `+${boardEvaluation.toFixed(1)}` : boardEvaluation.toFixed(1)
+                                                        return boardEvaluation > 0 ? `+${boardEvaluation?.toFixed(1)}` : boardEvaluation?.toFixed(1)
                                                     }
                                                 })()}
 
@@ -1444,46 +1478,73 @@ export default function AnalysisBoard() {
                             } else {
                                 return (
 
-                                    <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
-                                        <AreaChart
-                                            data={evaluationHistory}
-                                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                                            style={{ outline: 'none' }}
-                                            onClick={(nextState) => {
-                                                onMoveClick(nextState?.activeLabel);
-                                            }}
-                                        >
-                                            <defs>
-                                                <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#ffffff" stopOpacity={1} />
-                                                    <stop offset={`${(maxVal !== minVal) ? (maxVal / (maxVal - minVal)) * 100 : 50}% `} stopColor="#000000" stopOpacity={1} />
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis dataKey="moveStr" stroke="#777" tick={{ fill: '#bbb', fontSize: 12 }} />
-                                            <YAxis
-                                                domain={[-5, 5]}
-                                                stroke="#777"
-                                                tick={{ fill: '#bbb', fontSize: 12 }}
-                                                tickFormatter={(value) => (value > 0 ? `+ ${value} ` : value)}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
-                                                labelStyle={{ color: '#fff' }}
-                                                itemStyle={{ color: '#8884d8' }}
-                                                formatter={(value, name, props) => [`Score: ${props.payload.displayScore} `, 'Evaluation']}
-                                            />
-                                            <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
-                                            <Area
-                                                dataKey="displayScore"
-                                                stroke="#777"
-                                                fill="url(#lichessSplit)"
-                                                strokeWidth={2}
-                                                baseValue={0}
-                                                activeDot={{ r: 6, style: { outline: 'none' } }}
-                                                isAnimationActive={false}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                    <>
+                                        <style>{`
+                                            .no-outline-chart .recharts-wrapper:focus,
+                                            .no-outline-chart .recharts-wrapper:focus-visible,
+                                            .no-outline-chart .recharts-surface:focus,
+                                            .no-outline-chart .recharts-surface:focus-visible,
+                                            .no-outline-chart svg:focus,
+                                            .no-outline-chart svg:focus-visible {
+                                                outline: none !important;
+                                            }
+                                        `}</style>
+                                        <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
+                                            <AreaChart
+                                                data={evaluationHistory}
+                                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                                style={{ outline: 'none' }}
+                                                onClick={(nextState) => {
+
+                                                    if (nextState && nextState.activeTooltipIndex !== undefined) {
+
+                                                        const index = parseInt(nextState.activeTooltipIndex, 10);
+                                                        const clickedData = evaluationHistory[index];
+
+                                                        if (clickedData?.board) {
+                                                            onMoveClick({
+                                                                board: clickedData.board,
+                                                                from: clickedData.from,
+                                                                to: clickedData.to,
+                                                                score: clickedData.score,
+                                                            });
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                <defs>
+                                                    <linearGradient id="lichessSplit" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset={zeroOffset} stopColor="#ffffff" stopOpacity={1} />
+                                                        <stop offset={zeroOffset} stopColor="#000000" stopOpacity={1} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <XAxis dataKey="move" stroke="#777" tick={{ fill: '#bbb', fontSize: 12 }} />
+                                                <YAxis
+                                                    domain={[-10, 10]}
+                                                    stroke="#777"
+                                                    tick={{ fill: '#bbb', fontSize: 12 }}
+                                                    tickFormatter={(value) => (value > 0 ? `+ ${value} ` : value)}
+                                                />
+                                                <Tooltip
+                                                    contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
+                                                    labelStyle={{ color: '#fff' }}
+                                                    itemStyle={{ color: '#8884d8' }}
+                                                    formatter={(value, name, props) => [`Score: ${props.payload.score} `, 'Evaluation']}
+                                                />
+                                                <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
+                                                <Area
+                                                    dataKey="score"
+                                                    stroke="#777"
+                                                    fill="url(#lichessSplit)"
+                                                    strokeWidth={2}
+                                                    baseValue={0}
+                                                    activeDot={{ r: 6, style: { outline: 'none' } }}
+                                                    isAnimationActive={false}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </>
+
                                 )
                             }
 
