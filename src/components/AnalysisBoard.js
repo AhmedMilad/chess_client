@@ -429,15 +429,45 @@ export default function AnalysisBoard() {
 
                 response?.data?.game_analysis?.forEach((game, index) => {
 
-                    let fromIndex = notationToIndex(game.from, !isOriginalPerspective)
-                    let toIndex = notationToIndex(game.to, !isOriginalPerspective)
+                    let fromIndex = notationToIndex(game?.from, !isOriginalPerspective)
+                    let toIndex = notationToIndex(game?.to, !isOriginalPerspective)
 
                     let boardFen = game?.board?.split(" ")[0]
                     let prevBoard = fenToBoard(prevBoardFen, !isOriginalPerspective)
                     let curBoard = fenToBoard(boardFen, !isOriginalPerspective)
                     prevBoardFen = boardFen
 
-                    movesHistory.push([getMoveNotation(fromIndex[0], fromIndex[1], toIndex[0], toIndex[1], false, false, isOriginalPerspective, "", "", ((index % 2 === 0) ? "black" : "white"), prevBoard), getPositionFen(isOriginalPerspective, "", ((index % 2 === 0) ? "b" : "w"), curBoard), [[fromIndex[0], fromIndex[1]], [toIndex[0], toIndex[1]]], game?.score])
+                    let castlingStatus = game?.castling_status
+                    let enPass = game?.enpassant_square
+
+                    let canKingSideCastle = false
+                    let canLongCastle = false
+
+                    let promoteTo = ""
+
+                    if (index % 2 === 0) {
+                        if (castlingStatus.includes("k")) {
+                            canKingSideCastle = true
+                        }
+
+                        if (castlingStatus.includes("q")) {
+                            canLongCastle = true
+                        }
+                    } else {
+                        if (castlingStatus.includes("K")) {
+                            canKingSideCastle = true
+                        }
+
+                        if (castlingStatus.includes("Q")) {
+                            canLongCastle = true
+                        }
+                    }
+
+                    if (castlingStatus.includes("=")) {
+                        promoteTo = game?.move.at(-1)
+                    }
+
+                    movesHistory.push([getMoveNotation(fromIndex[0], fromIndex[1], toIndex[0], toIndex[1], canKingSideCastle, canLongCastle, isOriginalPerspective, enPass, promoteTo, ((index % 2 === 0) ? "black" : "white"), prevBoard), getPositionFen(isOriginalPerspective, enPass, ((index % 2 === 0) ? "b" : "w"), curBoard), [[fromIndex[0], fromIndex[1]], [toIndex[0], toIndex[1]]], game?.score])
 
                 });
 
