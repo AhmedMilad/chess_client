@@ -74,13 +74,15 @@ export default function AnalysisBoard() {
     const [worker, setWorker] = useState(null)
 
     const scrollRef = useRef(null);
-    const [isDraw, setIsDraw] = useState(false)
-    const [winner, setWinner] = useState()
-    const [opponentInfo, setOpponentInfo] = useState(null)
+    const [opponentUserName, setOpponentUserName] = useState(null)
     const [opponentPointsDelta, setOpponentPointsDelta] = useState(0)
     const [movesHistory, setMovesHistory] = useState([]);
-    const [playerInfo, setPlayerInfo] = useState(null)
-    const [myPointsDelta, setMyPointsDelta] = useState(0)
+    const [username, setUserName] = useState(null)
+    const [pointsDelta, setPointsDelta] = useState(0)
+
+    const [rating, setRating] = useState(0)
+    const [opponentRating, setOpponentRating] = useState(0)
+
     const [promotionPiece, setPromotionPiece] = useState(null)
     const [isGameAnalysis, setIsGameAnalysis] = useState(false);
 
@@ -422,7 +424,17 @@ export default function AnalysisBoard() {
 
             if (response.status === 200) {
 
-                const analysisData = response?.data?.game_analysis || [];
+                const gameAnalysis = response?.data?.game_analysis || [];
+                const userName = response?.data?.username;
+                const opponentUserName = response?.data?.opponent_username;
+
+                const rating = response?.data?.rating
+                const opponentRating = response?.data?.opponent_rating
+
+                const pointsDelta = response?.data?.points_delta
+                const opponentPointsDelta = response?.data?.opponent_points_delta
+
+                const perspective = (response?.data?.color === "white")
 
                 let movesHistory = []
                 let prevBoardFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
@@ -475,11 +487,23 @@ export default function AnalysisBoard() {
 
                 setEvaluationHistory([
                     { move: "", score: 0.3, board: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", from: "", to: "" },
-                    ...analysisData
+                    ...gameAnalysis
                 ]);
 
                 setIsLoading(false)
                 setBoardEvaluation(0.3)
+
+                setUserName(userName)
+                setOpponentUserName(opponentUserName)
+
+                setPointsDelta(pointsDelta)
+                setOpponentPointsDelta(opponentPointsDelta)
+
+                setRating(rating)
+                setOpponentRating(opponentRating)
+
+                setIsOriginalPerspective(perspective)
+
             }
 
         };
@@ -1604,29 +1628,10 @@ export default function AnalysisBoard() {
 
                         })()}
 
-
                     </div>
                 </div>
 
                 <div className="flex flex-col">
-                    {(() => {
-
-                        if (isDraw) {
-
-                            return (<div className="text-white p-4">
-                                Draw
-                            </div>
-                            )
-                        } else {
-                            return (
-                                <div className="text-white p-4">
-                                    {winner === "white" ? "White won!" : "Black won!"}
-                                </div>
-                            );
-                        }
-
-
-                    })()}
 
                     <div className="p-4">
                         {(() => {
@@ -1650,10 +1655,10 @@ export default function AnalysisBoard() {
                         })()}
 
                         <div className="flex justify-between items-center text-white text-xl">
-                            <div className="flex flex-col">
-                                <span>{opponentInfo?.username}</span>
+                            <div className="flex flex-col mt-4">
+                                <span>{opponentUserName}</span>
                                 <span className="text-sm text-gray-400">
-                                    {opponentInfo?.rating}
+                                    {opponentRating}
                                     {(
                                         <span
                                             style={{
@@ -1672,7 +1677,6 @@ export default function AnalysisBoard() {
                                     )}
                                 </span>
                             </div>
-
 
                         </div>
                     </div>
@@ -1793,23 +1797,23 @@ export default function AnalysisBoard() {
                     <div className="p-4">
                         <div className="flex justify-between items-center text-white text-xl">
                             <div className="flex flex-col">
-                                <span>{playerInfo?.username}</span>
+                                <span>{username}</span>
                                 <span className="text-sm">
-                                    {playerInfo?.rating}
+                                    {rating}
                                     {(
                                         <span
                                             style={{
                                                 color:
-                                                    myPointsDelta > 0
+                                                    pointsDelta > 0
                                                         ? "green"
-                                                        : myPointsDelta < 0
+                                                        : pointsDelta < 0
                                                             ? "red"
                                                             : undefined
                                             }}
                                         >
-                                            {myPointsDelta > 0
-                                                ? ` + ${myPointsDelta} `
-                                                : ` ${myPointsDelta} `}
+                                            {pointsDelta > 0
+                                                ? ` + ${pointsDelta} `
+                                                : ` ${pointsDelta} `}
                                         </span>
                                     )}
                                 </span>
