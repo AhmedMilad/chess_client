@@ -2196,7 +2196,7 @@ function getPawnMoveNotation(fromX, fromY, toX, toY, enpassantSquare, promoteTo,
         notation += "x";
     }
 
-    if (typeof enpassantSquare === 'string' && enpassantSquare.trim() !== "") {
+    if (typeof enpassantSquare === 'string' && enpassantSquare.trim() !== "" && enpassantSquare.trim() !== "-") {
         let coordinates = notationToIndex(enpassantSquare, !isOriginalPerspective);
 
         if (toY === coordinates[1] && toX === coordinates[0] + dir * -1) {
@@ -2211,6 +2211,6 @@ function getPawnMoveNotation(fromX, fromY, toX, toY, enpassantSquare, promoteTo,
     if (promoteTo.trim() !== "") {
         notation += "=" + promoteTo.toUpperCase();
     }
-    
+
     return notation;
 }

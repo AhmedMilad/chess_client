@@ -92,8 +92,12 @@ export default function AnalysisBoard() {
     const [previousMove, setPreviousMove] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
+    const [playerSummary, setPlayerSummary] = useState(null)
+    const [opponentSummary, setOpponentSummary] = useState(null)
+
     const lightBoysenberry = "#873260";
     const darkBoysenberry = "#6C284D";
+
 
     useEffect(() => {
         let activeWorker = null;
@@ -503,6 +507,9 @@ export default function AnalysisBoard() {
                 setOpponentRating(opponentRating)
 
                 setIsOriginalPerspective(perspective)
+
+                setPlayerSummary(response?.data?.player_summary)
+                setOpponentSummary(response?.data?.opponent_summary)
 
             }
 
@@ -1710,39 +1717,39 @@ export default function AnalysisBoard() {
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'best').length}</span>
+                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.best : opponentSummary.best}</span>
                                             <span className="text-emerald-400 font-semibold text-center bg-emerald-500/10 px-3 py-0.5 rounded-full text-xs border border-emerald-500/20 shadow-sm w-28">Best Move</span>
-                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'best').length}</span>
+                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.best : opponentSummary.best}</span>
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'excellent').length}</span>
+                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.excellent : opponentSummary.excellent}</span>
                                             <span className="text-blue-400 font-semibold text-center bg-blue-500/10 px-3 py-0.5 rounded-full text-xs border border-blue-500/20 shadow-sm w-28">Excellent</span>
-                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'excellent').length}</span>
+                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.excellent : opponentSummary.excellent}</span>
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'good').length}</span>
+                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.good : opponentSummary.good}</span>
                                             <span className="text-gray-300 font-semibold text-center bg-gray-500/10 px-3 py-0.5 rounded-full text-xs border border-gray-500/20 shadow-sm w-28">Good</span>
-                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'good').length}</span>
+                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.good : opponentSummary.good}</span>
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'inaccuracy').length}</span>
+                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.inaccuracy : opponentSummary.inaccuracy}</span>
                                             <span className="text-yellow-500 font-semibold text-center bg-yellow-500/10 px-3 py-0.5 rounded-full text-xs border border-yellow-500/20 shadow-sm w-28">Inaccuracy</span>
-                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'inaccuracy').length}</span>
+                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.inaccuracy : opponentSummary.inaccuracy}</span>
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'mistake').length}</span>
+                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.mistake : opponentSummary.mistake}</span>
                                             <span className="text-orange-500 font-semibold text-center bg-orange-500/10 px-3 py-0.5 rounded-full text-xs border border-orange-500/20 shadow-sm w-28">Mistake</span>
-                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'mistake').length}</span>
+                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.mistake : opponentSummary.mistake}</span>
                                         </div>
 
                                         <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{movesHistory.filter((m, i) => i % 2 === 0 && m[3] === 'blunder').length}</span>
+                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.blunder : opponentSummary.blunder}</span>
                                             <span className="text-red-500 font-semibold text-center bg-red-500/10 px-3 py-0.5 rounded-full text-xs border border-red-500/20 shadow-sm w-28">Blunder</span>
-                                            <span className="text-white font-bold text-right w-10">{movesHistory.filter((m, i) => i % 2 === 1 && m[3] === 'blunder').length}</span>
+                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.blunder : opponentSummary.blunder}</span>
                                         </div>
                                     </div>
                                 )
