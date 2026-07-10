@@ -1410,9 +1410,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         const getMousePos = (e) => {
             const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
             return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top,
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
             };
         };
 
@@ -1540,9 +1543,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         const getMousePos = (e) => {
             const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
             return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top,
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
             };
         };
 
@@ -1796,25 +1802,25 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }
 
     return (
-        <div className="flex items-center justify-center bg-gray-900 mt-8">
-            <div>
+        <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center bg-gray-900 mt-4 sm:mt-8 gap-4 lg:gap-6 p-3 sm:p-0 w-full">
+            <div className="w-full max-w-[750px] lg:w-auto flex flex-col items-center">
                 {isPawnPromotion && (
                     <canvas
                         ref={promotionCanvas}
                         width={cellSize * 4}
                         height={cellSize}
-                        className="shadow-lg cursor-pointer mx-auto my-4"
+                        className="shadow-lg cursor-pointer mx-auto my-4 max-w-full h-auto"
                     />
                 )}
                 <canvas
                     ref={canvasRef}
                     width={size}
                     height={size}
-                    className="rounded-lg shadow-lg cursor-pointer"
+                    className="rounded-lg shadow-lg cursor-pointer max-w-full h-auto"
                 />
-
             </div>
-            <div className="flex flex-col">
+
+            <div className="flex flex-col w-full lg:w-96">
                 {(() => {
                     if (isGameOver) {
 
@@ -1835,8 +1841,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     }
 
                 })()}
-                <div className="p-4">
-                    <div className="flex justify-between items-center text-white text-xl">
+                <div className="p-2 sm:p-4">
+                    <div className="flex justify-between items-center text-white text-lg sm:text-xl">
                         <div className="flex flex-col">
                             <span>{opponentInfo?.username}</span>
                             <span className="text-sm text-gray-400">
@@ -1868,12 +1874,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     </div>
                 </div>
 
-                <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
+                <div className="w-full mx-auto lg:mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden">
                     <div className="bg-gray-700 text-white p-2 text-center font-semibold">
                         Moves
                     </div>
 
-                    <div ref={scrollRef} className="h-72 overflow-y-auto">
+                    <div ref={scrollRef} className="h-56 sm:h-72 overflow-y-auto">
                         <div className="grid grid-cols-2 text-white">
                             <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
                             <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
@@ -1882,8 +1888,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                 if (index % 2 === 0) {
                                     return (
                                         <Fragment key={index}>
-                                            <div className="border border-gray-600 text-center py-1">{move}</div>
-                                            <div className="border border-gray-600 text-center py-1">
+                                            <div className="border border-gray-600 text-center py-1 text-sm sm:text-base">{move}</div>
+                                            <div className="border border-gray-600 text-center py-1 text-sm sm:text-base">
                                                 {movesHistory[index + 1] || ""}
                                             </div>
                                         </Fragment>
@@ -1894,8 +1900,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         </div>
                     </div>
                 </div>
-                <div className="p-4">
-                    <div className="flex justify-between items-center text-white text-xl">
+                <div className="p-2 sm:p-4">
+                    <div className="flex justify-between items-center text-white text-lg sm:text-xl">
                         <div className="flex flex-col">
                             <span>{playerInfo?.username}</span>
                             <span className="text-sm">
@@ -1947,9 +1953,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                     }
                                 })()}
 
-                                <div className="mx-auto flex">
+                                <div className="mx-auto flex flex-wrap justify-center">
 
-                                    <div className="mx-auto flex space-x-4">
+                                    <div className="mx-auto flex flex-wrap justify-center gap-3 sm:space-x-4">
                                         {(() => {
                                             if (!isRematchAvailable) {
                                                 if (!isRematchOffered && !loadNewGame) {
@@ -2054,7 +2060,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         )
                     } else {
                         return (
-                            <div className="mx-auto flex space-x-4">
+                            <div className="mx-auto flex flex-wrap justify-center gap-3 sm:space-x-4">
 
                                 {(() => {
 
@@ -2082,7 +2088,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                     if (!cancelDrawOffer && !confirmResign && !isDrawAvailable) {
                                         return (
 
-                                            <div className="mx-auto flex space-x-4">
+                                            <div className="mx-auto flex flex-wrap justify-center gap-3 sm:space-x-4">
                                                 <button
                                                     className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                                                     style={{
@@ -2203,6 +2209,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             </div>
 
-        </div >
+        </div>
     );
 }
