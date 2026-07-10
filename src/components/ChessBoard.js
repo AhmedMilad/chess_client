@@ -571,11 +571,14 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     useEffect(() => {
 
-        let brd = fenToBoard(socketMessage.board, isBlack);
-        setOrgBoard(brd)
+        if (socketMessage !== null && Object.hasOwn(socketMessage, "board") && socketMessage.board !== "") {
+            let brd = fenToBoard(socketMessage.board, isBlack);
 
-        if (socketMessage !== null && Object.hasOwn(socketMessage, "board") && socketMessage.board !== "" && isBlack) {
-            brd = rotateMatrix180(brd);
+            if (isBlack) {
+                brd = rotateMatrix180(brd);
+            }
+
+            setOrgBoard(brd)
             setBoard(brd);
         }
 
