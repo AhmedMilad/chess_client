@@ -118,7 +118,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [isRematchAvailable, setIsRematchAvailable] = useState(false)
     const [isDrawAvailable, setIsDrawAvailable] = useState(false)
     const [loading, setLoading] = useState(true);
-
+    const [orgBoard, setOrgBoard] = useState(null)
 
     useEffect(() => {
 
@@ -571,9 +571,10 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     useEffect(() => {
 
+        let brd = fenToBoard(socketMessage.board, isBlack);
+        setOrgBoard(brd)
 
         if (socketMessage !== null && Object.hasOwn(socketMessage, "board") && socketMessage.board !== "" && isBlack) {
-            let brd = fenToBoard(socketMessage.board, isBlack);
             brd = rotateMatrix180(brd);
             setBoard(brd);
         }
@@ -877,10 +878,23 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     }
                 }
             }
-            lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "blue", cellSize / 4, cellSize));
+            lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", cellSize / 4, cellSize));
 
             if (isRightDragging && startPos && mousePos) {
-                drawArrow(ctx, startPos, mousePos, "blue", cellSize / 4, cellSize);
+                drawArrow(
+                    ctx,
+                    [
+                        Math.floor(startPos.y / cellSize),
+                        Math.floor(startPos.x / cellSize),
+                    ],
+                    [
+                        Math.floor(mousePos.y / cellSize),
+                        Math.floor(mousePos.x / cellSize),
+                    ],
+                    "orange",
+                    cellSize / 4,
+                    cellSize
+                );
             }
 
             if (draggingPiece && images[draggingPiece.piece.name]) {
@@ -966,13 +980,19 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     );
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
-        if (isCheckMate) return
-        const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
-        const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
-        const ex = Math.floor(end.x / cellSize) * cellSize + cellSize / 2;
-        const ey = Math.floor(end.y / cellSize) * cellSize + cellSize / 2;
+        if (!start || !end) {
+            return
+        }
 
-        if (sx === ex && sy === ey) return
+        const [sRow, sCol] = start;
+        const [eRow, eCol] = end;
+
+        const sx = sCol * cellSize + cellSize / 2;
+        const sy = sRow * cellSize + cellSize / 2;
+        const ex = eCol * cellSize + cellSize / 2;
+        const ey = eRow * cellSize + cellSize / 2;
+
+        if (sx === ex && sy === ey) return;
 
         const dx = ex - sx;
         const dy = ey - sy;
@@ -983,6 +1003,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         const lineEndX = ex - headLength * Math.cos(angle);
         const lineEndY = ey - headLength * Math.sin(angle);
+
+        ctx.save();
+        ctx.globalAlpha = 0.75;
 
         ctx.beginPath();
         ctx.moveTo(sx, sy);
@@ -1005,6 +1028,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         ctx.closePath();
         ctx.fillStyle = color;
         ctx.fill();
+
+        ctx.restore();
     }
 
     const getPieceMoves = useCallback((row, col, piece, board) => {
@@ -1445,8 +1470,6 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             if (e.button === 2) {
                 e.preventDefault();
                 setPreviousRightClickCords([row, col])
-                setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(0)));
-                setPreMoves([])
                 setStartPos(pos);
                 setMousePos(pos);
                 setIsRightDragging(true);
@@ -1487,6 +1510,30 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     setPreviousRightClickCords([])
                 }
                 setIsRightDragging(false);
+                let sPos = startPos
+
+                if (sPos) {
+                    const sCol = Math.floor(sPos.x / cellSize);
+                    const sRow = Math.floor(sPos.y / cellSize);
+
+                    if (sCol === newCol && sRow === newRow) {
+
+                        setBoard(orgBoard)
+                        setBoardCol(Array.from({ length: 16 }, () => Array(16).fill(0)));
+                        setPreMoves([])
+
+                    } else {
+
+                        setLines(prev => [
+                            ...prev,
+                            {
+                                start: [sRow, sCol],
+                                end: [newRow, newCol],
+                            },
+                        ]);
+                    }
+                }
+
                 setStartPos(null);
                 setMousePos(null);
             }
@@ -1532,7 +1579,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         getPieceMoves,
         getPiecePreMoves,
         getPinMoves,
-        play
+        play,
+        orgBoard
     ]);
 
     useEffect(() => {

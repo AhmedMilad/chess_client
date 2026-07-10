@@ -1460,6 +1460,11 @@ export function notationToIndex(square, isBlack = false) {
 }
 
 export function fenToBoard(fen, isBlack) {
+
+    if (!fen) {
+        return
+    }
+
     const board = Array.from({ length: 8 }, () => Array(8).fill(null));
 
     const rows = fen.split(" ")[0].split("/");
