@@ -410,6 +410,9 @@ export default function AnalysisBoard() {
 
     const [boardEvaluation, setBoardEvaluation] = useState(evaluationHistory[0]?.score);
     const [whiteHeight, setWhiteHeight] = useState(getBarHeight(boardEvaluation));
+
+    const [gameAnalysisResponse, setGameAnalysisResponse] = useState(null);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -428,88 +431,10 @@ export default function AnalysisBoard() {
 
             if (response.status === 200) {
 
-                const gameAnalysis = response?.data?.game_analysis || [];
-                const userName = response?.data?.username;
-                const opponentUserName = response?.data?.opponent_username;
 
-                const rating = response?.data?.rating
-                const opponentRating = response?.data?.opponent_rating
+                setIsOriginalPerspective((response?.data?.color === "white"))
+                setGameAnalysisResponse(response?.data)
 
-                const pointsDelta = response?.data?.points_delta
-                const opponentPointsDelta = response?.data?.opponent_points_delta
-
-                const perspective = (response?.data?.color === "white")
-
-                let movesHistory = []
-                let prevBoardFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-
-                response?.data?.game_analysis?.forEach((game, index) => {
-
-                    let fromIndex = notationToIndex(game?.from, !isOriginalPerspective)
-                    let toIndex = notationToIndex(game?.to, !isOriginalPerspective)
-
-                    let boardFen = game?.board?.split(" ")[0]
-                    let prevBoard = fenToBoard(prevBoardFen, !isOriginalPerspective)
-                    let curBoard = fenToBoard(boardFen, !isOriginalPerspective)
-                    prevBoardFen = boardFen
-
-                    let castlingStatus = game?.castling_status
-                    let enPass = game?.enpassant_square
-
-                    let canKingSideCastle = false
-                    let canLongCastle = false
-
-                    let promoteTo = ""
-
-                    if (index % 2 === 0) {
-                        if (castlingStatus.includes("k")) {
-                            canKingSideCastle = true
-                        }
-
-                        if (castlingStatus.includes("q")) {
-                            canLongCastle = true
-                        }
-                    } else {
-                        if (castlingStatus.includes("K")) {
-                            canKingSideCastle = true
-                        }
-
-                        if (castlingStatus.includes("Q")) {
-                            canLongCastle = true
-                        }
-                    }
-
-                    if (castlingStatus.includes("=")) {
-                        promoteTo = game?.move.at(-1)
-                    }
-
-                    movesHistory.push([getMoveNotation(fromIndex[0], fromIndex[1], toIndex[0], toIndex[1], canKingSideCastle, canLongCastle, isOriginalPerspective, enPass, promoteTo, ((index % 2 === 0) ? "black" : "white"), prevBoard), getPositionFen(isOriginalPerspective, enPass, ((index % 2 === 0) ? "b" : "w"), curBoard), [[fromIndex[0], fromIndex[1]], [toIndex[0], toIndex[1]]], game?.score])
-
-                });
-
-                setMovesHistory(movesHistory)
-
-                setEvaluationHistory([
-                    { move: "", score: 0.3, board: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", from: "", to: "" },
-                    ...gameAnalysis
-                ]);
-
-                setIsLoading(false)
-                setBoardEvaluation(0.3)
-
-                setUserName(userName)
-                setOpponentUserName(opponentUserName)
-
-                setPointsDelta(pointsDelta)
-                setOpponentPointsDelta(opponentPointsDelta)
-
-                setRating(rating)
-                setOpponentRating(opponentRating)
-
-                setIsOriginalPerspective(perspective)
-
-                setPlayerSummary(response?.data?.player_summary)
-                setOpponentSummary(response?.data?.opponent_summary)
 
             }
 
@@ -518,6 +443,105 @@ export default function AnalysisBoard() {
         fetchAnalysis();
 
     }, [id, navigate]);
+
+
+    useEffect(() => {
+
+        if (!gameAnalysisResponse) {
+            return
+        }
+
+        const gameAnalysis = gameAnalysisResponse?.game_analysis || [];
+        const userName = gameAnalysisResponse?.username;
+        const opponentUserName = gameAnalysisResponse?.opponent_username;
+
+        const rating = gameAnalysisResponse?.rating
+        const opponentRating = gameAnalysisResponse?.opponent_rating
+
+        const pointsDelta = gameAnalysisResponse?.points_delta
+        const opponentPointsDelta = gameAnalysisResponse?.opponent_points_delta
+
+
+        let movesHistory = []
+        let prevBoardFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+
+        gameAnalysisResponse?.game_analysis?.forEach((game, index) => {
+
+            let fromIndex = notationToIndex(game?.from, !isOriginalPerspective)
+            let toIndex = notationToIndex(game?.to, !isOriginalPerspective)
+
+            let boardFen = game?.board?.split(" ")[0]
+            let prevBoard = fenToBoard(prevBoardFen, true)
+            let curBoard = fenToBoard(boardFen, !isOriginalPerspective)
+
+
+            if (!isOriginalPerspective) {
+                prevBoard = rotateMatrix180(prevBoard)
+                curBoard = rotateMatrix180(curBoard)
+
+            }
+
+
+            prevBoardFen = boardFen
+
+            let castlingStatus = game?.castling_status
+            let enPass = game?.enpassant_square
+
+            let canKingSideCastle = false
+            let canLongCastle = false
+
+            let promoteTo = ""
+
+            if (index % 2 === 0) {
+                if (castlingStatus.includes("k")) {
+                    canKingSideCastle = true
+                }
+
+                if (castlingStatus.includes("q")) {
+                    canLongCastle = true
+                }
+            } else {
+                if (castlingStatus.includes("K")) {
+                    canKingSideCastle = true
+                }
+
+                if (castlingStatus.includes("Q")) {
+                    canLongCastle = true
+                }
+            }
+
+            if (castlingStatus.includes("=")) {
+                promoteTo = game?.move.at(-1)
+            }
+
+            movesHistory.push([getMoveNotation(fromIndex[0], fromIndex[1], toIndex[0], toIndex[1], canKingSideCastle, canLongCastle, isOriginalPerspective, enPass, promoteTo, ((index % 2 === 0) ? "black" : "white"), prevBoard), getPositionFen(isOriginalPerspective, enPass, ((index % 2 === 0) ? "b" : "w"), curBoard), [[fromIndex[0], fromIndex[1]], [toIndex[0], toIndex[1]]], game?.score])
+
+        });
+
+        setMovesHistory(movesHistory)
+
+        setEvaluationHistory([
+            { move: "", score: 0.3, board: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", from: "", to: "" },
+            ...gameAnalysis
+        ]);
+
+        setIsLoading(false)
+        setBoardEvaluation(0.3)
+
+        setUserName(userName)
+        setOpponentUserName(opponentUserName)
+
+        setPointsDelta(pointsDelta)
+        setOpponentPointsDelta(opponentPointsDelta)
+
+        setRating(rating)
+        setOpponentRating(opponentRating)
+
+        setPlayerSummary(gameAnalysisResponse?.player_summary)
+        setOpponentSummary(gameAnalysisResponse?.opponent_summary)
+
+    }, [gameAnalysisResponse, isOriginalPerspective])
+
 
     useEffect(() => {
         const canvas = canvasRef.current;
