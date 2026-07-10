@@ -226,6 +226,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             setLoading(false)
             setLoadNewGame(false)
 
+            setCanMove(true)
+
             setMovesHistory([])
 
             setGameID(socketMessage.game_id)
@@ -525,6 +527,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     setCanKingSideCastle(canKingSideCastle)
                     setCanLongCastle(canLongCastle)
                 }
+
+                setCanMove(true)
 
             }
 
@@ -1878,6 +1882,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         setPreviousMove([[fromSquareIndex[0], fromSquareIndex[1]], [toSquareIndex[0], toSquareIndex[1]]]);
         setBoard(brd)
+
         setCanMove(isLast)
     }
 
@@ -1962,23 +1967,40 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     <div ref={scrollRef} className="h-56 sm:h-72 overflow-y-auto">
                         <div ref={scrollRef} className="h-56 sm:h-72 overflow-y-auto">
                             <div className="grid grid-cols-2 text-white">
-
                                 {movesHistory.map((move, index) => {
-
                                     if (index % 2 === 0) {
                                         const blackMove = movesHistory[index + 1];
+
+                                        const isWhiteLatest = index === movesHistory.length - 1;
+                                        const isBlackLatest = index + 1 === movesHistory.length - 1;
+
                                         return (
                                             <Fragment key={index}>
                                                 <div
-                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base`}
-                                                    onClick={() => updateBoard(move.from, move.to, move.board, (index === movesHistory.length - 1))}
+                                                    className="border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base"
+                                                    onClick={() =>
+                                                        updateBoard(
+                                                            move.from,
+                                                            move.to,
+                                                            move.board,
+                                                            isWhiteLatest
+                                                        )
+                                                    }
                                                 >
                                                     {move.move_notation}
                                                 </div>
 
                                                 <div
-                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base`}
-                                                    onClick={() => blackMove && updateBoard(blackMove.from, blackMove.to, blackMove.board, (index === movesHistory.length - 1))}
+                                                    className="border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base"
+                                                    onClick={() =>
+                                                        blackMove &&
+                                                        updateBoard(
+                                                            blackMove.from,
+                                                            blackMove.to,
+                                                            blackMove.board,
+                                                            isBlackLatest
+                                                        )
+                                                    }
                                                 >
                                                     {blackMove?.move_notation || ""}
                                                 </div>
