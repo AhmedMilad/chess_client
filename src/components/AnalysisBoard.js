@@ -98,6 +98,22 @@ export default function AnalysisBoard() {
     const lightBoysenberry = "#873260";
     const darkBoysenberry = "#6C284D";
 
+    const [canvasDisplaySize, setCanvasDisplaySize] = useState(size);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                setCanvasDisplaySize(entry.contentRect.height);
+            }
+        });
+
+        observer.observe(canvas);
+
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         let activeWorker = null;
@@ -170,9 +186,12 @@ export default function AnalysisBoard() {
 
         const getMousePos = (e) => {
             const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
             return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top,
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
             };
         };
 
@@ -748,9 +767,12 @@ export default function AnalysisBoard() {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
 
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
         return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY,
         };
     };
 
@@ -1471,20 +1493,20 @@ export default function AnalysisBoard() {
     }, [movesHistory]);
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-900 p-6">
-            <div className="flex flex-row w-full max-w-6xl gap-6 items-stretch">
+        <div className="flex items-center justify-center min-h-screen bg-gray-900 p-3 sm:p-6">
+            <div className="flex flex-col lg:flex-row w-full max-w-6xl gap-4 lg:gap-6 items-stretch">
 
-                <div className="flex flex-col flex-1 gap-4">
+                <div className="flex flex-col flex-1 gap-4 w-full min-w-0">
                     {isPawnPromotion && (
                         <canvas
                             ref={promotionCanvas}
                             width={cellSize * 4}
                             height={cellSize}
-                            className="shadow-lg cursor-pointer mx-auto my-4"
+                            className="shadow-lg cursor-pointer mx-auto my-4 max-w-full h-auto"
                         />
                     )}
 
-                    <div className="flex flex-row items-center justify-center gap-4 w-full">
+                    <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full">
 
                         {(
                             () => {
@@ -1492,8 +1514,8 @@ export default function AnalysisBoard() {
                                 if (isOriginalPerspective) {
                                     return (
                                         <div
-                                            className="relative w-6 rounded flex flex-col overflow-hidden bg-black border border-neutral-700 shadow-inner"
-                                            style={{ height: `${size}px` }}
+                                            className="relative w-4 sm:w-6 rounded flex flex-col overflow-hidden bg-black border border-neutral-700 shadow-inner shrink-0"
+                                            style={{ height: `${canvasDisplaySize}px` }}
                                         >
                                             <div
                                                 className="absolute bottom-0 w-full bg-white transition-all duration-200 ease-in-out"
@@ -1502,7 +1524,7 @@ export default function AnalysisBoard() {
 
                                             <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-500 opacity-50 pointer-events-none" />
 
-                                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
+                                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[9px] sm:text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
 
                                                 {(() => {
                                                     if (isMateFound) {
@@ -1519,8 +1541,8 @@ export default function AnalysisBoard() {
                                 } else {
                                     return (
                                         <div
-                                            className="relative w-6 rounded flex flex-col overflow-hidden bg-white border border-neutral-700 shadow-inner"
-                                            style={{ height: `${size}px` }}
+                                            className="relative w-4 sm:w-6 rounded flex flex-col overflow-hidden bg-white border border-neutral-700 shadow-inner shrink-0"
+                                            style={{ height: `${canvasDisplaySize}px` }}
                                         >
                                             <div
                                                 className="absolute bottom-0 w-full bg-black transition-all duration-200 ease-in-out"
@@ -1529,7 +1551,7 @@ export default function AnalysisBoard() {
 
                                             <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-500 opacity-50 pointer-events-none" />
 
-                                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
+                                            <div className="absolute inset-x-0 bottom-2 text-center font-sans font-bold text-[9px] sm:text-[11px] pointer-events-none z-10 mix-blend-difference text-white">
 
                                                 {(() => {
                                                     if (isMateFound) {
@@ -1551,24 +1573,24 @@ export default function AnalysisBoard() {
                             ref={canvasRef}
                             width={size}
                             height={size}
-                            className="rounded-lg shadow-lg cursor-pointer bg-neutral-800"
+                            className="rounded-lg shadow-lg cursor-pointer bg-neutral-800 max-w-full h-auto"
                         />
                     </div>
 
-                    <div style={{ width: '100%', height: '200px', backgroundColor: '#1e1e1e', padding: '15px', borderRadius: '8px' }}>
-                        <h3 style={{ color: '#fff', margin: '0 0 10px 0', fontFamily: 'sans-serif', fontSize: '14px' }}>
+                    <div className="w-full h-[160px] sm:h-[200px] bg-[#1e1e1e] p-3 sm:p-[15px] rounded-lg">
+                        <h3 className="text-white m-0 mb-2 font-sans text-sm">
                             Game Evaluation
                         </h3>
 
                         <style>{`
-    .no - outline - chart : focus, 
-                    .no - outline - chart g: focus, 
-                    .no - outline - chart path: focus,
-                    .no - outline - chart.recharts - wrapper :focus {
-    outline: none!important;
-    box - shadow: none!important;
-}
-`}</style>
+                        .no-outline-chart:focus,
+                        .no-outline-chart g:focus,
+                        .no-outline-chart path:focus,
+                        .no-outline-chart .recharts-wrapper:focus {
+                            outline: none !important;
+                            box-shadow: none !important;
+                        }
+                    `}</style>
 
 
                         {(() => {
@@ -1589,16 +1611,16 @@ export default function AnalysisBoard() {
 
                                     <>
                                         <style>{`
-                                            .no-outline-chart .recharts-wrapper:focus,
-                                            .no-outline-chart .recharts-wrapper:focus-visible,
-                                            .no-outline-chart .recharts-surface:focus,
-                                            .no-outline-chart .recharts-surface:focus-visible,
-                                            .no-outline-chart svg:focus,
-                                            .no-outline-chart svg:focus-visible {
-                                                outline: none !important;
-                                            }
-                                        `}</style>
-                                        <ResponsiveContainer width="100%" height="90%" className="no-outline-chart">
+                                        .no-outline-chart .recharts-wrapper:focus,
+                                        .no-outline-chart .recharts-wrapper:focus-visible,
+                                        .no-outline-chart .recharts-surface:focus,
+                                        .no-outline-chart .recharts-surface:focus-visible,
+                                        .no-outline-chart svg:focus,
+                                        .no-outline-chart svg:focus-visible {
+                                            outline: none !important;
+                                        }
+                                    `}</style>
+                                        <ResponsiveContainer width="100%" height="85%" className="no-outline-chart">
                                             <AreaChart
                                                 data={evaluationHistory}
                                                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -1632,13 +1654,13 @@ export default function AnalysisBoard() {
                                                     domain={[-10, 10]}
                                                     stroke="#777"
                                                     tick={{ fill: '#bbb', fontSize: 12 }}
-                                                    tickFormatter={(value) => (value > 0 ? `+ ${value} ` : value)}
+                                                    tickFormatter={(value) => (value > 0 ? `+${value}` : value)}
                                                 />
                                                 <Tooltip
                                                     contentStyle={{ backgroundColor: '#2a2a2a', borderColor: '#444' }}
                                                     labelStyle={{ color: '#fff' }}
                                                     itemStyle={{ color: '#8884d8' }}
-                                                    formatter={(value, name, props) => [`Score: ${props.payload.score} `, 'Evaluation']}
+                                                    formatter={(value, name, props) => [`Score: ${props.payload.score}`, 'Evaluation']}
                                                 />
                                                 <ReferenceLine y={0} stroke="#555" strokeDasharray="3 3" />
                                                 <Area
@@ -1662,21 +1684,17 @@ export default function AnalysisBoard() {
                     </div>
                 </div>
 
-                <div className="flex flex-col">
+                <div className="flex flex-col w-full lg:w-96 shrink-0">
 
-                    <div className="p-4">
+                    <div className="p-2 sm:p-4">
                         {(() => {
 
                             return (
                                 <button
                                     onClick={toggleEngineAnalysis}
+                                    className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-md text-white border-none cursor-pointer"
                                     style={{
-                                        padding: '10px 20px',
                                         backgroundColor: !isGameAnalysis ? '#4CAF50' : '#f44336',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '5px',
-                                        cursor: 'pointer'
                                     }}
                                 >
                                     {!isGameAnalysis ? 'Turn on engine' : 'Turn off engine'}
@@ -1685,7 +1703,7 @@ export default function AnalysisBoard() {
 
                         })()}
 
-                        <div className="flex justify-between items-center text-white text-xl">
+                        <div className="flex justify-between items-center text-white text-lg sm:text-xl">
                             <div className="flex flex-col mt-4">
                                 <span>{opponentUserName}</span>
                                 <span className="text-sm text-gray-400">
@@ -1702,8 +1720,8 @@ export default function AnalysisBoard() {
                                             }}
                                         >
                                             {opponentPointsDelta > 0
-                                                ? ` + ${opponentPointsDelta} `
-                                                : ` ${opponentPointsDelta} `}
+                                                ? ` +${opponentPointsDelta}`
+                                                : ` ${opponentPointsDelta}`}
                                         </span>
                                     )}
                                 </span>
@@ -1712,7 +1730,7 @@ export default function AnalysisBoard() {
                         </div>
                     </div>
 
-                    <div className="w-96 mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden flex flex-col">
+                    <div className="w-full mx-auto lg:mx-4 bg-gray-800 rounded-lg shadow-lg border border-gray-600 overflow-hidden flex flex-col">
 
                         {(() => {
 
@@ -1733,47 +1751,47 @@ export default function AnalysisBoard() {
 
                                 return (
 
-                                    <div className="bg-gray-800/90 p-4 border-b border-gray-600 flex flex-col gap-2 font-sans select-none">
-                                        <div className="flex justify-between items-center text-gray-400 text-[11px] uppercase tracking-wider font-bold px-1 mb-1">
+                                    <div className="bg-gray-800/90 p-3 sm:p-4 border-b border-gray-600 flex flex-col gap-2 font-sans select-none">
+                                        <div className="flex justify-between items-center text-gray-400 text-[10px] sm:text-[11px] uppercase tracking-wider font-bold px-1 mb-1">
                                             <span>White</span>
                                             <span>Analysis</span>
                                             <span>Black</span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.best : opponentSummary.best}</span>
-                                            <span className="text-emerald-400 font-semibold text-center bg-emerald-500/10 px-3 py-0.5 rounded-full text-xs border border-emerald-500/20 shadow-sm w-28">Best Move</span>
-                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.best : opponentSummary.best}</span>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-2 sm:px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-8 sm:w-10">{isOriginalPerspective ? playerSummary.best : opponentSummary.best}</span>
+                                            <span className="text-emerald-400 font-semibold text-center bg-emerald-500/10 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs border border-emerald-500/20 shadow-sm w-24 sm:w-28">Best Move</span>
+                                            <span className="text-white font-bold text-right w-8 sm:w-10">{!isOriginalPerspective ? playerSummary.best : opponentSummary.best}</span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.excellent : opponentSummary.excellent}</span>
-                                            <span className="text-blue-400 font-semibold text-center bg-blue-500/10 px-3 py-0.5 rounded-full text-xs border border-blue-500/20 shadow-sm w-28">Excellent</span>
-                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.excellent : opponentSummary.excellent}</span>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-2 sm:px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-8 sm:w-10">{isOriginalPerspective ? playerSummary.excellent : opponentSummary.excellent}</span>
+                                            <span className="text-blue-400 font-semibold text-center bg-blue-500/10 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs border border-blue-500/20 shadow-sm w-24 sm:w-28">Excellent</span>
+                                            <span className="text-white font-bold text-right w-8 sm:w-10">{!isOriginalPerspective ? playerSummary.excellent : opponentSummary.excellent}</span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.good : opponentSummary.good}</span>
-                                            <span className="text-gray-300 font-semibold text-center bg-gray-500/10 px-3 py-0.5 rounded-full text-xs border border-gray-500/20 shadow-sm w-28">Good</span>
-                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.good : opponentSummary.good}</span>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-2 sm:px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-8 sm:w-10">{isOriginalPerspective ? playerSummary.good : opponentSummary.good}</span>
+                                            <span className="text-gray-300 font-semibold text-center bg-gray-500/10 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs border border-gray-500/20 shadow-sm w-24 sm:w-28">Good</span>
+                                            <span className="text-white font-bold text-right w-8 sm:w-10">{!isOriginalPerspective ? playerSummary.good : opponentSummary.good}</span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.inaccuracy : opponentSummary.inaccuracy}</span>
-                                            <span className="text-yellow-500 font-semibold text-center bg-yellow-500/10 px-3 py-0.5 rounded-full text-xs border border-yellow-500/20 shadow-sm w-28">Inaccuracy</span>
-                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.inaccuracy : opponentSummary.inaccuracy}</span>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-2 sm:px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-8 sm:w-10">{isOriginalPerspective ? playerSummary.inaccuracy : opponentSummary.inaccuracy}</span>
+                                            <span className="text-yellow-500 font-semibold text-center bg-yellow-500/10 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs border border-yellow-500/20 shadow-sm w-24 sm:w-28">Inaccuracy</span>
+                                            <span className="text-white font-bold text-right w-8 sm:w-10">{!isOriginalPerspective ? playerSummary.inaccuracy : opponentSummary.inaccuracy}</span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.mistake : opponentSummary.mistake}</span>
-                                            <span className="text-orange-500 font-semibold text-center bg-orange-500/10 px-3 py-0.5 rounded-full text-xs border border-orange-500/20 shadow-sm w-28">Mistake</span>
-                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.mistake : opponentSummary.mistake}</span>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-2 sm:px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-8 sm:w-10">{isOriginalPerspective ? playerSummary.mistake : opponentSummary.mistake}</span>
+                                            <span className="text-orange-500 font-semibold text-center bg-orange-500/10 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs border border-orange-500/20 shadow-sm w-24 sm:w-28">Mistake</span>
+                                            <span className="text-white font-bold text-right w-8 sm:w-10">{!isOriginalPerspective ? playerSummary.mistake : opponentSummary.mistake}</span>
                                         </div>
 
-                                        <div className="flex items-center justify-between text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-3 py-1.5 rounded-md">
-                                            <span className="text-white font-bold text-left w-10">{isOriginalPerspective ? playerSummary.blunder : opponentSummary.blunder}</span>
-                                            <span className="text-red-500 font-semibold text-center bg-red-500/10 px-3 py-0.5 rounded-full text-xs border border-red-500/20 shadow-sm w-28">Blunder</span>
-                                            <span className="text-white font-bold text-right w-10">{!isOriginalPerspective ? playerSummary.blunder : opponentSummary.blunder}</span>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm bg-gray-900/40 hover:bg-gray-900/70 transition px-2 sm:px-3 py-1.5 rounded-md">
+                                            <span className="text-white font-bold text-left w-8 sm:w-10">{isOriginalPerspective ? playerSummary.blunder : opponentSummary.blunder}</span>
+                                            <span className="text-red-500 font-semibold text-center bg-red-500/10 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs border border-red-500/20 shadow-sm w-24 sm:w-28">Blunder</span>
+                                            <span className="text-white font-bold text-right w-8 sm:w-10">{!isOriginalPerspective ? playerSummary.blunder : opponentSummary.blunder}</span>
                                         </div>
                                     </div>
                                 )
@@ -1784,7 +1802,7 @@ export default function AnalysisBoard() {
                         <div className="bg-gray-700 text-white p-2 text-center font-semibold">
                             Moves
                         </div>
-                        <div ref={scrollRef} className="h-72 overflow-y-auto">
+                        <div ref={scrollRef} className="h-56 sm:h-72 overflow-y-auto">
                             <div className="grid grid-cols-2 text-white">
 
                                 {movesHistory.map((move, index) => {
@@ -1804,14 +1822,14 @@ export default function AnalysisBoard() {
                                         return (
                                             <Fragment key={index}>
                                                 <div
-                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(move[4])}`}
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base ${getBadgeColor(move[4])}`}
                                                     onClick={() => updateBoard(move[1], move[2], move[3])}
                                                 >
                                                     {move[0]}
                                                 </div>
 
                                                 <div
-                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition ${getBadgeColor(blackMove?.[4])}`}
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base ${getBadgeColor(blackMove?.[4])}`}
                                                     onClick={() => blackMove && updateBoard(blackMove[1], blackMove[2], blackMove[3])}
                                                 >
                                                     {blackMove?.[0] || ""}
@@ -1825,8 +1843,8 @@ export default function AnalysisBoard() {
                             </div>
                         </div>
                     </div>
-                    <div className="p-4">
-                        <div className="flex justify-between items-center text-white text-xl">
+                    <div className="p-2 sm:p-4">
+                        <div className="flex justify-between items-center text-white text-lg sm:text-xl">
                             <div className="flex flex-col">
                                 <span>{username}</span>
                                 <span className="text-sm">
@@ -1843,8 +1861,8 @@ export default function AnalysisBoard() {
                                             }}
                                         >
                                             {pointsDelta > 0
-                                                ? ` + ${pointsDelta} `
-                                                : ` ${pointsDelta} `}
+                                                ? ` +${pointsDelta}`
+                                                : ` ${pointsDelta}`}
                                         </span>
                                     )}
                                 </span>
