@@ -119,6 +119,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [isDrawAvailable, setIsDrawAvailable] = useState(false)
     const [loading, setLoading] = useState(true);
     const [orgBoard, setOrgBoard] = useState(null)
+    const [canMove, setCanMove] = useState(true)
 
     useEffect(() => {
 
@@ -544,12 +545,17 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             }
         }
 
-        if (Object.hasOwn(socketMessage, "moves") && Array.isArray(socketMessage.moves) && socketMessage.moves.length > 0) {
-            setMovesHistory(socketMessage.moves);
+        if (Object.hasOwn(socketMessage, "movesHistory") && Array.isArray(socketMessage.movesHistory) && socketMessage.movesHistory.length > 0) {
 
+            setMovesHistory(socketMessage.movesHistory);
         } else if (Object.hasOwn(socketMessage, "move_notation") && typeof socketMessage.move_notation !== 'undefined' && socketMessage.move_notation !== null && socketMessage.move_notation !== "") {
 
-            setMovesHistory(prev => [...prev, socketMessage.move_notation]);
+            setMovesHistory(prev => [...prev, {
+                board: socketMessage.board,
+                from: socketMessage.data.from,
+                to: socketMessage.data.to,
+                move_notation: socketMessage.move_notation,
+            }]);
 
         }
 
@@ -1466,6 +1472,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         };
 
         const handleMouseDown = (e) => {
+
+            if (!canMove) {
+                return
+            }
+
             const pos = getMousePos(e);
             const col = Math.floor(pos.x / cellSize);
             const row = Math.floor(pos.y / cellSize);
@@ -1583,7 +1594,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         getPiecePreMoves,
         getPinMoves,
         play,
-        orgBoard
+        orgBoard,
+        canMove
     ]);
 
     useEffect(() => {
@@ -1852,6 +1864,23 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         });
     }
 
+    function updateBoard(fromSquare, toSquare, boardFen, isLast) {
+
+        let brd = fenToBoard(boardFen, isBlack);
+
+        if (isBlack) {
+            brd = rotateMatrix180(brd)
+
+        }
+
+        const fromSquareIndex = notationToIndex(fromSquare, isBlack)
+        const toSquareIndex = notationToIndex(toSquare, isBlack)
+
+        setPreviousMove([[fromSquareIndex[0], fromSquareIndex[1]], [toSquareIndex[0], toSquareIndex[1]]]);
+        setBoard(brd)
+        setCanMove(isLast)
+    }
+
     return (
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center bg-gray-900 mt-4 sm:mt-8 gap-4 lg:gap-6 p-3 sm:p-0 w-full">
             <div className="w-full max-w-[750px] lg:w-auto flex flex-col items-center">
@@ -1931,23 +1960,35 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                     </div>
 
                     <div ref={scrollRef} className="h-56 sm:h-72 overflow-y-auto">
-                        <div className="grid grid-cols-2 text-white">
-                            <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">White</div>
-                            <div className="bg-gray-700 border border-gray-600 text-center font-bold py-1">Black</div>
+                        <div ref={scrollRef} className="h-56 sm:h-72 overflow-y-auto">
+                            <div className="grid grid-cols-2 text-white">
 
-                            {movesHistory.map((move, index) => {
-                                if (index % 2 === 0) {
-                                    return (
-                                        <Fragment key={index}>
-                                            <div className="border border-gray-600 text-center py-1 text-sm sm:text-base">{move}</div>
-                                            <div className="border border-gray-600 text-center py-1 text-sm sm:text-base">
-                                                {movesHistory[index + 1] || ""}
-                                            </div>
-                                        </Fragment>
-                                    );
-                                }
-                                return null;
-                            })}
+                                {movesHistory.map((move, index) => {
+
+                                    if (index % 2 === 0) {
+                                        const blackMove = movesHistory[index + 1];
+                                        return (
+                                            <Fragment key={index}>
+                                                <div
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base`}
+                                                    onClick={() => updateBoard(move.from, move.to, move.board, (index === movesHistory.length - 1))}
+                                                >
+                                                    {move.move_notation}
+                                                </div>
+
+                                                <div
+                                                    className={`border border-gray-600/50 text-center py-1.5 cursor-pointer hover:bg-gray-700 transition text-sm sm:text-base`}
+                                                    onClick={() => blackMove && updateBoard(blackMove.from, blackMove.to, blackMove.board, (index === movesHistory.length - 1))}
+                                                >
+                                                    {blackMove?.move_notation || ""}
+                                                </div>
+                                            </Fragment>
+                                        );
+                                    }
+
+                                    return null;
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
