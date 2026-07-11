@@ -1886,6 +1886,11 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         setCanMove(isLast)
     }
 
+    function navigateToAnalysisBoard() {
+            navigate(`/games/${gameId}/analyze`);
+
+    }
+
     return (
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center bg-gray-900 mt-4 sm:mt-8 gap-4 lg:gap-6 p-3 sm:p-0 w-full">
             <div className="w-full max-w-[750px] lg:w-auto flex flex-col items-center">
@@ -2166,6 +2171,25 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                             }
 
 
+                                        })()}
+
+                                        {(() => {
+                                            if (!loadNewGame && !isRematchOffered) {
+                                                return (
+                                                    <div>
+                                                        <button
+                                                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                                            style={{
+                                                                backgroundColor: 'oklch(0.5 0 0)'
+                                                            }}
+                                                            onClick={navigateToAnalysisBoard}
+
+                                                        >
+                                                            Analyize
+                                                        </button>
+                                                    </div>
+                                                )
+                                            }
                                         })()}
 
                                     </div>
