@@ -48,7 +48,6 @@ export default function AnalysisBoard() {
     const [oldBoard, setOldBoard] = useState([]);
     const [images, setImages] = useState({});
 
-    const [startPos, setStartPos] = useState(null);
     const [turn, setTurn] = useState("white");
     const imageScale = 0.75;
     const [draggingPiece, setDraggingPiece] = useState(null);
@@ -57,9 +56,13 @@ export default function AnalysisBoard() {
     const [moves, setMoves] = useState([]);
     const [enpassantSquare, setEnpassantSquare] = useState(null);
     const [lines, setLines] = useState([]);
+    const [engineLines, setEngineLines] = useState([]);
+    const startPosRef = useRef(null);
 
     const lightColor = "#f0d9b5";
     const darkColor = "#b58863";
+    const darkRed = "#880808";
+    const lightRed = "#FF6666";
     const [canWhiteKingSideCastle, setCanWhiteKingSideCastle] = useState(true)
     const [canWhiteLongCastle, setCanWhiteLongCastle] = useState(true)
 
@@ -99,6 +102,8 @@ export default function AnalysisBoard() {
     const darkBoysenberry = "#6C284D";
 
     const [canvasDisplaySize, setCanvasDisplaySize] = useState(size);
+    const [highlightBoard, setHighLightBoard] = useState(Array.from({ length: 16 }, () => Array(16).fill(false)));
+
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -123,7 +128,7 @@ export default function AnalysisBoard() {
             setWorker(activeWorker);
         } else {
             setBoardEvaluation(0);
-            setLines([]);
+            setEngineLines([]);
             setWorker(null);
         }
 
@@ -335,14 +340,13 @@ export default function AnalysisBoard() {
                         let fromIndex = notationToIndex(from, !isOriginalPerspective)
                         let toIndex = notationToIndex(to, !isOriginalPerspective)
 
-                        let cellSize = 93.75 //TODO fix this
-
-                        setLines([
+                        setEngineLines([
                             {
-                                start: { x: fromIndex[1] * cellSize + cellSize / 2, y: fromIndex[0] * cellSize + cellSize / 2 },
-                                end: { x: toIndex[1] * cellSize + cellSize / 2, y: toIndex[0] * cellSize + cellSize / 2 }
+                                start: [fromIndex[0], fromIndex[1]],
+                                end: [toIndex[0], toIndex[1]],
                             },
-                        ])
+                        ]);
+
                     }
 
                 }
@@ -567,24 +571,34 @@ export default function AnalysisBoard() {
 
         if (!canvas) return;
 
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+        };
+
         canvas.addEventListener("mousedown", handleMouseDown);
         canvas.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mouseup", handleMouseUp);
-
+        canvas.addEventListener("contextmenu", handleContextMenu);
         return () => {
             canvas.removeEventListener("mousedown", handleMouseDown);
             canvas.removeEventListener("mousemove", handleMouseMove);
             canvas.removeEventListener("mouseup", handleMouseUp);
+            canvas.removeEventListener("contextmenu", handleContextMenu);
         };
     }, [images, draggingPiece, moves, board]);
 
     function drawArrow(ctx, start, end, color = "red", lineWidth = 20, cellSize = 75) {
-        if (start === undefined || end === undefined) return;
+        if (!start || !end) {
+            return
+        }
 
-        const sx = Math.floor(start.x / cellSize) * cellSize + cellSize / 2;
-        const sy = Math.floor(start.y / cellSize) * cellSize + cellSize / 2;
-        const ex = Math.floor(end.x / cellSize) * cellSize + cellSize / 2;
-        const ey = Math.floor(end.y / cellSize) * cellSize + cellSize / 2;
+        const [sRow, sCol] = start;
+        const [eRow, eCol] = end;
+
+        const sx = sCol * cellSize + cellSize / 2;
+        const sy = sRow * cellSize + cellSize / 2;
+        const ex = eCol * cellSize + cellSize / 2;
+        const ey = eRow * cellSize + cellSize / 2;
 
         if (sx === ex && sy === ey) return;
 
@@ -637,6 +651,10 @@ export default function AnalysisBoard() {
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 let color = (row + col) % 2 === 0 ? lightColor : darkColor
+
+                if (highlightBoard[row][col]) {
+                    color = (row + col) % 2 === 0 ? lightRed : darkRed
+                }
 
                 if (previousMove.length > 0) {
                     let [from, to] = previousMove
@@ -728,10 +746,25 @@ export default function AnalysisBoard() {
                 }
             }
         }
-        lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", cellSize / 4, cellSize));
 
-        if (isRightDragging && startPos && mousePos) {
-            drawArrow(ctx, startPos, mousePos, "blue", cellSize / 4, cellSize);
+        lines.forEach(({ start, end }) => drawArrow(ctx, start, end, "orange", cellSize / 4, cellSize));
+        engineLines.forEach(({ start, end }) => drawArrow(ctx, start, end, "green", cellSize / 4, cellSize));
+
+        if (isRightDragging && startPosRef.current && mousePos) {
+            drawArrow(
+                ctx,
+                [
+                    Math.floor(startPosRef.current.y / cellSize),
+                    Math.floor(startPosRef.current.x / cellSize),
+                ],
+                [
+                    Math.floor(mousePos.y / cellSize),
+                    Math.floor(mousePos.x / cellSize),
+                ],
+                "orange",
+                cellSize / 4,
+                cellSize
+            );
         }
 
         if (draggingPiece && images[draggingPiece.piece.name]) {
@@ -760,7 +793,8 @@ export default function AnalysisBoard() {
         mousePos,
         moves,
         draggingPiece,
-        lines
+        lines,
+        engineLines
     ])
 
     const getMousePos = (e) => {
@@ -1014,8 +1048,7 @@ export default function AnalysisBoard() {
         const piece = board[row][col];
 
         if (e.button === 2) {
-            e.preventDefault();
-            setStartPos(pos);
+            startPosRef.current = pos;
             setMousePos(pos);
             setIsRightDragging(true);
             return;
@@ -1034,6 +1067,8 @@ export default function AnalysisBoard() {
                 setMoves([])
 
             }
+            setHighLightBoard(Array.from({ length: 16 }, () => Array(16).fill(false)));
+            setLines([])
         }
 
     };
@@ -1052,8 +1087,33 @@ export default function AnalysisBoard() {
         const newRow = Math.floor(pos.y / cellSize);
 
         if (e.button === 2) {
+
+            let sPos = startPosRef.current
+
+            if (sPos) {
+                const sCol = Math.floor(sPos.x / cellSize);
+                const sRow = Math.floor(sPos.y / cellSize);
+
+                if (sCol === newCol && sRow === newRow) {
+                    setHighLightBoard(prev => {
+                        const board = prev.map(row => [...row]);
+                        board[sRow][sCol] = true;
+                        return board;
+                    });
+
+                } else {
+
+                    setLines(prev => [
+                        ...prev,
+                        {
+                            start: [sRow, sCol],
+                            end: [newRow, newCol],
+                        },
+                    ]);
+                }
+            }
+
             setIsRightDragging(false);
-            setStartPos(null);
             setMousePos(null);
         }
 
