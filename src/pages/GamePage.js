@@ -59,7 +59,6 @@ export default function GamePage() {
       </h2>
 
       <ChessBoard
-        size={500}
         message={socketMessage}
         gameBoard={gameBoard}
       />
