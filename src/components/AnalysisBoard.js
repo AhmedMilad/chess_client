@@ -1540,6 +1540,10 @@ export default function AnalysisBoard() {
         setIsGameAnalysis(!isGameAnalysis)
     }
 
+    function home() {
+        navigate("/");
+    }
+
     useEffect(() => {
         setWhiteHeight(getBarHeight(boardEvaluation))
     }, [
@@ -1750,15 +1754,24 @@ export default function AnalysisBoard() {
                         {(() => {
 
                             return (
-                                <button
-                                    onClick={toggleEngineAnalysis}
-                                    className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-md text-white border-none cursor-pointer"
-                                    style={{
-                                        backgroundColor: !isGameAnalysis ? '#4CAF50' : '#f44336',
-                                    }}
-                                >
-                                    {!isGameAnalysis ? 'Turn on engine' : 'Turn off engine'}
-                                </button>
+                                <div>
+                                    <button
+                                        onClick={toggleEngineAnalysis}
+                                        className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-md text-white border-none cursor-pointer"
+                                        style={{
+                                            backgroundColor: !isGameAnalysis ? '#4CAF50' : '#f44336',
+                                        }}
+                                    >
+                                        {!isGameAnalysis ? 'Turn on engine' : 'Turn off engine'}
+                                    </button>
+                                    <button
+                                        onClick={home}
+                                        className="mx-4 px-4 py-2 sm:px-5 sm:py-2.5 rounded-md text-white border-none cursor-pointer bg-blue-500"
+                                    >
+                                        Home
+                                    </button>
+
+                                </div>
                             );
 
                         })()}
