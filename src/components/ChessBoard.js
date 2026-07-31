@@ -120,6 +120,8 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     const [loading, setLoading] = useState(true);
     const [orgBoard, setOrgBoard] = useState(null)
     const [canMove, setCanMove] = useState(true)
+    const [opponentDisconnected, setOpponentDisconnected] = useState(false)
+    const [disconnectSecondsLeft, setDisconnectSecondsLeft] = useState(30);
 
     useEffect(() => {
 
@@ -230,7 +232,9 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
             setMovesHistory([])
 
-            setGameID(socketMessage.game_id)
+            if (Object.hasOwn(socketMessage, 'game_id')) {
+                setGameID(socketMessage.game_id)
+            }
 
             if (Object.hasOwn(socketMessage, 'board')) {
 
@@ -284,13 +288,27 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
         if (socketMessage === null || ((Object.hasOwn(socketMessage, 'game_id') && (Object.hasOwn(socketMessage, 'type') && socketMessage !== "start_game") && gameId !== socketMessage.game_id))) return;
 
-        setGameID(socketMessage.game_id)
+        if (Object.hasOwn(socketMessage, 'game_id')) {
+            setGameID(socketMessage.game_id)
+        }
 
         if (Object.hasOwn(socketMessage, "color") && socketMessage.color === "black") {
             setIsBlack(true)
         }
 
         if (Object.hasOwn(socketMessage, 'type')) {
+
+            if (socketMessage.type === "opponent_disconnected") {
+                setOpponentDisconnected(true)
+                return
+
+            }
+
+            if (socketMessage.type === "opponent_connected") {
+                setOpponentDisconnected(false)
+                return
+
+            }
 
             if (socketMessage.type === "draw_available") {
                 setIsDrawAvailable(true)
@@ -1686,6 +1704,21 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
         drawPromotionBoard,
     ]);
 
+    useEffect(() => {
+        if (!opponentDisconnected) {
+            setDisconnectSecondsLeft(30);
+            return;
+        }
+
+        setDisconnectSecondsLeft(30);
+
+        const interval = setInterval(() => {
+            setDisconnectSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [opponentDisconnected]);
+
     function handleMove(newRow, newCol, piece) {
         if (piece.piece.isPlayable !== turn) {
             if (moves.some(([r, c]) => r === newRow && c === newCol)) {
@@ -1887,7 +1920,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
     }
 
     function navigateToAnalysisBoard() {
-            navigate(`/games/${gameId}/analyze`);
+        navigate(`/games/${gameId}/analyze`);
 
     }
 
@@ -2051,6 +2084,16 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                         </div>
                     </div>
                 </div>
+
+                {opponentDisconnected && !isGameOver && (
+                    <div className="bg-yellow-900/40 border border-yellow-600 rounded-lg p-3 mb-3 text-center">
+                        <p className="text-yellow-300 text-sm sm:text-base">
+                            {disconnectSecondsLeft > 0
+                                ? `Opponent disconnected. Game ends in ${disconnectSecondsLeft}s.`
+                                : "Waiting for game to end..."}
+                        </p>
+                    </div>
+                )}
 
                 {(() => {
 
