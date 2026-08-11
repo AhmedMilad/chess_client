@@ -92,4 +92,4 @@ REACT_APP_BACKEND_URL=
 
 ## License
 
-> _MIT lisense._
+> _MIT license._
