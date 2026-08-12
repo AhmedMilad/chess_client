@@ -23,9 +23,6 @@ export default function GamePage() {
       (msg) => {
         try {
           const data = JSON.parse(msg);
-
-          console.log("received:", data);
-
           setSocketMessage(data);
         } catch (error) {
           console.error("Invalid message format:", msg);
@@ -54,9 +51,6 @@ export default function GamePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-      <h2 className="text-white text-2xl mb-4">
-        Game #{id}
-      </h2>
 
       <ChessBoard
         message={socketMessage}

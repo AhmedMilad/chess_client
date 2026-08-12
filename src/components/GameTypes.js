@@ -1,27 +1,48 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { connectWebSocket } from "../utils/websocket";
+import { connectWebSocket, closeWebSocket, socket } from "../utils/websocket";
+import { ClipLoader } from "react-spinners";
 
 export default function GameTypes({ games }) {
   const navigate = useNavigate();
-  const [socketMessage, setSocketMessage] = useState(null);
+  const [SocketMessage, setSocketMessage] = useState(null);
+  const [pendingGame, setPendingGame] = useState(null);
 
   const handleClick = (game) => {
     const token = localStorage.getItem("token");
 
     const baseURL = process.env.REACT_APP_BACKEND_URL
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      closeWebSocket()
+    }
+
     connectWebSocket(
       baseURL + `/api/games/${game.id}/play?token=${token}`,
       (msg) => {
         try {
           const data = JSON.parse(msg);
 
-          if (data.type === "start_game") {
-            setSocketMessage(data);
+          if (Object.hasOwn(data, "type")) {
+            if (data.type === "start_game") {
+              setSocketMessage(data);
 
-            navigate(`/games/${data.game_id}`, { state: { message: data } });
+              navigate(`/games/${data.game_id}`, { state: { message: data } });
+            }
+
+            if (data.type === "player_enqueued") {
+              if (Object.hasOwn(data, "game_category")) {
+                setPendingGame(data.game_category)
+              }
+            }
+
+            if (data.type === "player_dequeued") {
+              setPendingGame(null)
+            }
           }
+
         } catch (error) {
+
+          console.log(error)
           console.error("Invalid message format:", msg);
         }
       },
@@ -42,6 +63,18 @@ export default function GameTypes({ games }) {
         >
           <span className="text-black font-semibold text-lg">{game.name}</span>
           <span className="text-black">{game.duration} min</span>
+
+          {(() => {
+
+            if (pendingGame !== null && pendingGame.toLowerCase() === game.name.toLowerCase()) {
+              return (<ClipLoader
+                color="#000000"
+                size={18}
+                aria-label="Loading"
+              />)
+            }
+          })()}
+
         </div>
       ))}
     </div>
