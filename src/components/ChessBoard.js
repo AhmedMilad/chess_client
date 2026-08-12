@@ -1924,6 +1924,12 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
     }
 
+
+    function home() {
+        navigate("/");
+    }
+
+
     return (
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center bg-gray-900 mt-4 sm:mt-8 gap-4 lg:gap-6 p-3 sm:p-0 w-full">
             <div className="w-full max-w-[750px] lg:w-auto flex flex-col items-center">
@@ -2117,124 +2123,97 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                                 <div className="mx-auto flex flex-wrap justify-center">
 
-                                    <div className="mx-auto flex flex-wrap justify-center gap-3 sm:space-x-4">
-                                        {(() => {
-                                            if (!isRematchAvailable) {
-                                                if (!isRematchOffered && !loadNewGame) {
-                                                    return (
-                                                        <div>
-                                                            <button
-                                                                className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                                style={{
-                                                                    backgroundColor: 'oklch(48.8% 0.243 264.376)'
-                                                                }}
-                                                                onClick={OfferRematch}
-                                                            >
-                                                                Rematch
-                                                            </button>
-                                                        </div>
-                                                    )
-                                                } else {
-                                                    if (isRematchOffered) {
-                                                        return (
-                                                            <button
-                                                                className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                                style={{
-                                                                    backgroundColor: 'oklch(58.6% 0.253 17.585)'
-                                                                }}
-                                                                onClick={cancelRematchOffer}
-                                                            >
-                                                                Sent Rematch
-                                                            </button>)
+                                    <div className="mx-auto flex w-full justify-center px-2">
+                                        <div className="flex w-full max-w-2xl flex-wrap items-center justify-center gap-3">
 
-                                                    }
-                                                }
-                                            } else {
+                                            {!isRematchAvailable ? (
+                                                !isRematchOffered && !loadNewGame ? (
+                                                    <button
+                                                        className="whitespace-nowrap rounded-lg px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                        style={{
+                                                            backgroundColor: 'oklch(48.8% 0.243 264.376)',
+                                                        }}
+                                                        onClick={OfferRematch}
+                                                    >
+                                                        Rematch
+                                                    </button>
+                                                ) : isRematchOffered ? (
+                                                    <button
+                                                        className="whitespace-nowrap rounded-lg px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                        style={{
+                                                            backgroundColor: 'oklch(58.6% 0.253 17.585)',
+                                                        }}
+                                                        onClick={cancelRematchOffer}
+                                                    >
+                                                        Sent Rematch
+                                                    </button>
+                                                ) : null
+                                            ) : (
+                                                <button
+                                                    className="whitespace-nowrap rounded-lg px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                    style={{
+                                                        backgroundColor: 'oklch(64.6% 0.222 41.116)',
+                                                    }}
+                                                    onClick={acceptRematch}
+                                                >
+                                                    Accept Rematch
+                                                </button>
+                                            )}
 
-                                                return (
-                                                    <div>
-                                                        <button
-                                                            className="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                            style={{
-                                                                backgroundColor: 'oklch(64.6% 0.222 41.116)'
-                                                            }}
-                                                            onClick={acceptRematch}
-                                                        >
-                                                            Accept Rematch
-                                                        </button>
-                                                    </div>
+                                            {!isRematchOffered && (
+                                                !loadNewGame ? (
+                                                    <button
+                                                        className="whitespace-nowrap rounded-lg px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                        style={{
+                                                            backgroundColor: 'oklch(43.2% 0.095 166.913)',
+                                                        }}
+                                                        onClick={newGame}
+                                                    >
+                                                        New Game
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={cancelNewGame}
+                                                        className="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                        style={{
+                                                            backgroundColor: 'oklch(58.6% 0.253 17.585)',
+                                                        }}
+                                                    >
+                                                        {loading && (
+                                                            <ClipLoader
+                                                                color="#ffffff"
+                                                                size={18}
+                                                                aria-label="Loading"
+                                                            />
+                                                        )}
 
+                                                        Loading...
+                                                    </button>
                                                 )
+                                            )}
 
-                                            }
+                                            {!loadNewGame && !isRematchOffered && (
+                                                <button
+                                                    className="whitespace-nowrap rounded-lg px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                    style={{
+                                                        backgroundColor: 'oklch(0.5 0 0)',
+                                                    }}
+                                                    onClick={navigateToAnalysisBoard}
+                                                >
+                                                    Analyze
+                                                </button>
+                                            )}
 
+                                            {!loadNewGame && !isRematchOffered && (
+                                                <button
+                                                    className="whitespace-nowrap rounded-lg bg-blue-500 px-4 py-2 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                                    onClick={home}
+                                                >
+                                                    Home
+                                                </button>
+                                            )}
 
-                                        })()}
-
-                                        {(() => {
-                                            if (!loadNewGame && !isRematchOffered) {
-                                                return (
-                                                    <div>
-                                                        <button
-                                                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                            style={{
-                                                                backgroundColor: 'oklch(43.2% 0.095 166.913)'
-                                                            }}
-                                                            onClick={newGame}
-
-                                                        >
-                                                            New Game
-                                                        </button>
-                                                    </div>
-                                                )
-                                            } else {
-                                                if (loadNewGame) {
-
-                                                    return (
-                                                        <button
-                                                            onClick={cancelNewGame}
-                                                            className="flex items-center justify-center gap-2 px-4 py-2 text-white rounded disabled:opacity-50"
-                                                            style={{
-                                                                backgroundColor: 'oklch(58.6% 0.253 17.585)'
-                                                            }}
-                                                        >
-                                                            {loading && (
-                                                                <ClipLoader
-                                                                    color="#ffffff"
-                                                                    size={18}
-                                                                    aria-label="Loading"
-                                                                />
-                                                            )}
-
-                                                            Loading...
-                                                        </button>
-
-                                                    )
-                                                }
-                                            }
-
-
-                                        })()}
-
-                                        {(() => {
-                                            if (!loadNewGame && !isRematchOffered) {
-                                                return (
-                                                    <div>
-                                                        <button
-                                                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                                            style={{
-                                                                backgroundColor: 'oklch(0.5 0 0)'
-                                                            }}
-                                                            onClick={navigateToAnalysisBoard}
-
-                                                        >
-                                                            Analyze
-                                                        </button>
-                                                    </div>
-                                                )
-                                            }
-                                        })()}
-
+                                        </div>
                                     </div>
                                 </div>
                             </div>
