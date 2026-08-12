@@ -1944,7 +1944,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
             </div>
 
             <div className="flex flex-col w-full lg:w-96">
-                {(() => {
+                {/* {(() => {
                     if (isGameOver) {
 
                         if (isDraw) {
@@ -1963,7 +1963,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
 
                     }
 
-                })()}
+                })()} */}
                 <div className="p-2 sm:p-4">
                     <div className="flex justify-between items-center text-white text-lg sm:text-xl">
                         <div className="flex flex-col">

@@ -17,7 +17,6 @@ export function connectWebSocket(url, onMessage, onOpen, onClose, onError) {
     };
 
     socket.onclose = () => {
-        console.log("WebSocket closed");
         if (onClose) onClose();
     };
 
