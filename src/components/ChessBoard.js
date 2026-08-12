@@ -2228,7 +2228,7 @@ export default function ChessBoard({ size = 750, message, gameBoard }) {
                                                             onClick={navigateToAnalysisBoard}
 
                                                         >
-                                                            Analyize
+                                                            Analyze
                                                         </button>
                                                     </div>
                                                 )
